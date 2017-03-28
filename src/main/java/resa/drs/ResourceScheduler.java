@@ -1,5 +1,6 @@
 package resa.drs;
 
+import clojure.lang.IFn;
 import org.apache.storm.Config;
 import org.apache.storm.scheduler.ExecutorDetails;
 import resa.metrics.MeasuredData;

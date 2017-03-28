@@ -36,6 +36,15 @@ public class ResaConfig extends Config {
     public static final String ZK_ROOT_PATH = "resa.scheduler.zk.root";
     public static final String DECISION_MAKER_CLASS = "resa.scheduler.decision.class";
 
+
+    /*load shedding related configuration*/
+//    final public static String RANDOM_SHEDDABLE_BOLT = "random.sheddable.bolt";
+//    final public static String WINDOW_BASE_SHEDDABLE_BOLT = "windowbase.sheddable.bolt";
+//    final public static String WINDOW_BASE_SHEDDABLE_SEC = "windowbase.sheddable.sec";
+//    final public static String WINDOW_BASE_SHEDDABLE_CONUT = "windowbase.sheddable.count";
+//    final public static String WINDOW_BASE_SHEDDABLE_TYPE = "windowbase.sheddable.type";
+    final public static String SHEDDING_CLASS = "shedder";
+
     private ResaConfig(boolean loadDefault) {
         if (loadDefault) {
             //read default.yaml & storm.yaml

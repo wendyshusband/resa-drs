@@ -1,5 +1,6 @@
 package resa.optimize;
 
+import clojure.lang.IFn;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.slf4j.Logger;
@@ -7,10 +8,7 @@ import org.slf4j.LoggerFactory;
 import resa.metrics.MeasuredData;
 import resa.metrics.MetricNames;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -131,7 +129,9 @@ public class AggResultCalculator {
             parse(measuredData, car);
             count++;
         }
-        LOG.info("calCMVStat, processed measuredData size: " + count);
+        LOG.info("calCMVStat, processed measuredData size : " + count);
+               // + dataStream.iterator().next().data.toString());
+
     }
 
     public Map<String, AggResult[]> getComp2ExecutorResults() {

@@ -43,7 +43,8 @@ resa.scheduler.decision.class: "resa.drs.DefaultDecisionMaker"
 
 ## Note, the following parameters are valid only when "resa.drs.DefaultDecisionMaker" is configured:
 ### The minimal expected interval that the "resa.drs.DefaultDecisionMaker" will trigger the Topology rebalance operation when it detects a better allocation suggested by drs allocation calculator. The default value is "resa.optimize.interval.secs" * 2
-resa.opt.adjust.min.sec: 360
+resa.opt.adjust.min.sec: 120
+#360
 
 ### The type of suggested allocation to consider, 
 ### 0: CurrentOpt(default) - where total number of executors used remain unchanged after rebalance; 
@@ -68,10 +69,10 @@ resa.topology.max.executor.per.worker: 2
 # User-defined topology related configuration and parameter settings
 
 ## Redis queue for input data
-redis.host: "192.168.0.31"
+redis.host: "kailin-ubuntu"
 redis.port: 6379
-redis.sourceQueueName: "fSource"
-redis.queue: "fSource"
+redis.sourceQueueName: "fsource"
+redis.queue: "fsource"
 
 ## topology level
 chain-NumOfWorkers: 3

@@ -42,6 +42,7 @@ public class MMKAllocCalculator extends AllocCalculator {
                 .forEach(e -> spoutHistoricalData.putResult(e.getKey(), e.getValue()));
         executorAggResults.entrySet().stream().filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
                 .forEach(e -> boltHistoricalData.putResult(e.getKey(), e.getValue()));
+
         // check history size. Ensure we have enough history data before we run the optimize function
         currHistoryCursor++;
         if (currHistoryCursor < historySize) {
