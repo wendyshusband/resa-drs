@@ -129,7 +129,7 @@ public class TestRedis {
                 "i like you,but i love her more.",
                 "this salad is very good."
         };
-        int i = 10000;
+        int i = 50000;
         while(i>0){
             for(int j=0;j<s.length;j++){
                 jedis.lpush("fsource",s[j]);

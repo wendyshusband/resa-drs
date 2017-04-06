@@ -54,6 +54,10 @@ public class MMKAllocCalculator extends AllocCalculator {
             currHistoryCursor = historySize;
         }
 
+        boltHistoricalData.compHistoryResults.entrySet().stream().forEach(e->{
+
+        });
+
         ///TODO: Here we assume only one spout, plan to extend to multiple spouts in future
         ///TODO: here we assume only one running topology, plan to extend to multiple running topologies in future
         double targetQoSMs = ConfigUtil.getDouble(conf, ResaConfig.OPTIMIZE_SMD_QOS_MS, 5000.0);
@@ -135,4 +139,5 @@ public class MMKAllocCalculator extends AllocCalculator {
         boltHistoricalData.clear();
         currHistoryCursor = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_WIN_HISTORY_SIZE_IGNORE, 0);
     }
+
 }

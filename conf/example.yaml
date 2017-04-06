@@ -9,6 +9,8 @@ resa.metric.approved.names:
  - "__receive recv-queue" 
  - "duration" 
  - "arrival_rate_secs"
+ - "shedding_rate"
+ #tkl
 
 ## Determine whether to attached detailed running informaiton of resa-drs will to the LOG outputs, default is false
 resa.container.metric.output: true
@@ -114,3 +116,11 @@ loop-BoltB.parallelism: 4
 loop-BoltB.mu: 15
 loop-BoltB-loopback.prob: 0.2
 
+
+#load shedding
+#shedding queue size
+resa.shedding.tuple.queue.capacity: 1024
+# the lambda history data queue size
+resa.shedding.lambda.selectivity.history.size: 5
+#
+resa.shedding.selectivity.function.order: 1

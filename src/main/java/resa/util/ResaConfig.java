@@ -2,6 +2,7 @@ package resa.util;
 
 import org.apache.storm.Config;
 import org.apache.storm.utils.Utils;
+import resa.shedding.topology.SheddingResaContainer;
 import resa.topology.ResaContainer;
 
 import java.util.Map;
@@ -36,14 +37,11 @@ public class ResaConfig extends Config {
     public static final String ZK_ROOT_PATH = "resa.scheduler.zk.root";
     public static final String DECISION_MAKER_CLASS = "resa.scheduler.decision.class";
 
-
-    /*load shedding related configuration*/
-//    final public static String RANDOM_SHEDDABLE_BOLT = "random.sheddable.bolt";
-//    final public static String WINDOW_BASE_SHEDDABLE_BOLT = "windowbase.sheddable.bolt";
-//    final public static String WINDOW_BASE_SHEDDABLE_SEC = "windowbase.sheddable.sec";
-//    final public static String WINDOW_BASE_SHEDDABLE_CONUT = "windowbase.sheddable.count";
-//    final public static String WINDOW_BASE_SHEDDABLE_TYPE = "windowbase.sheddable.type";
-    final public static String SHEDDING_CLASS = "shedder";
+    //load shedding
+    public static final String TUPLE_QUEUE_CAPACITY = "resa.shedding.tuple.queue.capacity";
+    public static final String LAMBDA_FOR_SELECTIVITY_HISTORY_SIZE = "resa.shedding.lambda.selectivity.history.size";
+    public static final String SELECTIVITY_FUNCTION_ORDER = "resa.shedding.selectivity.function.order";
+    public static final String SELECTIVITY_CALC_CLASS = "resa.shedding.selectivity.calc.class";
 
     private ResaConfig(boolean loadDefault) {
         if (loadDefault) {
@@ -79,6 +77,7 @@ public class ResaConfig extends Config {
     }
 
     public void addDrsSupport() {
-        registerMetricsConsumer(ResaContainer.class, 1);
+        //registerMetricsConsumer(ResaContainer.class, 1);
+        registerMetricsConsumer(SheddingResaContainer.class, 1);//tkl
     }
 }

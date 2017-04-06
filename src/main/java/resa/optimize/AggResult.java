@@ -1,5 +1,9 @@
 package resa.optimize;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Created by Tom.fu on 16/4/2014.
  * Modified by Tom Fu on 21-Dec-2015, for new DisruptQueue Implementation for Version after storm-core-0.10.0
@@ -14,6 +18,7 @@ public class AggResult implements Cloneable {
     protected long duration = 0;
     protected QueueAggResult sendQueueResult = new QueueAggResult();
     protected QueueAggResult recvQueueResult = new QueueAggResult();
+    protected Map<String, Long> emitCount = new HashMap<>();//tkl
 
     /**
      * Vertical Combine is used for combine executor-level results to component-level results
@@ -53,6 +58,13 @@ public class AggResult implements Cloneable {
         //CMVAdd will check null or not, no need to check here.
         //Objects.requireNonNull(r, "input AggResult cannot null");
         this.duration += r.duration;
+        //load shedding
+        r.getemitCount().forEach((stream,count)->{
+            if(this.emitCount.containsKey(stream)){
+                emitCount.put(stream,emitCount.get(stream)+count);
+            }
+        });
+        //
     }
 
     public QueueAggResult getSendQueueResult() {
@@ -112,4 +124,16 @@ public class AggResult implements Cloneable {
         //return sendQueueResult.getQueueArrivalRate().getScv();
         return 1.0;
     }
+
+    public Map<String, Long> getemitCount() {
+        return emitCount;
+    }
+
+   /* public Integer getEmitCountResult() {
+        Map<String,Double> emitCountProportion = new HashMap<>();
+        emitCount.forEach((stream,count)->{
+            System.out.println(stream+":"+count);
+        });
+        return 99999;
+    }*/
 }

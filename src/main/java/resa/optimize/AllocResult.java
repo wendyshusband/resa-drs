@@ -49,4 +49,5 @@ public class AllocResult {
         this.context = context;
         return this;
     }
+
 }

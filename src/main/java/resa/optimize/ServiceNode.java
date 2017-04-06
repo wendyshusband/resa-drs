@@ -36,12 +36,18 @@ public class ServiceNode {
     protected double exArrivalRate;
     protected double ratio;
 
+    /*load shedding*/
+    //tkl
+    protected double sheddingRate;
+    //protected int emitCount;
 
     public ServiceNode(String componentID, int executorNumber, double compSampleRate,
                        BoltAggResult ar, double exArrivalRate){
-        this.componentID = componentID;
-        this.executorNumber = executorNumber;
-        this.compSampleRate = compSampleRate;
+        this.sheddingRate = ar.getAvgSheddingRateHis();//tkl
+        //this.emitCount = ar.getemitCount();
+        this.componentID = componentID;//
+        this.executorNumber = executorNumber;//
+        this.compSampleRate = compSampleRate;//
 
         this.avgSendQueueLength = ar.getAvgSendQueueLength();
         this.avgRecvQueueLength = ar.getAvgRecvQueueLength();
@@ -61,6 +67,8 @@ public class ServiceNode {
         this.rho = lambda * avgServTimeHis / (executorNumber * 1000.0);
 
         this.ratio = this.exArrivalRate > 0.0 ? (this.lambda / this.exArrivalRate) : 0;
+
+
 
         LOG.info("ServiceNode is created: " + toString());
     }
@@ -130,14 +138,14 @@ public class ServiceNode {
         return rho;
     }
 
-
+    public double getSheddingRate(){return sheddingRate;}
     @Override
     public String toString() {
         return String.format(
                 "(ID, eNum):(%s,%d), ProcRate: %.3f, avgSTime: %.3f, scvSTime: %.3f, mu: %.3f, ProcCnt: %.1f, Dur: %.1f, sample: %.1f, SQLen: %.1f, RQLen: %.1f, " +
-                        "-----> arrRateAvg: %.3f, arrRateScv: %.3f, ratio: %.3f, rho: %.3f",
+                        "-----> arrRateAvg: %.3f, arrRateScv: %.3f, ratio: %.3f, rho: %.3f, sheddingrate: %.3f",
                 componentID, executorNumber, tupleCompleteRate, avgServTimeHis, scvServTimeHis, mu,
                 numCompleteTuples, sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
-                lambda, interArrivalScv, ratio, rho);
+                lambda, interArrivalScv, ratio, rho, sheddingRate);
     }
 }

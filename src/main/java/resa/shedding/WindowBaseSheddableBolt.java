@@ -9,6 +9,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.windowing.TupleWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import resa.topology.DelegatedBolt;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,7 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Created by kailin on 15/3/17.
  */
-public class WindowBaseSheddableBolt implements IRichBolt,IShedding{
+public class WindowBaseSheddableBolt extends DelegatedBolt implements IShedding{
 
     public static Logger LOG = LoggerFactory.getLogger(WindowBaseSheddableBolt.class);
 
@@ -64,7 +65,7 @@ public class WindowBaseSheddableBolt implements IRichBolt,IShedding{
                     decision[0] = tupleQueueCapacity;
                     decision[1] = drainer.size();
                     if (trigger(decision)) {
-                        ArrayList<Tuple> result = (ArrayList<Tuple>) drop(shedRate, drainer, _collector);
+                        ArrayList<Tuple> result = (ArrayList<Tuple>) drop(shedRate, drainer);
 
                         System.out.println("ifdone!!!!!!!");
                     } else {
@@ -88,23 +89,9 @@ public class WindowBaseSheddableBolt implements IRichBolt,IShedding{
         }
     }
 
-    @Override
-    public void cleanup() {
-        _bolt.cleanup();
-    }
 
     @Override
-    public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-
-    }
-
-    @Override
-    public Map<String, Object> getComponentConfiguration() {
-        return null;
-    }
-
-    @Override
-    public List drop(double shedRate, List queue, OutputCollector collector) {
+    public List drop(double shedRate, List queue) {
         return null;
     }
 

@@ -111,7 +111,7 @@ public class LoadsheddingTopology {
         //Class c = Class.forName((String) config.get(ConfigUtil.RANDOM_SHEDDABLE_BOLT));
         //IBolt obj = (IBolt) c.getDeclaredConstructor(new Class<?>[]{WorkBolt.class}).newInstance(new WorkBolt());
         builder.setSpout("spout", new TestOverLoadSpout(false), 3);
-        builder.setBolt("loadshedding", new DefaultSheddableBolt(new WorkBolt(),new RandomShedder()), 2).shuffleGrouping("spout");
+        builder.setBolt("loadshedding", new DefaultSheddableBolt(new WorkBolt()), 2).shuffleGrouping("spout");
         builder.setBolt("output",new outputBolt(),1).shuffleGrouping("loadshedding");
         Config conf = new Config();
         conf.setDebug(true);

@@ -22,4 +22,7 @@ public class MetricNames {
     public static final String QUEUE_CAPACITY = "capacity";
     public static final String QUEUE_POLULATION = "population";
     public static final String QUEUE_SOJOURN_TIME_MS = "sojourn_time_ms";
+
+    //load shedding
+    public static final String SHEDDING_RATE = "shedding_rate";//tkl
 }

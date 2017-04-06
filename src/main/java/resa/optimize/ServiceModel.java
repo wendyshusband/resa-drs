@@ -37,7 +37,7 @@ public class ServiceModel {
 
     /**
      * We assume the stability check for each node is done beforehand!
-     * Jackson OQN assumes all the arrival and departure are iid and exponential
+         * Jackson OQN assumes all the arrival and departure are iid and exponential
      *
      * Note, the return time unit is in Second!
      *

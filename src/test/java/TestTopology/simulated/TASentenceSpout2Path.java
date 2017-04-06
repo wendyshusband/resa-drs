@@ -38,8 +38,12 @@ public class TASentenceSpout2Path extends RedisQueueSpout {
     @Override
     protected void emitData(Object data) {
         String id = spoutIdPrefix + count;
-        count++;        
-        
+        count++;
+        /*try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }*/
         double prob = rand.nextDouble();
         if (prob < this.p){
         	collector.emit("P-Stream", new Values(id, data), id);
