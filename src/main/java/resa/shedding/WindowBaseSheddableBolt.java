@@ -65,7 +65,7 @@ public class WindowBaseSheddableBolt extends DelegatedBolt implements IShedding{
                     decision[0] = tupleQueueCapacity;
                     decision[1] = drainer.size();
                     if (trigger(decision)) {
-                        ArrayList<Tuple> result = (ArrayList<Tuple>) drop(shedRate, drainer);
+                        //drop(shedRate, drainer);
 
                         System.out.println("ifdone!!!!!!!");
                     } else {
@@ -91,8 +91,8 @@ public class WindowBaseSheddableBolt extends DelegatedBolt implements IShedding{
 
 
     @Override
-    public List drop(double shedRate, List queue) {
-        return null;
+    public void drop(Object[] arg) {
+
     }
 
     @Override

@@ -1,12 +1,13 @@
 package resa.drs;
 
-import clojure.lang.IFn;
 import org.apache.storm.Config;
+import org.apache.storm.generated.StormTopology;
 import org.apache.storm.scheduler.ExecutorDetails;
 import resa.metrics.MeasuredData;
 import resa.optimize.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+//import resa.shedding.drswithshedding.RevertRealLoadData;
 import resa.topology.ContainerContext;
 import resa.util.ConfigUtil;
 import resa.util.ResaUtils;
@@ -106,7 +107,7 @@ public class ResourceScheduler {
                     getNumWorkers(currAllocation)) * maxExecutorsPerWorker : topologyMaxExecutors;
             Map<String, Integer> ret = null;
             try {
-                AllocResult decision = allocCalculator.calc(data, maxExecutors);
+                AllocResult decision = allocCalculator.calc(data, maxExecutors,ctx.getTopology(),new HashMap<>());
                 if (decision != null) {
                     ctx.emitMetric("drs.alloc", decision);
                     LOG.debug("emit drs metric {}", decision);

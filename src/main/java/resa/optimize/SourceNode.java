@@ -3,6 +3,8 @@ package resa.optimize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 /**
  * Created by Tom.fu on 22/6/2016.
  * Modified by Tom Fu on 21-Dec-2015, for new DisruptQueue Implementation for Version after storm-core-0.10.0
@@ -35,7 +37,12 @@ public class SourceNode {
     private double exArrivalRate;
     private double exArrivalScvByInterArrival;
 
+    /*load shedding*/
+    protected Map<String,Long> emitCount;
+
     public SourceNode(String componentID, int executorNumber, double compSampleRate, SpoutAggResult ar){
+        this.emitCount = ar.getemitCount();//load shedding
+
         this.componentID = componentID;
         this.executorNumber = executorNumber;
         this.compSampleRate = compSampleRate;
@@ -128,6 +135,10 @@ public class SourceNode {
         return exArrivalScvByInterArrival;
     }
 
+    public Map<String, Long> getEmitCount() {//load shedding
+        return emitCount;
+    }
+
     @Override
     public String toString() {
         return String.format(
@@ -135,6 +146,6 @@ public class SourceNode {
                         "-----> rateSQ: %.3f, rateSQScv: %.3f, eArr: %.3f, eArrScv: %.3f",
                 componentID, executorNumber, tupleCompleteRate, realLatencyMilliSeconds, scvRealLatency, numCompleteTuples,
                 sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
-                tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival);
+                tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival)+" emitcount: "+emitCount;
     }
 }

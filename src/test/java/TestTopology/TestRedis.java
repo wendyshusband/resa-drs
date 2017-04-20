@@ -126,10 +126,10 @@ public class TestRedis {
         String[] s = {
                 "i am a student.",
                 "you are a player.",
-                "i like you,but i love her more.",
+                "i like you.",
                 "this salad is very good."
         };
-        int i = 50000;
+        int i = 25001;
         while(i>0){
             for(int j=0;j<s.length;j++){
                 jedis.lpush("fsource",s[j]);

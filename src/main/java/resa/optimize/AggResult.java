@@ -60,11 +60,16 @@ public class AggResult implements Cloneable {
         this.duration += r.duration;
         //load shedding
         r.getemitCount().forEach((stream,count)->{
+            //System.out.println("stream "+stream+"  ^^^^^^^"+count+"^^^^^^");
             if(this.emitCount.containsKey(stream)){
+                //System.out.println(emitCount.get(stream)+"get stream is this!");
                 emitCount.put(stream,emitCount.get(stream)+count);
+            }else{
+                emitCount.put(stream,count);
             }
+
         });
-        //
+        //System.out.println(emitCount+"heiheihei");
     }
 
     public QueueAggResult getSendQueueResult() {
@@ -125,15 +130,11 @@ public class AggResult implements Cloneable {
         return 1.0;
     }
 
+    /**
+     *  below is for load shedding
+     * */
     public Map<String, Long> getemitCount() {
         return emitCount;
     }
 
-   /* public Integer getEmitCountResult() {
-        Map<String,Double> emitCountProportion = new HashMap<>();
-        emitCount.forEach((stream,count)->{
-            System.out.println(stream+":"+count);
-        });
-        return 99999;
-    }*/
 }

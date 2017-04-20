@@ -13,12 +13,14 @@ import java.util.Map;
  * Created by kailin on 7/3/17.
  */
 public class outputBolt extends BaseRichBolt {
+    protected transient OutputCollector collector;
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
-
+        collector =outputCollector;
     }
 
     public void execute(Tuple tuple) {
-        new TestPrint("tupleValue=",tuple.toString());
+        //new TestPrint("tupleValue=",tuple.toString());
+        collector.ack(tuple);
     }
 
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {

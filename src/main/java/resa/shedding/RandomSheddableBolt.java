@@ -2,38 +2,34 @@ package resa.shedding;
 
 import org.apache.storm.Config;
 import org.apache.storm.metric.api.MultiCountMetric;
-import org.apache.storm.metric.api.ReducedMetric;
 import org.apache.storm.task.IOutputCollector;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
-import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.utils.Utils;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.metrics.CMVMetric;
-import resa.metrics.MeasurableBolt;
 import resa.metrics.MetricNames;
 import resa.topology.DelegatedBolt;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.Sampler;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Created by kailin on 4/3/17.
+ * Created by kailin on 19/4/17.
  */
-
-
-public final class DefaultSheddableBolt extends DelegatedBolt implements IShedding {
-    public static Logger LOG = LoggerFactory.getLogger(DefaultSheddableBolt.class);
-    private static final long serialVersionUID = 1L;
-    private class SheddindMeasurableOutputCollector extends OutputCollector {
+public class RandomSheddableBolt extends DelegatedBolt {
+    public static Logger LOG = LoggerFactory.getLogger(RandomSheddableBolt.class);
+    protected class SheddindMeasurableOutputCollector extends OutputCollector {
 
         private boolean sample = false;
 
@@ -70,22 +66,18 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private int tupleQueueCapacity;
     private transient BlockingQueue<Tuple> pendingTupleQueue;
     private transient MultiCountMetric sheddingRateMetric;
-
-    //drs
+    private AbstractRandomShedding _shedder;
     private transient CMVMetric executeMetric;
     private Sampler sampler;
     private transient MultiCountMetric emitMetric;
-    private transient DefaultSheddableBolt.SheddindMeasurableOutputCollector sheddindMeasurableCollector;
+    private transient RandomSheddableBolt.SheddindMeasurableOutputCollector sheddindMeasurableCollector;
     private long lastMetricsSent;
 
+    public RandomSheddableBolt(){}
 
-
-
-    public DefaultSheddableBolt() {
-    }
-
-    public DefaultSheddableBolt(IRichBolt bolt){
+    public RandomSheddableBolt(IRichBolt bolt, AbstractRandomShedding shedder){
         super(bolt);
+        this._shedder = shedder;
     }
 
     public void prepare(Map conf, TopologyContext context, OutputCollector outputCollector) {
@@ -97,11 +89,11 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
         tupleQueueCapacity = ConfigUtil.getInt(conf,ResaConfig.TUPLE_QUEUE_CAPACITY,1024);
-        sheddindMeasurableCollector = new DefaultSheddableBolt.SheddindMeasurableOutputCollector(outputCollector);
+        sheddindMeasurableCollector = new RandomSheddableBolt.SheddindMeasurableOutputCollector(outputCollector);
         super.prepare(conf, context, sheddindMeasurableCollector);
         pendingTupleQueue = new ArrayBlockingQueue<>(tupleQueueCapacity);
         loadsheddingThread();
-        LOG.info("Preparing DefaultSheddableBolt: " + context.getThisComponentId());
+        LOG.info("Preparing SheddableBolt: " + context.getThisComponentId());
     }
 
     private long getMetricsDuration() {
@@ -120,7 +112,6 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                 boolean done = false;
                 double shedRate;
                 Tuple tuple = null;
-                Integer[] decision = new Integer[2];
                 while (!done){
                     try {
                         tuple = pendingTupleQueue.take();
@@ -131,19 +122,15 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                     drainer.add(tuple);
                     pendingTupleQueue.drainTo(drainer);
                     shedRate = (drainer.size() * 1.0) / tupleQueueCapacity;
-                    decision[0] = tupleQueueCapacity;
-                    decision[1] = drainer.size();
-                    //System.out.println(i+"decision1: "+decision[1]);
-                    sheddingRateMetric.scope("allTuple").incrBy(decision[1]);
-                    if (trigger(decision)) {
-                        //System.out.println( drainer.size() +"=========!!!!!!!!!!!!!!============" + shedRate );
-                        Object[] dropArg = new Object[2];
-                        dropArg[0] = shedRate;
-                        dropArg[1] = drainer;
-                        drop(dropArg);
-                        int increment = decision[1] - drainer.size();
+                    int originSize = drainer.size();
+                    System.out.println("originSize: "+originSize);
+                    sheddingRateMetric.scope("allTuple").incrBy(drainer.size());
+                    if (_shedder.randomTrigger(tupleQueueCapacity,drainer.size())) {
+                        System.out.println("drainer.size()1 : "+drainer.size());
+                        _shedder.randomDrop(drainer,shedRate,sheddindMeasurableCollector);
+                        System.out.println("drainer.size()2 : "+drainer.size());
+                        int increment = originSize - drainer.size();
                         sheddingRateMetric.scope("dropTuple").incrBy(increment);
-                        //System.out.println("-----------"+drainer.size()+"*-*"+decision[1]+"----******--*-*-*-*-*-*---*-*-*-*-*-*-* "+shedRate);
                     } else {
                         sheddingRateMetric.scope("dropTuple").incrBy(0);
                     }
@@ -155,6 +142,14 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         });
         thread.start();
         LOG.info("loadshedding thread start!");
+    }
+
+    public void execute(Tuple in) {
+        try {
+            pendingTupleQueue.put(in);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void handle(Tuple tuple) {
@@ -177,40 +172,4 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             executeMetric.addMetric(id, elapse / 1000000.0);
         }
     }
-
-    public void execute(Tuple tuple) {
-
-        try {
-            pendingTupleQueue.put(tuple);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    @Override
-    public void drop(Object[] arg) {
-        double shedRate = (double) arg[0];
-        List queue = (List) arg[1];
-        Iterator<Tuple> it = queue.iterator();
-        int count = 0;
-        int shedTupleCount = (int) (queue.size() * shedRate);
-        //System.out.println( queue.size() +" * "+shedRate+ "===============================" + shedTupleCount );
-        while(it.hasNext() && count <= shedTupleCount){
-            Tuple t = it.next();
-            sheddindMeasurableCollector.fail(t);
-            it.remove();
-            count++;
-        }
-    }
-
-    @Override
-    public boolean trigger(Object[] arg) {
-        if(Integer.valueOf(arg[1].toString()) >= (Integer.valueOf(arg[0].toString())/2)){
-            return true;
-        }
-        return false;
-    }
-
 }
-

@@ -123,17 +123,13 @@ public class AggResultCalculator {
             }
             //tkl
             Map<String, Object> shed = (Map<String, Object>) measuredData.data.get(MetricNames.SHEDDING_RATE);
-            if (shed != null) {
-                shed.forEach((stream, elementStr) -> {
-                   // System.out.println(measuredData.component+measuredData.task+stream+"~~~~"+elementStr);
-                    String[] elements = ((String) elementStr).split(",");
-                    int cnt = Integer.valueOf(elements[0]);
-                    if (cnt > 0) {
-                        double val = Double.valueOf(elements[1]);
-                        double val_2 = Double.valueOf(elements[2]);
-                        ((BoltAggResult) dest).getSheddingProcess().computeIfAbsent(stream, (k) -> new CntMeanVar())
-                                .addAggWin(cnt, val, val_2);
+            if(shed != null){
+                shed.forEach((stream,count)->{
+                    Long temp = (Long) count;
+                    if( ((BoltAggResult)dest).getSheddingCountMap().containsKey(stream)) {
+                        temp +=  ((BoltAggResult)dest).getSheddingCountMap().get(stream);
                     }
+                    ((BoltAggResult)dest).getSheddingCountMap().put(stream, temp);
                 });
             }
         }

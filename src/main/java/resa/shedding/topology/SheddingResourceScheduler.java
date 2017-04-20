@@ -1,16 +1,16 @@
 package resa.shedding.topology;
 
 import org.apache.storm.Config;
+import org.apache.storm.generated.StormTopology;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.drs.DecisionMaker;
 import resa.drs.DefaultDecisionMaker;
-import resa.drs.ResourceScheduler;
 import resa.metrics.MeasuredData;
 import resa.optimize.*;
 import resa.shedding.drswithshedding.RevertRealLoad;
-import resa.topology.ContainerContext;
+import resa.shedding.drswithshedding.SheddingMMKAllocCalculator;
 import resa.util.ConfigUtil;
 import resa.util.ResaUtils;
 
@@ -54,13 +54,13 @@ public class SheddingResourceScheduler {
 
         // create Allocation Calculator
         allocCalculator = ResaUtils.newInstanceThrow((String) conf.getOrDefault(ALLOC_CALC_CLASS,
-                MMKAllocCalculator.class.getName()), AllocCalculator.class);
+                SheddingMMKAllocCalculator.class.getName()), AllocCalculator.class);
         // current allocation should be retrieved from nimbus
         currAllocation = calcAllocation(this.ctx.runningExecutors());
         allocCalculator.init(conf, Collections.unmodifiableMap(currAllocation), this.ctx.getTopology());
 
         //create revert load function
-        revertRealLoad = new RevertRealLoad(conf,this.ctx.getTopology(),ctx.getTargets());
+        //revertRealLoad = new RevertRealLoad(conf,this.ctx.getTopology(),ctx.getTargets());
 
         // create Decision Maker
         decisionMaker = ResaUtils.newInstanceThrow((String) conf.getOrDefault(DECISION_MAKER_CLASS,
@@ -102,8 +102,8 @@ public class SheddingResourceScheduler {
                 calculator.calCMVStat();
 
                 //for load shedding
-                revertRealLoad.storeLoadInformation(calculator.getComp2ExecutorResults());
-                //System.out.println("oxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+                //Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
+                 //       revertRealLoad.storeLoadInformation(calculator.getComp2ExecutorResults());
                 //tkl
 
                 //TODO: (added by Tom) we need to calc the maxProcessedDataSize as a configuration parameter.
@@ -120,11 +120,11 @@ public class SheddingResourceScheduler {
         }
 
         private Map<String, Integer> calcNewAllocation(Map<String, AggResult[]> data) {
-            int maxExecutors = topologyMaxExecutors == -1 ? Math.max(ConfigUtil.getInt(conf, Config.TOPOLOGY_WORKERS, 1),
+            int maxExecutors = topologyMaxExecutors == -1 ? Math.max(ConfigUtil.getInt(SheddingResourceScheduler.this.conf, Config.TOPOLOGY_WORKERS, 1),
                     getNumWorkers(currAllocation)) * maxExecutorsPerWorker : topologyMaxExecutors;
             Map<String, Integer> ret = null;
             try {
-                AllocResult decision = allocCalculator.calc(data, maxExecutors);
+                AllocResult decision = allocCalculator.calc(data,maxExecutors,ctx.getTopology(),ctx.getTargets());
                 if (decision != null) {
                     ctx.emitMetric("drs.alloc", decision);
                     LOG.debug("emit drs metric {}", decision);

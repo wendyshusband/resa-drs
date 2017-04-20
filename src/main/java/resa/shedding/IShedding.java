@@ -8,17 +8,16 @@ import java.util.List;
 /**
  * Created by kailin on 6/3/17.
  */
-public interface IShedding<E,T> {
+public interface IShedding<T> {
     /**
      * drop operate
-     * @param shedRate
-     * @param queue a list of tuple
+     * @param arg every number of argument
      */
-    List<E> drop(double shedRate, List<E> queue);
+    void drop(T... arg);
 
     /**
-     * shedding trigger operate
-     * @param arg
+     * shedding trigger
+     * @param arg every number of argument
      */
     boolean trigger(T... arg);
 }

@@ -3,7 +3,7 @@ package resa.shedding.drswithshedding;
 import org.apache.storm.generated.StormTopology;
 import org.javatuples.Pair;
 import resa.optimize.AggResult;
-import resa.optimize.BoltAggResult;
+
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +23,11 @@ public class RevertRealLoad {
     private StormTopology topology;
     private Integer historyLambdaSize;
     private Integer order;
-    private ILearningSelectivity calcSelectivityFunction;
+    private LearningSelectivity calcSelectivityFunction;
     private Map<String,Object> topologyTargets = new HashMap<>();
     private final Map<String,LinkedList<Pair<Double,Double>>> historyLambdaForSelectivity = new HashMap<>();
-    private final ArrayList<RevertRealLoadData> revertRealLoadDatas = new ArrayList<>();
+    private final Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
+    private List<String> result = new ArrayList<>();
 
 
     public RevertRealLoad(Map<String, Object> conf, StormTopology stormTopology, Map<String, Object> targets) {
@@ -34,44 +35,65 @@ public class RevertRealLoad {
         topology = stormTopology;
         order = ConfigUtil.getInt(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
         calcSelectivityFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.SELECTIVITY_CALC_CLASS,
-                PolynomialRegression.class.getName()),ILearningSelectivity.class);
+                PolynomialRegression.class.getName()),LearningSelectivity.class);
         topologyTargets=targets;
         topologyTargets.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey())).forEach(e->{
-            revertRealLoadDatas.add(new RevertRealLoadData(e.getKey()));
+            revertRealLoadDatas.put(e.getKey(),new RevertRealLoadData(e.getKey()));
         });
     }
+
+    public StormTopology getTopology() {
+        return topology;
+    }
+
+    public Integer getOrder() {
+        return order;
+    }
+
+    public Map<String, Object> getTopologyTargets() {
+        return topologyTargets;
+    }
+
 
 
     /**
      * parse proportion,store load IN and OUT, learning selectivity function, set type, calculate real load.
      * */
-    public void storeLoadInformation(Map<String, AggResult[]> comp2ExecutorResults) {
+    public Map<String, RevertRealLoadData> storeLoadInformation(Map<String, AggResult[]> comp2ExecutorResults) {
+        clearSelectivityFuncAndLoad();
         parseAndStoreProportion(comp2ExecutorResults);
         storeLoadINandOUT(comp2ExecutorResults);
         if(parseAndStoreSelectivityFunction()) {
-            setTypeOfComp();
             calcAndSetRealLoad(comp2ExecutorResults);
-            clearSelectivityFuncAndLoad();
+            //clearSelectivityFuncAndLoad();
+            //clearProportion();
         }
-     /*   comp2ExecutorResults.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey()))
+        return revertRealLoadDatas;
+    }
+
+    /*private void updateComp2ExecutorResults(Map<String, AggResult[]> comp2ExecutorResults) {
+        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~A~~~~~~~~~~~~~~~");
+        comp2ExecutorResults.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey()))
                 .forEach(g ->{
                     System.out.println(g.getKey());
                     AggResult[] tempAggResults = new AggResult[g.getValue().length];
                     for(AggResult aggResult : g.getValue()){
+                        System.out.println("send!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                         System.out.println(aggResult.getSendQueueResult().toString());
+                        System.out.println(((CntMeanVar)aggResult.getSendQueueResult().getQueueArrivalRate()).toCMVString());
+                        System.out.println("receive!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                         System.out.println(aggResult.getRecvQueueResult().toString());
-
+                        System.out.println(((CntMeanVar)aggResult.getRecvQueueResult().getQueueArrivalRate()).toCMVString());
                     }
-                });*/
-    }
+                });
+    }*/
 
 
     private void parseAndStoreProportion(Map<String, AggResult[]> comp2ExecutorResults) {
         comp2ExecutorResults.entrySet().stream().forEach(e->{
             Map<String,Long> exeAllEmitCountMap = new HashMap<>();
-            for(int i=0;i<e.getValue().length;i++){
-                System.out.println(e.getKey()+"i="+i);
-                for(Map.Entry entry : e.getValue()[i].getemitCount().entrySet()){
+            for(int i=0;i<e.getValue().length;i++){//component
+                for(Map.Entry entry : e.getValue()[i].getemitCount().entrySet()){//executor
                     long tempCount = (long) entry.getValue();
                     if(exeAllEmitCountMap.containsKey(entry.getKey())){
                         tempCount += exeAllEmitCountMap.get(entry.getKey());
@@ -84,16 +106,20 @@ public class RevertRealLoad {
                 denominator += count;
             }
 
+            LOG.info(e.getKey()+" whole emit tuple number ="+ denominator);
             if(topologyTargets.containsKey(e.getKey())){//component key
-                Map<String,ArrayList<String>> target = (Map<String, ArrayList<String>>) topologyTargets.get(e.getKey());
-                for(Map.Entry exeAllEmitCountMapEntry:exeAllEmitCountMap.entrySet()){//stream ID
-                    //System.out.println(target.keySet()+"rinimei"+exeAllEmitCountMapEntry.getKey());
-                    if(target.containsKey(exeAllEmitCountMapEntry.getKey())){
-                        ArrayList<String> minTarget = target.get(exeAllEmitCountMapEntry.getKey());//stream list
-                        for(int i=0;i<minTarget.size();i++){
-                            for(int j=0;j<revertRealLoadDatas.size();j++){
-                                if(revertRealLoadDatas.get(j).getComponentId() == minTarget.get(i)){
-                                    revertRealLoadDatas.get(j).addProportion(e.getKey(),((1.0*(long)exeAllEmitCountMapEntry.getValue())/denominator));
+                Map<String,ArrayList<String>> stream2CompList = (Map<String, ArrayList<String>>) topologyTargets.get(e.getKey());
+                //System.out.println(stream2CompList.isEmpty()+"meiyisi"+e.getKey()+"youyisima"+stream2CompList);
+                if(!stream2CompList.isEmpty()) {
+                    for (Map.Entry exeAllEmitCountMapEntry : exeAllEmitCountMap.entrySet()) {//stream ID
+                        if (stream2CompList.containsKey(exeAllEmitCountMapEntry.getKey())) {
+                            ArrayList<String> compList = stream2CompList.get(exeAllEmitCountMapEntry.getKey());//comp list
+                            for (int i = 0; i < compList.size(); i++) {
+                                if(revertRealLoadDatas.containsKey(compList.get(i))){
+                                    //System.out.println(compList.get(i)+"suanshenmenanren"+((1.0 * (long) exeAllEmitCountMapEntry.getValue()) / denominator));
+                                    revertRealLoadDatas.get(compList.get(i)).addProportion(e.getKey(), ((1.0 * (long) exeAllEmitCountMapEntry.getValue()) / denominator));
+                                }else {
+                                    LOG.error("revertRealLoadDatas have no this component" + compList.get(i));
                                 }
                             }
                         }
@@ -109,9 +135,13 @@ public class RevertRealLoad {
                     double tempLambdaIn =0.0;
                     double tempLambdaOut= 0.0;
                     for(int i=0;i<e.getValue().length;i++){
-                        tempLambdaIn += e.getValue()[i].getArrivalRatePerSec() * (1.0-((BoltAggResult)e.getValue()[i]).getAvgSheddingRateHis());
+                        System.out.println(e.getValue()[i].getArrivalRatePerSec());
+                        //System.out.println(((BoltAggResult)e.getValue()[i]).getAvgSheddingRateHis());
+                        System.out.println(e.getValue()[i].getDepartureRatePerSec());
+                        tempLambdaIn +=0;// e.getValue()[i].getArrivalRatePerSec() * (1.0-((BoltAggResult)e.getValue()[i]).getAvgSheddingRateHis());
                         tempLambdaOut += e.getValue()[i].getDepartureRatePerSec();
                     }
+                    System.out.println(e.getKey()+"()()()"+tempLambdaIn+"()()()"+tempLambdaOut);
                     if(historyLambdaForSelectivity.containsKey(e.getKey())){
                         if(historyLambdaForSelectivity.get(e.getKey()).size() == historyLambdaSize){
                             LOG.info("update history lambda list !");
@@ -145,16 +175,15 @@ public class RevertRealLoad {
             }
         }
         if(flag){
-            LOG.info("begin to calculate selectivityFunction!");
+            LOG.info("Begin to calculate selectivityFunction!");
             for(Map.Entry entry : historyLambdaForSelectivity.entrySet()){
+                System.out.println(entry.getKey());
+
                 double[] oneCompSelectivityCoeff = calcSelectivityFunction.Fit(entry.getValue(),order);
-                for(int j=0;j<oneCompSelectivityCoeff.length;j++)
-                    System.out.println(oneCompSelectivityCoeff[j]+"j==="+j);
-                for(int j=0;j<revertRealLoadDatas.size();j++){
-                    if(revertRealLoadDatas.get(j).getComponentId().hashCode() == entry.getKey().hashCode()){
-                        revertRealLoadDatas.get(j).addCoeff(oneCompSelectivityCoeff);
-                        break;
-                    }
+                if(revertRealLoadDatas.containsKey(entry.getKey())){
+                    revertRealLoadDatas.get(entry.getKey()).addCoeff(oneCompSelectivityCoeff);
+                }else{
+                    LOG.error("revertRealLoadDatas have no this component"+entry.getKey());
                 }
             }
         }
@@ -162,152 +191,130 @@ public class RevertRealLoad {
 
     }
 
-    private void setTypeOfComp() {
-        for(int j=0;j<revertRealLoadDatas.size();j++){
-            int type =0;
-            Map<String, Double> tempProportion = revertRealLoadDatas.get(j).getProportion();
-            for(Map.Entry entry: tempProportion.entrySet()){
-                if(topology.get_spouts().containsKey(entry.getKey())){
-                    type++;
-                }
-            }
-            if(type == topology.get_spouts_size()){
-                type=1;
-            }
-            else if(type != 0){
-                type =2;
-            }else{
-                type=3;
-            }
-            revertRealLoadDatas.get(j).setType(type);
-        }
-    }
-
     private void calcAndSetRealLoad(Map<String, AggResult[]> comp2ExecutorResults) {
-        Map<String,Double> sourceLoads = new HashMap<>();
+        LOG.info("calculate and set real load !");
+        Map<String, Double> sourceLoads = new HashMap<>();
         comp2ExecutorResults.entrySet().stream().filter(e -> topology.get_spouts().containsKey(e.getKey()))
                 .forEach(e -> {
                     double lambdaSource = 0.0;
-                    for(int i=0;i<e.getValue().length;i++){
-                        System.out.println(e.getValue()[i].getDepartureRatePerSec());
-                        lambdaSource += e.getValue()[i].getDepartureRatePerSec();
-                    }
-                    sourceLoads.put(e.getKey(),lambdaSource);
-                    System.out.println(sourceLoads.toString()+"yoho!");
-        });
-        calcType1BoltRealLoad(sourceLoads);
-        calcType2BoltRealLoad(sourceLoads);
-        calcType3BoltRealLoad(sourceLoads);
-        for(int i=0;i<revertRealLoadDatas.size();i++){
-            if(revertRealLoadDatas.get(i).getRealLoadOUT() <0){
-                System.out.println("begin rebuild load"+revertRealLoadDatas.get(i).getRealLoadOUT());
-                calcType2BoltRealLoad(sourceLoads);
-                calcType3BoltRealLoad(sourceLoads);
-                System.out.println("end rebuild load!!!!!!!!!!"+revertRealLoadDatas.get(i).getRealLoadOUT());
-            }
-        }
-        for(int i=0;i<revertRealLoadDatas.size();i++){
-            System.out.println(revertRealLoadDatas.get(i).toString());
-        }
-
-        comp2ExecutorResults.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey()))
-                .forEach(g ->{
-                    for(AggResult aggResult : g.getValue()){
-                        System.out.println(aggResult.getSendQueueResult().toString());
-                        System.out.println(aggResult.getRecvQueueResult().toString());
-
-                    }
+                    lambdaSource = e.getValue()[0].getDepartureRatePerSec()*e.getValue().length;
+                    System.out.println(e.getValue()[0].getDepartureRatePerSec()+"abcdefg"+e.getValue().length);
+                    sourceLoads.put(e.getKey(), lambdaSource);
                 });
-
-    }
-
-    private void calcType3BoltRealLoad(Map<String, Double> sourceLoads) {
-        revertRealLoadDatas.stream().filter(e->e.getType() == 3).forEach(e ->{
-            boolean flag = true;
-            ArrayList<Double> coeff = e.getSelectivityFunction();
+        System.out.println(sourceLoads+ "  result.isEmpty()="+result.isEmpty());
+        if(result.isEmpty()) {
+            TopoSort topoSort = new TopoSort();
+            topoSort.createGraph(topology, topologyTargets, revertRealLoadDatas);
+            topoSort.kahnProcess();
+            result = topoSort.getResult();
+        }
+        for(int i=0; i<result.size(); i++){
+            ArrayList<Double> coeff = revertRealLoadDatas.get(result.get(i)).getSelectivityFunction();
             double readLoadOUT = 0.0;
             double appLoadIn = 0.0;
-            for(Map.Entry entry : e.getProportion().entrySet()){
-                for(int i=0;i<revertRealLoadDatas.size();i++){
-                    if(revertRealLoadDatas.get(i).getComponentId().hashCode() == entry.getKey().hashCode()){
-                        if(revertRealLoadDatas.get(i).getRealLoadOUT() >= 0) {
-                            appLoadIn += (revertRealLoadDatas.get(i).getRealLoadOUT() * (double) entry.getValue());
-                        }else{
-                            LOG.info("can not calculate this component(type3) load! will be recalculated later");
-                            flag = false;
-                        }
-                        break;
-                    }
-                }
-                if(!flag){break;}
-            }
-            System.out.println(appLoadIn+"calcType3BoltRealLoad:flag"+flag);
-            if(flag) {
-                for (int j = 0; j < coeff.size(); j++) {
-                    readLoadOUT += (Math.pow(appLoadIn, j) * coeff.get(j));
-                }
-                e.setRealLoadOUT(readLoadOUT);
-                e.setRealLoadIN(appLoadIn);
-            }
-            System.out.println(e.getComponentId()+"calcType3BoltRealLoad:"+"getRealLoadOUT:"+readLoadOUT+": appLOad"+appLoadIn);
-        });
-    }
-
-    private void calcType2BoltRealLoad(Map<String, Double> sourceLoads) {
-        revertRealLoadDatas.stream().filter(e->e.getType() == 2).forEach(e ->{
-            boolean flag = true;
-            ArrayList<Double> coeff = e.getSelectivityFunction();
-            double readLoadOUT = 0.0;
-            double appLoadIn = 0.0;
-            for(Map.Entry entry : e.getProportion().entrySet()){
+            System.out.println(result.get(i)+":**:"+revertRealLoadDatas.get(result.get(i)).getProportion());
+            for(Map.Entry entry : revertRealLoadDatas.get(result.get(i)).getProportion().entrySet()){
+                System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
                 if(topology.get_bolts().containsKey(entry.getKey())){
-                    for(int i=0;i<revertRealLoadDatas.size();i++){
-                        if(revertRealLoadDatas.get(i).getComponentId().hashCode() == entry.getKey().hashCode()){
-                            if(revertRealLoadDatas.get(i).getRealLoadOUT() >= 0) {
-                                appLoadIn += (revertRealLoadDatas.get(i).getRealLoadOUT() * (double) entry.getValue());
-                            }else{
-                                LOG.info("can not calculate this component(type2) load! will be recalculated later");
-                                flag = false;
-                            }
-                            break;
-                        }
-                    }
+                    System.out.println(revertRealLoadDatas.get(entry.getKey()).getRealLoadOUT());
+                    System.out.println(entry.getValue());
+                    appLoadIn += (revertRealLoadDatas.get(entry.getKey()).getRealLoadOUT() * (double) entry.getValue());
                 }else{
+                    System.out.println(sourceLoads.get(entry.getKey()));
+                    System.out.println(entry.getValue());
                     appLoadIn += (sourceLoads.get(entry.getKey()) * (double)entry.getValue());
                 }
-                if(!flag){break;}
-            }
-            System.out.println(appLoadIn+"calcType2BoltRealLoad:flag"+flag);
-            if(flag) {
-                for (int j = 0; j < coeff.size(); j++) {
-                    readLoadOUT += (Math.pow(appLoadIn, j) * coeff.get(j));
-                }
-                e.setRealLoadOUT(readLoadOUT);
-                e.setRealLoadIN(appLoadIn);
-            }
-            System.out.println(e.getComponentId()+"calcType2BoltRealLoad:"+"getRealLoadOUT:"+readLoadOUT+": appLOad"+appLoadIn);
-        });
-    }
-
-    private void calcType1BoltRealLoad(Map<String, Double> sourceLoads) {
-        revertRealLoadDatas.stream().filter(e->e.getType() == 1).forEach(e ->{
-            ArrayList<Double> coeff = e.getSelectivityFunction();
-            double readLoadOUT = 0.0;
-            double appLoadIn = 0.0;
-            for(Map.Entry entry : e.getProportion().entrySet()){
-                appLoadIn += (sourceLoads.get(entry.getKey()) * (double)entry.getValue());
             }
             for(int j=0; j<coeff.size();j++){
                 readLoadOUT += (Math.pow(appLoadIn,j) * coeff.get(j));
             }
-            e.setRealLoadOUT(readLoadOUT);
-            e.setRealLoadIN(appLoadIn);
-            System.out.println(e.getComponentId()+"calcType1BoltRealLoad:"+"getRealLoadOUT:"+readLoadOUT+": appLOad"+appLoadIn);
-        });
+            System.out.println(readLoadOUT+"zuochuxuanze"+appLoadIn);
+            revertRealLoadDatas.get(result.get(i)).setRealLoadOUT(readLoadOUT);
+            revertRealLoadDatas.get(result.get(i)).setRealLoadIN(appLoadIn);
+        }
+        System.out.println("*******************************result******************************");
+        for(Map.Entry entry : revertRealLoadDatas.entrySet()){
+            System.out.println(entry.getKey()+"~~~~"+entry.getValue());
+        }
     }
 
     private void clearSelectivityFuncAndLoad() {
-        revertRealLoadDatas.forEach(e -> e.clear());
+        revertRealLoadDatas.forEach((key,value)-> value.clear());
     }
+
+    private void clearProportion() {
+        revertRealLoadDatas.forEach((key,value)-> value.clearProportion());
+    }
+    private static class TopoSort{
+        private HashMap<String,Integer> vertexMap = new HashMap<>();
+        private HashMap<String,ArrayList<String>> adjaNode = new HashMap<>();
+        private Queue<String> setOfZeroIndegree = new LinkedList<>();
+        private List<String> result = new ArrayList<>();
+        private void createGraph(StormTopology topology,
+                                 Map<String,Object> topologyTargets,
+                                 Map<String,RevertRealLoadData> revertRealLoadDatas){
+            revertRealLoadDatas.entrySet().stream().forEach(e->{
+                int pathIn = 0;
+                for(String compId : e.getValue().getProportion().keySet()) {
+                    if(topology.get_bolts().containsKey(compId)){//only add pre bolt
+                        pathIn++;
+                    }
+                }
+                vertexMap.put(e.getKey(),pathIn);
+            });
+
+            for(String key : vertexMap.keySet()){
+                if(topologyTargets.containsKey(key)){
+                    adjaNode.put(key,new ArrayList<>()); // init
+                    Map<String,ArrayList<String>> stream2CompList =
+                            (Map<String, ArrayList<String>>) topologyTargets.get(key);
+                    if(!stream2CompList.isEmpty()) {
+                        for(ArrayList<String> successor : stream2CompList.values()){
+                            for(String comp : successor){
+                                if(!adjaNode.get(key).contains(comp)){
+                                    adjaNode.get(key).add(comp);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void kahnProcess(){
+            for(Map.Entry entry : vertexMap.entrySet()){
+                if(0 == (int)entry.getValue()){
+                    setOfZeroIndegree.add((String) entry.getKey());
+                }
+            }
+            int tempPathIN;
+            while(!setOfZeroIndegree.isEmpty()){
+                String node = setOfZeroIndegree.poll();
+                result.add(node);
+                if(adjaNode.keySet().isEmpty()){
+                    return;
+                }
+                for(String successor : adjaNode.get(node)){
+                    tempPathIN =  vertexMap.get(successor) - 1;
+                    if(tempPathIN == 0){
+                        setOfZeroIndegree.add(successor);
+                    }
+                    vertexMap.put(successor,tempPathIN);
+                }
+                vertexMap.remove(node);
+                adjaNode.remove(node);
+            }
+
+            if(!vertexMap.isEmpty()){
+                throw new IllegalArgumentException("Has cycle !");
+            }
+        }
+
+        public List<String> getResult() {
+            return result;
+        }
+    }
+
+
 
 }

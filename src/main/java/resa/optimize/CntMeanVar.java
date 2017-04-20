@@ -69,7 +69,7 @@ public class CntMeanVar {
         return count == 0 ? 0.0 : (getAvg2() / (getAvg() * getAvg()) - 1.0);
     }
 
-    String toCMVString() {
+    public String toCMVString() {
         return "Count: " + getCount()
                 + String.format(", sum: %.2f", getSum())
                 + String.format(", avg: %.4f", getAvg())
@@ -77,7 +77,7 @@ public class CntMeanVar {
                 + String.format(", scv: %.4f", getScv());
     }
 
-    String toCMVStringShort() {
+    public String toCMVStringShort() {
         return "cnt:" + getCount()
                 + String.format(",avg:%.2f", getAvg())
                 + String.format(",scv:%.2f", getScv());

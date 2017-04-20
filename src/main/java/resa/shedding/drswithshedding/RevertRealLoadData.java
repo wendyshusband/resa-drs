@@ -12,13 +12,14 @@ import java.util.Map;
  * history lambda data,for calculate the real load.
  */
 
-final class RevertRealLoadData {
+public final class RevertRealLoadData {
 
-   private String componentId;
-   private Map<String,Double> proportion;
-   private ArrayList<Double> selectivityFunction;
-   private Integer type;
-   private Double realLoadOUT;
+    private String componentId;
+    private Map<String,Double> proportion;
+    private ArrayList<Double> selectivityFunction;
+    //private Integer type;
+    private Double realLoadOUT;
+    private Double realLoadIN;
 
     public Double getRealLoadIN() {
         return realLoadIN;
@@ -28,7 +29,6 @@ final class RevertRealLoadData {
         this.realLoadIN = realLoadIN;
     }
 
-    private Double realLoadIN;
 
     public Double getRealLoadOUT() {
         return realLoadOUT;
@@ -39,19 +39,19 @@ final class RevertRealLoadData {
     }
 
     public RevertRealLoadData(String componentId){
-       this.componentId = componentId;
-       this.proportion = new HashMap<>();
-       this.selectivityFunction = new ArrayList<>();
-       this.type = 0;
-       this.realLoadOUT = -1.0;
-       this.realLoadIN = -1.0;
-   }
+        this.componentId = componentId;
+        this.proportion = new HashMap<>();
+        this.selectivityFunction = new ArrayList<>();
+        //this.type = 0;
+        this.realLoadOUT = -1.0;
+        this.realLoadIN = -1.0;
+    }
 
-   public String getComponentId() {
+    public String getComponentId() {
        return componentId;
    }
 
-   public Map<String, Double> getProportion() {
+    public Map<String, Double> getProportion() {
        return proportion;
    }
 
@@ -60,7 +60,11 @@ final class RevertRealLoadData {
    }
 
    public void addProportion(String componentId,Double proportion){
-       this.proportion.put(componentId,proportion);
+       double tempCount = proportion;
+       if(this.proportion.containsKey(componentId)) {
+            tempCount += this.proportion.get(componentId);
+       }
+       this.proportion.put(componentId,tempCount);
    }
 
    public void addCoeff(double[] coeff){
@@ -71,25 +75,22 @@ final class RevertRealLoadData {
 
     @Override
     public String toString() {
-        return "componentID="+componentId+" type="+type
+        return "componentID="+componentId
                 +" proportion="+proportion.toString()
                 +" selectivityFunction="+selectivityFunction.toString()
                 +" realLoadOUT="+realLoadOUT
                 +" realLoadIN="+realLoadIN;
     }
 
-    public void setType(int type) {
-        this.type = type;
-    }
-
-    public int getType() {
-        return this.type;
-    }
-
     public void clear(){
-       this.selectivityFunction.clear();
-       this.realLoadIN = -1.0;
-       this.realLoadOUT = -1.0;
+        this.selectivityFunction.clear();
+        this.realLoadIN = -1.0;
+        this.realLoadOUT = -1.0;
+        //this.type = 0;
+        this.proportion.clear();
+    }
+    public void clearProportion(){
+        this.proportion.clear();
     }
 }
 

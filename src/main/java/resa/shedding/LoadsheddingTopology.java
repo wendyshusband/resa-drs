@@ -106,12 +106,8 @@ public class LoadsheddingTopology {
     public static void main(String[] args) throws Exception {
 
         TopologyBuilder builder = new TopologyBuilder();
-        //File  f = new File("/home/kailin/github/loadshedding/src/main/resource/shedding.yaml");
-        //Config config = ConfigUtil.readConfig(f);
-        //Class c = Class.forName((String) config.get(ConfigUtil.RANDOM_SHEDDABLE_BOLT));
-        //IBolt obj = (IBolt) c.getDeclaredConstructor(new Class<?>[]{WorkBolt.class}).newInstance(new WorkBolt());
         builder.setSpout("spout", new TestOverLoadSpout(false), 3);
-        builder.setBolt("loadshedding", new DefaultSheddableBolt(new WorkBolt()), 2).shuffleGrouping("spout");
+        builder.setBolt("loadshedding", new RandomSheddableBolt(new WorkBolt(),new ExampleShedder()), 2).shuffleGrouping("spout");
         builder.setBolt("output",new outputBolt(),1).shuffleGrouping("loadshedding");
         Config conf = new Config();
         conf.setDebug(true);
@@ -126,7 +122,4 @@ public class LoadsheddingTopology {
             Utils.sleep(10000);
         }
     }
- /*  public static void main(String[] args) throws ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
-
-    }*/
 }
