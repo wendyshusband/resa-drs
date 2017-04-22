@@ -17,8 +17,8 @@ resa.container.metric.output: true
 
 
 ## The optimal allocation calculator we designed and implemented based on Jackson Queueing network theory. In the current version of Resa-drs, it is the only option. More options will be developed in future
+#resa.optimize.alloc.class: "resa.optimize.MMKAllocCalculator"
 resa.optimize.alloc.class: "resa.shedding.drswithshedding.SheddingMMKAllocCalculator"
-#"resa.optimize.MMKAllocCalculator"
 
 
 ## Storm built-in parameter, the period that the metrics are collected and reported by each task 
@@ -30,7 +30,7 @@ resa.comp.sample.rate: 1.0
 
 
 ## The size of the history window. It decides how much historical metrics data needs to be buffered, e.g., when topology.builtin.metrics.bucket.size.secs: 60, only the metrics data reported in the previous 300 seconds will be maintained in the buffer. The default value is 1.
-resa.opt.win.history.size: 3
+resa.opt.win.history.size: 5
 #5
 
 
@@ -84,7 +84,7 @@ chain-NumOfWorkers: 3
 chain-MaxSpoutPending: 20000
 
 2Path-NumOfWorkers: 3
-2Path-MaxSpoutPending: 80000
+2Path-MaxSpoutPending: 60000
 #20000
 
 loop-NumOfWorkers: 3
@@ -125,16 +125,13 @@ loop-BoltB-loopback.prob: 0.2
 
 #load shedding
 #shedding queue size
-resa.shedding.tuple.queue.capacity: 512
-# the lambda history data queue size
-#resa.shedding.lambda.selectivity.history.size: 3
-#
+resa.shedding.tuple.queue.capacity: 1024
 resa.shedding.selectivity.function.order: 1
 resa.shedding.selectivity.calc.class: "resa.shedding.drswithshedding.PolynomialRegression"
 
 #test sort topology
 sort-NumOfWorkers: 3
-sort-MaxSpoutPending: 40000
+sort-MaxSpoutPending: 100000
 ##sort-spoutA.prob: 0.6
 ##sort-spoutA-parallelism: 1
 sort-BoltB.parallelism: 2

@@ -67,8 +67,10 @@ public class SourceNode {
         double arrivalRateHis = ar.getArrivalRatePerSec();
         this.exArrivalRate = arrivalRateHis * executorNumber;
         this.exArrivalScvByInterArrival = ar.getInterArrivalTimeScv();
-
+        System.out.println("getArrivalRatePerSec:"+ ar.getArrivalRatePerSec());
+        System.out.println("executorNumber: "+executorNumber);
         LOG.info("SourceNode is created: " + toString());
+        System.out.println("ar.getDepartureRatePerSec(): "+ar.getDepartureRatePerSec());
     }
 
     public String getComponentID() {

@@ -40,7 +40,7 @@ public class TASentenceSpout2Path extends RedisQueueSpout {
     protected void emitData(Object data) {
         String id = spoutIdPrefix + count;
         count++;
-        Utils.sleep(30);
+        //Utils.sleep(15);
         double prob = rand.nextDouble();
         if (prob < this.p){
         	collector.emit("P-Stream", new Values(id, data), id);
@@ -52,9 +52,11 @@ public class TASentenceSpout2Path extends RedisQueueSpout {
 
     @Override
     public void ack(Object msgId) {
+        System.out.println("this tuple is ack: "+msgId);
     }
 
     @Override
     public void fail(Object msgId) {
+        System.out.println("this tuple is fail: "+msgId);
     }
 }

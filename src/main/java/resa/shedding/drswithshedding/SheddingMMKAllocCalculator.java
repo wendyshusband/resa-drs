@@ -160,15 +160,15 @@ public class SheddingMMKAllocCalculator extends AllocCalculator {
                 double loadOUT = 0.0;
                 if(tempAggResult.getSheddingCountMap().get("allTuple") != null &&
                         tempAggResult.getSheddingCountMap().get("allTuple") != 0) {
-                    //sheddingRate = (1.0 * tempAggResult.getSheddingCountMap().get("dropTuple")) / (tempAggResult.getSheddingCountMap().get("allTuple"));
-                    loadIN = Math.log10(tempAggResult.getSheddingCountMap().get("allTuple")
-                            - tempAggResult.getSheddingCountMap().get("dropTuple"));
+                    long loadTuple = tempAggResult.getSheddingCountMap().get("allTuple")
+                            - tempAggResult.getSheddingCountMap().get("dropTuple");
+                    if(loadTuple > 0) {
+                        loadIN = Math.log10(loadTuple);
+                        int emitSum = tempAggResult.getemitCount().values().stream().mapToInt(Number::intValue).sum();
+                        if(emitSum != 0)
+                            loadOUT = Math.log10(emitSum);
+                    }
                 }
-                //(currAllocation.get(comp.getKey()) * tempAggResult.getArrivalRatePerSec())* (1.0 - sheddingRate);
-                int emitSum = tempAggResult.getemitCount().values().stream().mapToInt(Number::intValue).sum();
-                if(emitSum != 0)
-                    loadOUT = Math.log10(emitSum);
-                        //tempAggResult.getDepartureRatePerSec() * currAllocation.get(comp.getKey())-loadIN;
                 loadPairList.add(new Pair<>(loadIN,loadOUT));
                 System.out.println(comp.getKey());
                 System.out.println("emitcount "+ tempAggResult.getemitCount());

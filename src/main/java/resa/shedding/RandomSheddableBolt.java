@@ -126,9 +126,7 @@ public class RandomSheddableBolt extends DelegatedBolt {
                     System.out.println("originSize: "+originSize);
                     sheddingRateMetric.scope("allTuple").incrBy(drainer.size());
                     if (_shedder.randomTrigger(tupleQueueCapacity,drainer.size())) {
-                        System.out.println("drainer.size()1 : "+drainer.size());
                         _shedder.randomDrop(drainer,shedRate,sheddindMeasurableCollector);
-                        System.out.println("drainer.size()2 : "+drainer.size());
                         int increment = originSize - drainer.size();
                         sheddingRateMetric.scope("dropTuple").incrBy(increment);
                     } else {

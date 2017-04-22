@@ -99,5 +99,6 @@ public class BoltAggResult extends AggResult {
         s.put("1",100);s.put("2",1);s.put("3",1);s.put("4",1);s.put("5",1);s.put("6",1);s.put("7",1);s.put("8",1);
         System.out.println(s.values().stream().mapToInt(Number::intValue).sum());
         System.out.println(102<<1);
+        System.out.println(Math.log10(0));
     }
 }

@@ -3,6 +3,7 @@ package TestTopology.simulated;
 import org.apache.storm.Config;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
+import org.apache.storm.topology.IRichSpout;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
@@ -36,6 +37,13 @@ public class SortSpout extends BaseRichSpout {
         public void nextTuple() {
             String id = spoutIdPrefix + count;
             count++;
+            for(int i=0;i<1000000;i++){
+                double j =  Math.log(i+100);
+                j++;
+                j--;
+                j=j+1;
+                j=j-1;
+            }
             _collector.emit(new Values(id,"TUPLE"),id);
 
         }

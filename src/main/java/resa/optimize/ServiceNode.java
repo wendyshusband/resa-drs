@@ -87,8 +87,8 @@ public class ServiceNode {
      * */
     public void revertLambda(double lambda) {
         this.lambda = lambda;
-        //this.rho = lambda * avgServTimeHis / (executorNumber * 1000.0);
-        //this.ratio = this.exArrivalRate > 0.0 ? (lambda / this.exArrivalRate) : 0;
+        this.rho = lambda * avgServTimeHis / (executorNumber * 1000.0);
+        this.ratio = this.exArrivalRate > 0.0 ? (lambda / this.exArrivalRate) : 0;
     }
 
 

@@ -37,27 +37,27 @@ public class SheddingSimExpServWC2Path {
         int port = ConfigUtil.getInt(conf, "redis.port", 6379);
         String queueName = (String)conf.get("redis.sourceQueueName");
 
-        builder.setSpout("2Path-Spout", new MeasurableSpout(new TASentenceSpout2Path(host, port, queueName,
-                        ConfigUtil.getDouble(conf, "2Path-spout.prob", 1.0))),
+        builder.setSpout("2Path-Spout", new TASentenceSpout2Path(host, port, queueName,
+                        ConfigUtil.getDouble(conf, "2Path-spout.prob", 1.0)),
                 ConfigUtil.getInt(conf, "2Path-spout.parallelism", 1));
 
         double boltAP_mu = ConfigUtil.getDouble(conf, "2Path-BoltA-P.mu", 1.0);
         double boltAnotP_mu = ConfigUtil.getDouble(conf, "2Path-BoltA-NotP.mu", 1.0);
 
         builder.setBolt("2Path-BoltA-P",
-                new RandomSheddableBolt(new TASplitSentence(() -> (long) (-Math.log(Math.random()) * 1000.0 / boltAP_mu)),new ExampleShedder()),
+                new TASplitSentence(() -> (long) (-Math.log(Math.random()) * 1000.0 / boltAP_mu)),
                 ConfigUtil.getInt(conf, "2Path-BoltA-P.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("2Path-Spout", "P-Stream");
 
         builder.setBolt("2Path-BoltA-NotP",
-                new RandomSheddableBolt(new TASplitSentence(() -> (long) (-Math.log(Math.random()) * 1000.0 / boltAnotP_mu)),new ExampleShedder()),
+                new TASplitSentence(() -> (long) (-Math.log(Math.random()) * 1000.0 / boltAnotP_mu)),
                 ConfigUtil.getInt(conf, "2Path-BoltA-NotP.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("2Path-Spout", "NotP-Stream");
 
         double boltB_mu = ConfigUtil.getDouble(conf, "2Path-BoltB.mu", 1.0);
-        builder.setBolt("2Path-BoltB", new RandomSheddableBolt(new TAWordCounter(() -> (long) (-Math.log(Math.random()) * 1000.0 / boltB_mu)),new ExampleShedder()),
+        builder.setBolt("2Path-BoltB", new TAWordCounter(() -> (long) (-Math.log(Math.random()) * 1000.0 / boltB_mu)),
                 ConfigUtil.getInt(conf, "2Path-BoltB.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("2Path-BoltA-P")

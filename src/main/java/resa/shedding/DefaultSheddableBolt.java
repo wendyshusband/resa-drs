@@ -136,14 +136,13 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                     //System.out.println(i+"decision1: "+decision[1]);
                     sheddingRateMetric.scope("allTuple").incrBy(decision[1]);
                     if (trigger(decision)) {
-                        //System.out.println( drainer.size() +"=========!!!!!!!!!!!!!!============" + shedRate );
                         Object[] dropArg = new Object[2];
                         dropArg[0] = shedRate;
                         dropArg[1] = drainer;
                         drop(dropArg);
                         int increment = decision[1] - drainer.size();
                         sheddingRateMetric.scope("dropTuple").incrBy(increment);
-                        //System.out.println("-----------"+drainer.size()+"*-*"+decision[1]+"----******--*-*-*-*-*-*---*-*-*-*-*-*-* "+shedRate);
+                        System.out.println("-----------"+drainer.size()+"*-*"+decision[1]+"----******--*-*-*-*-*-*---*-*-*-*-*-*-* "+shedRate);
                     } else {
                         sheddingRateMetric.scope("dropTuple").incrBy(0);
                     }

@@ -55,7 +55,8 @@ public class MMKAllocCalculator extends AllocCalculator {
         } else {
             currHistoryCursor = historySize;
         }
-        Map<String,double[]> selectivityFunctions = output();//load shedding
+
+        Map<String,double[]> selectivityFunctions = output();//test output
         ///TODO: Here we assume only one spout, plan to extend to multiple spouts in future
         ///TODO: here we assume only one running topology, plan to extend to multiple running topologies in future
         double targetQoSMs = ConfigUtil.getDouble(conf, ResaConfig.OPTIMIZE_SMD_QOS_MS, 5000.0);
@@ -77,7 +78,7 @@ public class MMKAllocCalculator extends AllocCalculator {
                 }));
 
         SourceNode spInfo = spInfos.entrySet().stream().findFirst().get().getValue();
-
+        //System.out.println(spInfo.getTupleEmitRateOnSQ()+"a777777777777777777777777777"+spInfo.getExArrivalRate());
         Map<String, ServiceNode> queueingNetwork = boltHistoricalData.compHistoryResults.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> {
                     BoltAggResult hisCar = AggResult.getHorizontalCombinedResult(new BoltAggResult(), e.getValue());
