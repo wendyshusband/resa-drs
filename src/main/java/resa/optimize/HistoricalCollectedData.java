@@ -13,7 +13,7 @@ import java.util.Queue;
  * Modified by Tom Fu on 21-Dec-2015, for new DisruptQueue Implementation for Version after storm-core-0.10.0
  * Functions and Classes involving queue-related metrics in the current class will be affected:
  */
-public class HistoricalCollectedData {
+class HistoricalCollectedData {
 
     public HistoricalCollectedData(StormTopology rawTopology, int historySize) {
         this.rawTopology = rawTopology;

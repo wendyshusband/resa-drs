@@ -55,8 +55,7 @@ public class MeasurableBolt extends DelegatedBolt {
 
     private transient CMVMetric executeMetric;
     private Sampler sampler;
-    private transient MultiCountMetric emitMetric;//define the metric
-
+    private transient MultiCountMetric emitMetric;
     private transient MeasurableOutputCollector measurableCollector;
     private long lastMetricsSent;
 
@@ -76,6 +75,7 @@ public class MeasurableBolt extends DelegatedBolt {
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
         measurableCollector = new MeasurableOutputCollector(outputCollector);
         super.prepare(conf, context, measurableCollector);
+
         LOG.info("Preparing MeasurableBolt: " + context.getThisComponentId());
     }
 
@@ -108,7 +108,4 @@ public class MeasurableBolt extends DelegatedBolt {
         }
     }
 
-    public static void main(String[] args) {
-
-    }
 }

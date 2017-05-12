@@ -2,7 +2,6 @@ package TestTopology.helper;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.Nimbus;
-import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.TopologyInfo;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.utils.NimbusClient;
@@ -10,17 +9,15 @@ import org.apache.storm.utils.Utils;
 import resa.optimize.AggResultCalculator;
 import resa.optimize.AllocCalculator;
 import resa.optimize.MMKAllocCalculator;
-import resa.shedding.drswithshedding.RevertRealLoadData;
 import resa.util.ResaConfig;
 import resa.util.TopologyHelper;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Created by Tom.fu on 5/5/2014.
+ * Created by Tom.fu on 5/5/2014. Just for testing purpose
  */
 public class ResaMetricAnalyzer {
 
@@ -108,8 +105,8 @@ public class ResaMetricAnalyzer {
 
             long currTime = System.currentTimeMillis();
             System.out.println("------Report on: " + currTime + ",last for: " + (currTime - startTime)/60000 + " minutes, " + (currTime - startTime) + " secs.----------");
-            if (currAllocation.equals(updatedAllocation)) {// for load shedding, change arg
-                System.out.println(currAllocation + "-->" + smdm.calc(resultCalculator.getComp2ExecutorResults(), allewedExecutorNum,new StormTopology(),new HashMap<>()));
+            if (currAllocation.equals(updatedAllocation)) {
+                System.out.println(currAllocation + "-->" + smdm.calc(resultCalculator.getComp2ExecutorResults(), allewedExecutorNum));
             } else {
                 currAllocation = updatedAllocation;
                 smdm.allocationChanged(currAllocation);

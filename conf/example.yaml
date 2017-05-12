@@ -9,20 +9,18 @@ resa.metric.approved.names:
  - "__receive recv-queue" 
  - "duration" 
  - "arrival_rate_secs"
- - "shedding_rate"
- #tkl
 
 ## Determine whether to attached detailed running informaiton of resa-drs will to the LOG outputs, default is false
 resa.container.metric.output: true
 
 
 ## The optimal allocation calculator we designed and implemented based on Jackson Queueing network theory. In the current version of Resa-drs, it is the only option. More options will be developed in future
-#resa.optimize.alloc.class: "resa.optimize.MMKAllocCalculator"
-resa.optimize.alloc.class: "resa.shedding.drswithshedding.SheddingMMKAllocCalculator"
+resa.optimize.alloc.class: "resa.optimize.MMKAllocCalculator"
 
 
 ## Storm built-in parameter, the period that the metrics are collected and reported by each task 
-topology.builtin.metrics.bucket.size.secs: 60
+topology.builtin.metrics.bucket.size.secs: 30
+#60
 
 
 ## The sample rate applied on measuring those appointed metric results, the default value is 0.05
@@ -31,7 +29,6 @@ resa.comp.sample.rate: 1.0
 
 ## The size of the history window. It decides how much historical metrics data needs to be buffered, e.g., when topology.builtin.metrics.bucket.size.secs: 60, only the metrics data reported in the previous 300 seconds will be maintained in the buffer. The default value is 1.
 resa.opt.win.history.size: 5
-#5
 
 
 ## In the beginning, how much reported metric data shall be ignored (during the system initilization on starting a topology, the metrics data are mostly unstable), -1 means the first group of reported (at the 60th second) data needs to be ignored. The default value is 0.
@@ -39,15 +36,17 @@ resa.opt.win.history.ignore: 0
 
 
 ## The period that DRS will re-calculate the optimial allocation according to the metric data within the configured history window. The default value is 30
-resa.optimize.interval.secs: 60
+resa.optimize.interval.secs: 30
+#60
 
 
 ## A simple decision maker we have implemented for making the decision when to trigger the Topology's rebalance operation. 
-resa.scheduler.decision.class: "resa.drs.DefaultDecisionMaker"
+resa.scheduler.decision.class: "resa.drs.BasicDecisionMaker"
+#"resa.drs.DefaultDecisionMaker"
 
 ## Note, the following parameters are valid only when "resa.drs.DefaultDecisionMaker" is configured:
 ### The minimal expected interval that the "resa.drs.DefaultDecisionMaker" will trigger the Topology rebalance operation when it detects a better allocation suggested by drs allocation calculator. The default value is "resa.optimize.interval.secs" * 2
-resa.opt.adjust.min.sec: 360
+resa.opt.adjust.min.sec: 180
 #360
 
 ### The type of suggested allocation to consider, 
@@ -58,9 +57,10 @@ resa.opt.adjust.type: 0
 
 ### User specified QoS target, i.e., the maximal allowed expected tuple complete latency in millisecond. It is effective only when "resa.opt.adjust.type" is set to 2. The default value is 5000.
 resa.opt.smd.qos.ms: 1500
-
+resa.opt.smd.qos.lower.ms: 300
+resa.opt.smd.qos.upper.ms: 800
 ### User specified maximal available number of executors can be used. It is effective only when resa.opt.adjust.type is set to 1.
-resa.topology.allowed.executor.num: 10
+resa.topology.allowed.executor.num: 18
 #8
 
 ### User specified maximal number of executors can be assigned to each worker. Note the product ("resa.topology.max.executor.per.worker" * "topology.NumberOfWorkers") is an upper bound of total available number of executors can be used and it is effective for all the three types!
@@ -74,18 +74,17 @@ resa.topology.max.executor.per.worker: 2
 # User-defined topology related configuration and parameter settings
 
 ## Redis queue for input data
-redis.host: "kailin-ubuntu"
+redis.host: "192.168.0.31"
 redis.port: 6379
-redis.sourceQueueName: "fsource"
-redis.queue: "fsource"
+redis.sourceQueueName: "fSource"
+redis.queue: "fSource"
 
 ## topology level
 chain-NumOfWorkers: 3
 chain-MaxSpoutPending: 20000
 
 2Path-NumOfWorkers: 3
-2Path-MaxSpoutPending: 60000
-#20000
+2Path-MaxSpoutPending: 20000
 
 loop-NumOfWorkers: 3
 loop-MaxSpoutPending: 20000
@@ -105,11 +104,9 @@ chain-BoltB.mu: 15.0
 
 2Path-BoltA-P.parallelism: 1
 2Path-BoltA-P.mu: 10
-#10
 
 2Path-BoltA-NotP.parallelism: 2
 2Path-BoltA-NotP.mu: 5
-#5
 
 2Path-BoltB.parallelism: 2
 2Path-BoltB.mu: 15
@@ -122,23 +119,18 @@ loop-BoltB.parallelism: 4
 loop-BoltB.mu: 15
 loop-BoltB-loopback.prob: 0.2
 
-
-#load shedding
-#shedding queue size
-resa.shedding.tuple.queue.capacity: 1024
-resa.shedding.selectivity.function.order: 1
-resa.shedding.selectivity.calc.class: "resa.shedding.drswithshedding.PolynomialRegression"
-
 #test sort topology
 sort-NumOfWorkers: 3
-sort-MaxSpoutPending: 100000
+sort-MaxSpoutPending: 20000
 ##sort-spoutA.prob: 0.6
 ##sort-spoutA-parallelism: 1
-sort-BoltB.parallelism: 2
+sort-BoltB.parallelism: 3
 sort-BoltB.mu: 10
-sort-BoltC.parallelism: 2
+sort-BoltC.parallelism: 1
 sort-BoltC.mu: 5
-sort-BoltD.parallelism: 2
+sort-BoltD.parallelism: 1
 sort-BoltD.mu: 5
 sort-BoltF.parallelism: 1
 sort-BoltF.mu: 5
+
+#resa.optimize.service.model.class: "resa.optimize.GGKServiceModel"

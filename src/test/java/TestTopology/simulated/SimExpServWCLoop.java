@@ -1,13 +1,9 @@
 package TestTopology.simulated;
 
 import org.apache.storm.Config;
-import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
-import resa.shedding.TestPrint;
 import resa.util.ConfigUtil;
-import resa.util.TopologyHelper;
-
 import java.io.File;
 
 /**
@@ -27,8 +23,7 @@ public class SimExpServWCLoop {
         if (conf == null) {
             throw new RuntimeException("cannot find conf file " + args[0]);
         }
-//        File file = new File("/home/kailin/github/resa-drs/conf/example.yaml");
-//        Config conf = ConfigUtil.readConfig(file);
+
         TopologyBuilder builder = new TopologyBuilder();
 
         int defaultTaskNum = ConfigUtil.getInt(conf, "defaultTaskNum", 10);
@@ -60,8 +55,6 @@ public class SimExpServWCLoop {
         conf.setDebug(ConfigUtil.getBoolean(conf, "DebugTopology", false));
         conf.setStatsSampleRate(ConfigUtil.getDouble(conf, "StatsSampleRate", 1.0));
 
-        //LocalCluster cluster = new LocalCluster();
-        //cluster.submitTopology("test", conf, builder.createTopology());
-        StormSubmitter.submitTopology("sim-loop-top1", conf, builder.createTopology());
+        StormSubmitter.submitTopology("sim-loop-top", conf, builder.createTopology());
     }
 }

@@ -7,8 +7,10 @@ import org.slf4j.LoggerFactory;
 import resa.metrics.MeasuredData;
 import resa.metrics.MetricNames;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,8 +42,7 @@ public class AggResultCalculator {
         comp2Executors.forEach((comp, exeList) -> {
             AggResult[] executorResults;
             if (rawTopo.get_spouts().containsKey(comp)) {
-
-                executorResults = new SpoutAggResult[exeList.size()];// exelist.size is number of executor
+                executorResults = new SpoutAggResult[exeList.size()];
                 for (int i = 0; i < executorResults.length; i++) {
                     executorResults[i] = createTaskIndex(new SpoutAggResult(), exeList.get(i));
                 }
@@ -51,7 +52,7 @@ public class AggResultCalculator {
                     executorResults[i] = createTaskIndex(new BoltAggResult(), exeList.get(i));
                 }
             }
-            comp2ExecutorResults.put(comp, executorResults);//[i]executor, [i] inculude N task
+            comp2ExecutorResults.put(comp, executorResults);
         });
         firstTasks = comp2Executors.values().stream().flatMap(e -> e.stream()).map(ExecutorDetails::getStartTask)
                 .collect(Collectors.toSet());
@@ -81,19 +82,7 @@ public class AggResultCalculator {
                 return data;
             });
         }
-        //tkl
-        Map<String, Object> emitCount = (Map<String, Object>) measuredData.data.get(MetricNames.EMIT_COUNT);
-        if(emitCount != null){
-            emitCount.forEach((stream,count)->{
-                Long temp = (Long) count;
-                if( dest.getemitCount().containsKey(stream)) {
-                    temp +=  dest.getemitCount().get(stream);
-                }
-                dest.getemitCount().put(stream, temp);
-            });
-        }
-
-        if (rawTopo.get_spouts().containsKey(measuredData.component)) {//spout
+        if (rawTopo.get_spouts().containsKey(measuredData.component)) {
             Map<String, Object> data = (Map<String, Object>) measuredData.data.get(MetricNames.COMPLETE_LATENCY);
             if (data != null) {
                 data.forEach((stream, elementStr) -> {
@@ -107,7 +96,7 @@ public class AggResultCalculator {
                     }
                 });
             }
-        } else {//bolt
+        } else {
             Map<String, Object> data = (Map<String, Object>) measuredData.data.get(MetricNames.TASK_EXECUTE);
             if (data != null) {
                 data.forEach((stream, elementStr) -> {
@@ -119,17 +108,6 @@ public class AggResultCalculator {
                         ((BoltAggResult) dest).getTupleProcess().computeIfAbsent(stream, (k) -> new CntMeanVar())
                                 .addAggWin(cnt, val, val_2);
                     }
-                });
-            }
-            //tkl
-            Map<String, Object> shed = (Map<String, Object>) measuredData.data.get(MetricNames.SHEDDING_RATE);
-            if(shed != null){
-                shed.forEach((stream,count)->{
-                    Long temp = (Long) count;
-                    if( ((BoltAggResult)dest).getSheddingCountMap().containsKey(stream)) {
-                        temp +=  ((BoltAggResult)dest).getSheddingCountMap().get(stream);
-                    }
-                    ((BoltAggResult)dest).getSheddingCountMap().put(stream, temp);
                 });
             }
         }
@@ -153,9 +131,7 @@ public class AggResultCalculator {
             parse(measuredData, car);
             count++;
         }
-        LOG.info("calCMVStat, processed measuredData size : " + count);
-               // + dataStream.iterator().next().data.toString());
-
+        LOG.info("calCMVStat, processed measuredData size: " + count);
     }
 
     public Map<String, AggResult[]> getComp2ExecutorResults() {
@@ -170,9 +146,5 @@ public class AggResultCalculator {
     public Map<String, AggResult[]> getBoltResults() {
         return comp2ExecutorResults.entrySet().stream().filter(e -> rawTopo.get_bolts().containsKey(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-
-
     }
-
 }

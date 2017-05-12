@@ -14,14 +14,14 @@ import java.util.Map;
 
 /**
  * Developed by Tom Fu, on Jan 7th, 2016
- * The SheddingResaTopologyValidator will replace the DefaultTopologyValidator
+ * The ResaTopologyValidator will replace the DefaultTopologyValidator
  * It requires to modify the storm configuration file: storm.yaml
  * Add this entry:
- * nimbus.topology.validator: "resa.topology.SheddingResaTopologyValidator"
+ * nimbus.topology.validator: "resa.topology.ResaTopologyValidator"
  *
  * TODO: there will be an exception on registering metrics twice, when running "ResaSimExpServLoop.java" (using
- * TODO: SheddingResaTopologyBuilder) with configuring the SheddingResaTopologyValidator, therefore, we need to modify
- * TODO: SheddingResaTopologyValidator to add some check to avoid register metrics twice.
+ * TODO: ResaTopologyBuilder) with configuring the ResaTopologyValidator, therefore, we need to modify
+ * TODO: ResaTopologyValidator to add some check to avoid register metrics twice.
  */
 public class ResaTopologyValidator implements ITopologyValidator {
 

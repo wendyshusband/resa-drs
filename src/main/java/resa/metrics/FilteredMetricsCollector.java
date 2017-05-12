@@ -56,10 +56,6 @@ public abstract class FilteredMetricsCollector implements IMetricsConsumer {
         if (keepTask(taskInfo)) {
             return;
         }
-//        System.out.println("tklsz:"+dataPoints.size());
-//        dataPoints.forEach(l->{
-//            System.out.println(l.name+":"+l.value);
-//        });
         // select points that need to keep based on the implementation of keepPoint function
         List<DataPoint> selectedPoints = dataPoints.stream().map(dataPoint -> processPoint(taskInfo, dataPoint))
                 .filter(Objects::nonNull).collect(Collectors.toList());

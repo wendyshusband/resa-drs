@@ -14,9 +14,9 @@ import java.io.File;
 
 /**
  * This is for Resa-drs development testing purpose. In this topology, Resa-drs support and functions needs explicit
- * declaration, e.g., "TopologyBuilder builder = new SheddingResaTopologyBuilder();" also needs to include resa-drs related
- * dependencies, e.g., "import resa.topology.SheddingResaTopologyBuilder;"
- * Before we update SheddingResaTopologyValidator, please ensure SheddingResaTopologyValidator is NOT configured for running this
+ * declaration, e.g., "TopologyBuilder builder = new ResaTopologyBuilder();" also needs to include resa-drs related
+ * dependencies, e.g., "import resa.topology.ResaTopologyBuilder;"
+ * Before we update ResaTopologyValidator, please ensure ResaTopologyValidator is NOT configured for running this
  */
 public class ResaSimExpServWC2Path {
 

@@ -108,7 +108,6 @@ public class MeasurableSpout extends DelegatedSpout {
         completeStatMetric = xAxis.length > 0 ? context.registerMetric(MetricNames.LATENCY_STAT,
                 new CompleteStatMetric(xAxis), interval) : null;
         // register duration metric
-
         lastMetricsSent = System.currentTimeMillis();
         context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
 

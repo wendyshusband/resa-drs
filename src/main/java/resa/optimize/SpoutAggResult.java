@@ -43,9 +43,4 @@ public class SpoutAggResult extends AggResult {
     public long getNumOfCompletedTuples(){
         return this.getCombinedCompletedLatency().getCount();
     }
-
-    public static void main(String[] args) {
-        int a = new Integer("3");
-        System.out.println( a );
-    }
 }
