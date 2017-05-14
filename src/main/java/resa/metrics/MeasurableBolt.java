@@ -75,7 +75,6 @@ public class MeasurableBolt extends DelegatedBolt {
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
         measurableCollector = new MeasurableOutputCollector(outputCollector);
         super.prepare(conf, context, measurableCollector);
-
         LOG.info("Preparing MeasurableBolt: " + context.getThisComponentId());
     }
 

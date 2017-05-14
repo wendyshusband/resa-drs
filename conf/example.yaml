@@ -9,6 +9,8 @@ resa.metric.approved.names:
  - "__receive recv-queue" 
  - "duration" 
  - "arrival_rate_secs"
+ - "shedding_rate"
+#tkl
 
 ## Determine whether to attached detailed running informaiton of resa-drs will to the LOG outputs, default is false
 resa.container.metric.output: true
@@ -74,10 +76,10 @@ resa.topology.max.executor.per.worker: 2
 # User-defined topology related configuration and parameter settings
 
 ## Redis queue for input data
-redis.host: "192.168.0.31"
+redis.host: "kailin-ubuntu"
 redis.port: 6379
-redis.sourceQueueName: "fSource"
-redis.queue: "fSource"
+redis.sourceQueueName: "fsource"
+redis.queue: "fsource"
 
 ## topology level
 chain-NumOfWorkers: 3
@@ -134,3 +136,9 @@ sort-BoltF.parallelism: 1
 sort-BoltF.mu: 5
 
 #resa.optimize.service.model.class: "resa.optimize.GGKServiceModel"
+
+#load shedding
+#shedding queue size
+resa.shedding.tuple.queue.capacity: 1024
+resa.shedding.selectivity.function.order: 1
+resa.shedding.selectivity.calc.class: "resa.shedding.drswithshedding.PolynomialRegression"

@@ -1,12 +1,16 @@
-package resa.drs;
+package resa.shedding.topology;
 
 import org.apache.storm.Config;
+import org.apache.storm.generated.StormTopology;
 import org.apache.storm.scheduler.ExecutorDetails;
-import resa.metrics.MeasuredData;
-import resa.optimize.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.topology.ContainerContext;
+import resa.drs.DecisionMaker;
+import resa.drs.DefaultDecisionMaker;
+import resa.metrics.MeasuredData;
+import resa.optimize.*;
+import resa.shedding.drswithshedding.RevertRealLoad;
+import resa.shedding.drswithshedding.SheddingMMKAllocCalculator;
 import resa.util.ConfigUtil;
 import resa.util.ResaUtils;
 
@@ -14,13 +18,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static resa.util.ResaConfig.*;
+import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
 
 /**
- * Created by ding on 14-4-26.
+ * Created by kailin on 29/3/17.
  */
-public class ResourceScheduler {
-
-    private static final Logger LOG = LoggerFactory.getLogger(ResourceScheduler.class);
+public class SheddingResourceScheduler {
+    private static final Logger LOG = LoggerFactory.getLogger(SheddingResourceScheduler.class);
 
     private final Timer timer = new Timer(true);
     private Map<String, Integer> currAllocation;
@@ -29,13 +33,16 @@ public class ResourceScheduler {
     private Map<String, Object> conf;
     private AllocCalculator allocCalculator;
     private DecisionMaker decisionMaker;
-    private ContainerContext ctx;
+
+    //load shedding
+    private RevertRealLoad revertRealLoad;
+    private SheddingContainerContext ctx;
     private volatile List<MeasuredData> measuredDataBuffer = new ArrayList<>();
 
-    public void init(ContainerContext containerContext) {
-        this.conf = containerContext.getConfig();
-        this.ctx = containerContext;
-        this.ctx.addListener(new ContainerContext.Listener() {
+    public void init(SheddingContainerContext sheddingContainerContext) {
+        this.conf = sheddingContainerContext.getConfig();
+        this.ctx = sheddingContainerContext;
+        this.ctx.addListener(new SheddingContainerContext.Listener() {
             @Override
             public void measuredDataReceived(MeasuredData measuredData) {
                 measuredDataBuffer.add(measuredData);
@@ -43,16 +50,22 @@ public class ResourceScheduler {
         });
         maxExecutorsPerWorker = ConfigUtil.getInt(conf, MAX_EXECUTORS_PER_WORKER, 8);
         topologyMaxExecutors = ConfigUtil.getInt(conf, ALLOWED_EXECUTOR_NUM, -1);
+
+
         // create Allocation Calculator
         allocCalculator = ResaUtils.newInstanceThrow((String) conf.getOrDefault(ALLOC_CALC_CLASS,
-                MMKAllocCalculator.class.getName()), AllocCalculator.class);
+                SheddingMMKAllocCalculator.class.getName()), AllocCalculator.class);
         // current allocation should be retrieved from nimbus
         currAllocation = calcAllocation(this.ctx.runningExecutors());
         allocCalculator.init(conf, Collections.unmodifiableMap(currAllocation), this.ctx.getTopology());
+
+        //create revert load function
+        //revertRealLoad = new RevertRealLoad(conf,this.ctx.getTopology(),ctx.getTargets());
+
         // create Decision Maker
         decisionMaker = ResaUtils.newInstanceThrow((String) conf.getOrDefault(DECISION_MAKER_CLASS,
                 DefaultDecisionMaker.class.getName()), DecisionMaker.class);
-        decisionMaker.init(conf, containerContext.getTopology());
+        decisionMaker.init(conf, sheddingContainerContext.getTopology());
         LOG.info("AllocCalculator class: {}", allocCalculator.getClass().getName());
         LOG.info("DecisionMaker class: {}", decisionMaker.getClass().getName());
     }
@@ -60,7 +73,7 @@ public class ResourceScheduler {
     public void start() {
         long calcInterval = ConfigUtil.getInt(conf, OPTIMIZE_INTERVAL, 30) * 1000;
         //start optimize thread
-        timer.scheduleAtFixedRate(new OptimizeTask(), calcInterval * 2, calcInterval);
+        timer.scheduleAtFixedRate(new SheddingResourceScheduler.OptimizeTask(), calcInterval * 2, calcInterval);
         LOG.info("Init Topology Optimizer successfully with calc interval is {} ms", calcInterval);
     }
 
@@ -87,6 +100,12 @@ public class ResourceScheduler {
                 AggResultCalculator calculator = new AggResultCalculator(data, topoExecutors,
                         ctx.getTopology());
                 calculator.calCMVStat();
+
+                //for load shedding
+                //Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
+                 //       revertRealLoad.storeLoadInformation(calculator.getComp2ExecutorResults());
+                //tkl
+
                 //TODO: (added by Tom) we need to calc the maxProcessedDataSize as a configuration parameter.
                 // set a return value (count) from calculator.calCMVStat()
                 // if the count == maxProcessedDataSize (current is 500, say), we need to do something,
@@ -101,11 +120,11 @@ public class ResourceScheduler {
         }
 
         private Map<String, Integer> calcNewAllocation(Map<String, AggResult[]> data) {
-            int maxExecutors = topologyMaxExecutors == -1 ? Math.max(ConfigUtil.getInt(conf, Config.TOPOLOGY_WORKERS, 1),
+            int maxExecutors = topologyMaxExecutors == -1 ? Math.max(ConfigUtil.getInt(SheddingResourceScheduler.this.conf, Config.TOPOLOGY_WORKERS, 1),
                     getNumWorkers(currAllocation)) * maxExecutorsPerWorker : topologyMaxExecutors;
             Map<String, Integer> ret = null;
             try {
-                AllocResult decision = allocCalculator.calc(data, maxExecutors,ctx.getTopology(),new HashMap<>());
+                AllocResult decision = allocCalculator.calc(data,maxExecutors,ctx.getTopology(),ctx.getTargets());
                 if (decision != null) {
                     ctx.emitMetric("drs.alloc", decision);
                     LOG.debug("emit drs metric {}", decision);

@@ -36,6 +36,7 @@ public abstract class AllocCalculator {
         this.currAllocation = newAllocation;
     }
 
-    public abstract AllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors);
+    public abstract AllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors,
+                                     StormTopology topology, Map<String, Object> targets);
 
 }

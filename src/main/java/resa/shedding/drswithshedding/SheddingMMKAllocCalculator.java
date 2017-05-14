@@ -1,8 +1,9 @@
-package resa.optimize;
+package resa.shedding.drswithshedding;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
 import org.javatuples.Pair;
+import resa.optimize.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.util.ConfigUtil;
@@ -14,20 +15,17 @@ import java.util.stream.Collectors;
 import static resa.util.ResaConfig.SERVICE_MODEL_CLASS;
 
 /**
- * Created by ding on 14-4-30.
- * Modified by Tom Fu on 21-Dec-2015, for new DisruptQueue Implementation for Version after storm-core-1.0.1
- * Functions and Classes involving queue-related metrics in the current class will be affected:
- *   - calc()
- *   - LOG.info output
- *   - calculation of tupleCompleteRate and tupleProcRate is corrected. The duration metric is still necessary, only for this calculation.
+ * Created by kailin on 13/4/17.
  */
-public class MMKAllocCalculator extends AllocCalculator {
-    private static final Logger LOG = LoggerFactory.getLogger(MMKAllocCalculator.class);
+public class SheddingMMKAllocCalculator extends AllocCalculator {
+    private static final Logger LOG = LoggerFactory.getLogger(SheddingMMKAllocCalculator.class);
     private HistoricalCollectedData spoutHistoricalData;
     private HistoricalCollectedData boltHistoricalData;
     private int historySize;
     private int currHistoryCursor;
     private ServiceModel serviceModel;
+    private LearningSelectivity calcSelectivityFunction;
+    private Integer order;
 
     @Override
     public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology) {
@@ -39,6 +37,9 @@ public class MMKAllocCalculator extends AllocCalculator {
         boltHistoricalData = new HistoricalCollectedData(rawTopology, historySize);
         serviceModel =  ResaUtils.newInstanceThrow((String) conf.getOrDefault(SERVICE_MODEL_CLASS,
                 MMKServiceModel.class.getName()), ServiceModel.class);
+        calcSelectivityFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.SELECTIVITY_CALC_CLASS,
+                PolynomialRegression.class.getName()),LearningSelectivity.class);
+        order = ConfigUtil.getInt(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
     }
 
     @Override
@@ -59,7 +60,7 @@ public class MMKAllocCalculator extends AllocCalculator {
             currHistoryCursor = historySize;
         }
 
-        Map<String,double[]> selectivityFunctions = output();//test output
+        Map<String,double[]> selectivityFunctions = calcSelectivityFunction();//load shedding
         ///TODO: Here we assume only one spout, plan to extend to multiple spouts in future
         ///TODO: here we assume only one running topology, plan to extend to multiple running topologies in future
         double targetQoSMs = ConfigUtil.getDouble(conf, ResaConfig.OPTIMIZE_SMD_QOS_MS, 5000.0);
@@ -97,6 +98,8 @@ public class MMKAllocCalculator extends AllocCalculator {
                     ///TODO: shall we put this i2oRatio calculation here, or later to inside ServiceModel?
                     return new ServiceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar, spInfo.getExArrivalRate());
                 }));
+        SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(spInfo,queueingNetwork,topology,targets,selectivityFunctions);//load shedding
+        sheddingLoadRevert.revertLoad();
         Map<String, Integer> boltAllocation = currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -136,15 +139,21 @@ public class MMKAllocCalculator extends AllocCalculator {
         return new AllocResult(allocResult.status, retMinReqAllocation, retCurrAllocation, retKMaxAllocation).setContext(ctx);
     }
 
-    @Override
-    public void allocationChanged(Map<String, Integer> newAllocation) {
-        super.allocationChanged(newAllocation);
-        spoutHistoricalData.clear();
-        boltHistoricalData.clear();
-        currHistoryCursor = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_WIN_HISTORY_SIZE_IGNORE, 0);
-    }
-
-    private Map<String, double[]> output() {
+    /**
+     * load shedding
+     * calculate selectivity function based on bolt history data.
+     * */
+    private Map<String, double[]> calcSelectivityFunction() {
+        spoutHistoricalData.compHistoryResults.entrySet().forEach(e->{
+            System.out.println(e.getKey());
+            Iterator iterator = ((Queue)e.getValue()).iterator();
+            while(iterator.hasNext()){
+                SpoutAggResult tempAggResult = (SpoutAggResult) iterator.next();
+                System.out.println("completeLatency: "+tempAggResult.getScvTupleCompleteLatency());
+                System.out.println(tempAggResult.getArrivalRatePerSec());
+                System.out.println("getTupleEmitRateOnSQ"+tempAggResult.getArrivalRatePerSec() * currAllocation.get(e.getKey()) / 2.0);
+            }
+        });
         Map<String, double[]> selectivityCoeffs = new HashMap<>();
         Map<String, Queue<AggResult>> compHistoryResults =boltHistoricalData.compHistoryResults;
         for(Map.Entry comp : compHistoryResults.entrySet()){
@@ -152,23 +161,50 @@ public class MMKAllocCalculator extends AllocCalculator {
             LinkedList<Pair<Double,Double>> loadPairList = new LinkedList<>();
             while(iterator.hasNext()){
                 BoltAggResult tempAggResult = (BoltAggResult) iterator.next();
-                //double sheddingRate = (1.0 *tempAggResult.getSheddingCountMap().get("dropTuple"))/(tempAggResult.getSheddingCountMap().get("allTuple"));
-                double loadIN = (currAllocation.get(comp.getKey()) * tempAggResult.getArrivalRatePerSec())
-                        ;// * (1.0 - sheddingRate);
-                double loadOUT = tempAggResult.getDepartureRatePerSec() * currAllocation.get(comp.getKey())
-                        -loadIN;
+                //double sheddingRate = 0.0;
+                double loadIN = 0.0;
+                double loadOUT = 0.0;
+                if(tempAggResult.getSheddingCountMap().get("allTuple") != null &&
+                        tempAggResult.getSheddingCountMap().get("allTuple") != 0) {
+                    long loadTuple = tempAggResult.getSheddingCountMap().get("allTuple")
+                            - tempAggResult.getSheddingCountMap().get("dropTuple");
+                    if(loadTuple > 0) {
+                        loadIN = Math.log10(loadTuple);
+                        int emitSum = tempAggResult.getemitCount().values().stream().mapToInt(Number::intValue).sum();
+                        if(emitSum != 0)
+                            loadOUT = Math.log10(emitSum);
+                    }
+                }
                 loadPairList.add(new Pair<>(loadIN,loadOUT));
                 System.out.println(comp.getKey());
+                System.out.println("emitcount "+ tempAggResult.getemitCount());
                 System.out.println("getArrivalRatePerSec"+tempAggResult.getArrivalRatePerSec());
-                //System.out.println("sheddingRate"+sheddingRate);
-                //System.out.println("allTuple"+tempAggResult.getSheddingCountMap().get("allTuple"));
-                //System.out.println("dropTuple"+tempAggResult.getSheddingCountMap().get("dropTuple"));
+               // System.out.println("sheddingRate"+sheddingRate);
+                System.out.println("allTuple"+tempAggResult.getSheddingCountMap().get("allTuple"));
+                System.out.println("dropTuple"+tempAggResult.getSheddingCountMap().get("dropTuple"));
                 System.out.println("getDepartureRatePerSec"+tempAggResult.getDepartureRatePerSec());
-                System.out.println(loadIN);
-                System.out.println(loadOUT);
                 System.out.println(currAllocation.get(comp.getKey()));
             }
+            double[] oneCompSelectivityCoeff = calcSelectivityFunction.Fit(loadPairList,order);
+            selectivityCoeffs.put((String) comp.getKey(),oneCompSelectivityCoeff);
         }
+        System.out.println("this is the selectivity coeff!!!!!!");
+        for(Map.Entry comp : selectivityCoeffs.entrySet()){
+            System.out.println(comp.getKey());
+            double[] value = (double[]) comp.getValue();
+            for(int i=0; i<value.length; i++){
+                System.out.println(value[i]);
+            }
+        }
+        System.out.println("**********************************************!!!!*********************************************");
         return selectivityCoeffs;
+    }
+
+    @Override
+    public void allocationChanged(Map<String, Integer> newAllocation) {
+        super.allocationChanged(newAllocation);
+        spoutHistoricalData.clear();
+        boltHistoricalData.clear();
+        currHistoryCursor = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_WIN_HISTORY_SIZE_IGNORE, 0);
     }
 }

@@ -1,5 +1,8 @@
 package resa.optimize;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by Tom.fu on 16/4/2014.
  * Modified by Tom Fu on 21-Dec-2015, for new DisruptQueue Implementation for Version after storm-core-0.10.0
@@ -14,6 +17,7 @@ public class AggResult implements Cloneable {
     protected long duration = 0;
     protected QueueAggResult sendQueueResult = new QueueAggResult();
     protected QueueAggResult recvQueueResult = new QueueAggResult();
+    protected Map<String, Long> emitCount = new HashMap<>();//tkl
 
     /**
      * Vertical Combine is used for combine executor-level results to component-level results
@@ -53,6 +57,18 @@ public class AggResult implements Cloneable {
         //CMVAdd will check null or not, no need to check here.
         //Objects.requireNonNull(r, "input AggResult cannot null");
         this.duration += r.duration;
+        //load shedding
+        r.getemitCount().forEach((stream,count)->{
+            //System.out.println("stream "+stream+"  ^^^^^^^"+count+"^^^^^^");
+            if(this.emitCount.containsKey(stream)){
+                //System.out.println(emitCount.get(stream)+"get stream is this!");
+                emitCount.put(stream,emitCount.get(stream)+count);
+            }else{
+                emitCount.put(stream,count);
+            }
+
+        });
+        //System.out.println(emitCount+"heiheihei");
     }
 
     public QueueAggResult getSendQueueResult() {
@@ -111,5 +127,12 @@ public class AggResult implements Cloneable {
     public double getInterLeavelTimeScv(){
         //return sendQueueResult.getQueueArrivalRate().getScv();
         return 1.0;
+    }
+
+    /**
+     *  below is for load shedding
+     * */
+    public Map<String, Long> getemitCount() {
+        return emitCount;
     }
 }
