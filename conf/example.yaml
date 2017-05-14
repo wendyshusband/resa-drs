@@ -57,10 +57,10 @@ resa.opt.adjust.type: 0
 
 ### User specified QoS target, i.e., the maximal allowed expected tuple complete latency in millisecond. It is effective only when "resa.opt.adjust.type" is set to 2. The default value is 5000.
 resa.opt.smd.qos.ms: 1500
-resa.opt.smd.qos.lower.ms: 300
+resa.opt.smd.qos.lower.ms: 200
 resa.opt.smd.qos.upper.ms: 800
 ### User specified maximal available number of executors can be used. It is effective only when resa.opt.adjust.type is set to 1.
-resa.topology.allowed.executor.num: 18
+resa.topology.allowed.executor.num: 12
 #8
 
 ### User specified maximal number of executors can be assigned to each worker. Note the product ("resa.topology.max.executor.per.worker" * "topology.NumberOfWorkers") is an upper bound of total available number of executors can be used and it is effective for all the three types!

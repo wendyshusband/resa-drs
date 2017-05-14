@@ -204,7 +204,6 @@ public class ResaContainer extends FilteredMetricsCollector {
             if (waitingSecs >= 0) {
                 options.set_wait_secs(waitingSecs);
             }
-            //nimbus.getClusterInfo().get_supervisors().get(1).get_num_used_workers()
             try {
                 nimbus.rebalance(topologyName, options);
                 LOG.info("do rebalance successfully for topology " + topologyName);

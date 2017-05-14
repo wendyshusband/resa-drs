@@ -1,12 +1,12 @@
 package resa.scheduler;
 
-import org.apache.storm.scheduler.Cluster;
-import org.apache.storm.scheduler.IScheduler;
-import org.apache.storm.scheduler.Topologies;
+import org.apache.storm.scheduler.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,6 +22,22 @@ public class RequestYarnScheduler implements IScheduler {
 
     @Override
     public void schedule(Topologies topologies, Cluster cluster) {
-        LOG.info("");
+        LOG.info("RequestYarnScheduler request yarn for new physical resource!");
+        int topologiesTotalUsedSlots2 = 0;
+        for(TopologyDetails topology : topologies.getTopologies()){
+            System.out.println("worker: "+topology.getNumWorkers());
+            System.out.println("executor: "+topology.getExecutors());
+            topologiesTotalUsedSlots2+= topology.getNumWorkers();
+        }
+        int totalSlots = cluster.getAvailableSlots().size()+cluster.getUsedSlots().size();
+        int topologiesTotalUsedSlots = topologies.getTopologies().stream().mapToInt(TopologyDetails::getNumWorkers).sum();
+        System.out.println("topologiesTotalUsedSlots: "+topologiesTotalUsedSlots);
+        System.out.println("topologiesTotalUsedSlots2: "+topologiesTotalUsedSlots2);
+        System.out.println("all slots: "+totalSlots);
+        if(totalSlots < topologiesTotalUsedSlots2){
+
+        }
+        System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+        new EvenScheduler().schedule(topologies, cluster);
     }
 }
