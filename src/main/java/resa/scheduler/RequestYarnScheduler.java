@@ -1,11 +1,13 @@
 package resa.scheduler;
 
+import org.apache.storm.Config;
+import org.apache.storm.generated.Nimbus;
+import org.apache.storm.generated.SettableBlobMeta;
 import org.apache.storm.scheduler.*;
+import org.apache.storm.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -14,10 +16,13 @@ import java.util.Map;
  */
 public class RequestYarnScheduler implements IScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(RequestYarnScheduler.class);
-
+    private Nimbus.Iface nimbus;
+    private String zkServer;
     @Override
     public void prepare(Map conf) {
-
+        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        this.zkServer = (String) zkServer.get(0);
+        System.out.println("yamie: "+zkServer.get(0));
     }
 
     @Override

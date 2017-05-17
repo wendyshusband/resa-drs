@@ -2,6 +2,7 @@ package resa.shedding.drswithshedding;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.shade.org.apache.zookeeper.KeeperException;
 import org.javatuples.Pair;
 import resa.optimize.*;
 import org.slf4j.Logger;
@@ -9,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.ResaUtils;
+
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -98,8 +101,14 @@ public class SheddingMMKAllocCalculator extends AllocCalculator {
                     ///TODO: shall we put this i2oRatio calculation here, or later to inside ServiceModel?
                     return new ServiceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar, spInfo.getExArrivalRate());
                 }));
-        SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(spInfo,queueingNetwork,topology,targets,selectivityFunctions);//load shedding
+        SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(conf,spInfo,queueingNetwork,topology,targets,selectivityFunctions);//load shedding
         sheddingLoadRevert.revertLoad();
+        try {
+            sheddingLoadRevert.buildActiveSheddingRate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         Map<String, Integer> boltAllocation = currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -164,10 +173,10 @@ public class SheddingMMKAllocCalculator extends AllocCalculator {
                 //double sheddingRate = 0.0;
                 double loadIN = 0.0;
                 double loadOUT = 0.0;
-                if(tempAggResult.getSheddingCountMap().get("allTuple") != null &&
-                        tempAggResult.getSheddingCountMap().get("allTuple") != 0) {
-                    long loadTuple = tempAggResult.getSheddingCountMap().get("allTuple")
-                            - tempAggResult.getSheddingCountMap().get("dropTuple");
+                if(tempAggResult.getPassiveSheddingCountMap().get("allTuple") != null &&
+                        tempAggResult.getPassiveSheddingCountMap().get("allTuple") != 0) {
+                    long loadTuple = tempAggResult.getPassiveSheddingCountMap().get("allTuple")
+                            - tempAggResult.getPassiveSheddingCountMap().get("dropTuple");
                     if(loadTuple > 0) {
                         loadIN = Math.log10(loadTuple);
                         int emitSum = tempAggResult.getemitCount().values().stream().mapToInt(Number::intValue).sum();
@@ -180,8 +189,8 @@ public class SheddingMMKAllocCalculator extends AllocCalculator {
                 System.out.println("emitcount "+ tempAggResult.getemitCount());
                 System.out.println("getArrivalRatePerSec"+tempAggResult.getArrivalRatePerSec());
                // System.out.println("sheddingRate"+sheddingRate);
-                System.out.println("allTuple"+tempAggResult.getSheddingCountMap().get("allTuple"));
-                System.out.println("dropTuple"+tempAggResult.getSheddingCountMap().get("dropTuple"));
+                System.out.println("allTuple"+tempAggResult.getPassiveSheddingCountMap().get("allTuple"));
+                System.out.println("dropTuple"+tempAggResult.getPassiveSheddingCountMap().get("dropTuple"));
                 System.out.println("getDepartureRatePerSec"+tempAggResult.getDepartureRatePerSec());
                 System.out.println(currAllocation.get(comp.getKey()));
             }

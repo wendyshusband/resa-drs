@@ -2,7 +2,7 @@ package resa.util;
 
 import org.apache.storm.Config;
 import org.apache.storm.utils.Utils;
-import resa.shedding.topology.SheddingResaContainer;
+import resa.shedding.basicServices.SheddingResaContainer;
 import resa.topology.ResaContainer;
 
 import java.util.Map;
@@ -46,7 +46,8 @@ public class ResaConfig extends Config {
     public static final String LAMBDA_FOR_SELECTIVITY_HISTORY_SIZE = "resa.shedding.lambda.selectivity.history.size";
     public static final String SELECTIVITY_FUNCTION_ORDER = "resa.shedding.selectivity.function.order";
     public static final String SELECTIVITY_CALC_CLASS = "resa.shedding.selectivity.calc.class";
-
+    public static final String SHEDDING_THRESHOLD = "resa.shedding.thresdhold";
+    public static final String ACTIVE_SHEDDING_MAP = "resa.shedding.active.stream.map";
 
     private ResaConfig(boolean loadDefault) {
         if (loadDefault) {

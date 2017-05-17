@@ -1,4 +1,4 @@
-package resa.shedding.topology;
+package resa.shedding.basicServices;
 
 import org.apache.storm.generated.ComponentObject;
 import org.apache.storm.generated.InvalidTopologyException;

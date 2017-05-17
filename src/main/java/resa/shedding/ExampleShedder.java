@@ -2,6 +2,7 @@ package resa.shedding;
 
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.tuple.Tuple;
+import resa.shedding.basicServices.AbstractRandomShedding;
 
 import java.io.Serializable;
 import java.util.Iterator;

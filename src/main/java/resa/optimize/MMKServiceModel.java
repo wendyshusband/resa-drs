@@ -25,7 +25,6 @@ public class MMKServiceModel implements ServiceModel {
      * @return here we should assume all the components are stable, the stability check shall be done outside this function
      */
     static double getExpectedTotalSojournTimeForJacksonOQN(Map<String, ServiceNode> serviceNodes, Map<String, Integer> allocation) {
-
         double retVal = 0.0;
         for (Map.Entry<String, ServiceNode> e : serviceNodes.entrySet()) {
             String cid = e.getKey();

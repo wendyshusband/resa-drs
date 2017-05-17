@@ -1,22 +1,19 @@
-package resa.shedding;
+package resa.shedding.basicServices;
 
-
-import org.apache.storm.task.OutputCollector;
-
-import java.util.List;
 
 /**
  * Created by kailin on 6/3/17.
  */
 public interface IShedding<T> {
     /**
-     * drop operate
+     * passive drop operate
      * @param arg every number of argument
+     * @return drop number
      */
-    void drop(T... arg);
+    int passiveDrop(T... arg);
 
     /**
-     * shedding trigger
+     * passive shedding trigger
      * @param arg every number of argument
      */
     boolean trigger(T... arg);

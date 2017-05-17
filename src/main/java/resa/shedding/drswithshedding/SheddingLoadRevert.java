@@ -1,10 +1,19 @@
 package resa.shedding.drswithshedding;
 
+import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
+import org.apache.storm.shade.org.apache.zookeeper.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.*;
+import resa.shedding.basicServices.DRSzkHandler;
+import resa.util.ConfigUtil;
+import resa.util.ResaConfig;
+
+import java.io.IOException;
 import java.util.*;
+
 
 /**
  * Created by kailin on 12/4/17.
@@ -19,8 +28,10 @@ public class SheddingLoadRevert {
     private SourceNode sourceNode;
     private Map<String, ServiceNode> serviceNodeMap;
     private List<String> topoSortResult = new ArrayList<>();
+    private CuratorFramework client;
+    private String topologyName;
 
-    public SheddingLoadRevert(SourceNode spInfo, Map<String, ServiceNode> queueingNetwork, StormTopology stormTopology,
+    public SheddingLoadRevert(Map conf,SourceNode spInfo, Map<String, ServiceNode> queueingNetwork, StormTopology stormTopology,
                               Map<String, Object> targets, Map<String, double[]> selectivityFunctions) {
         topology = stormTopology;
         topologyTargets=targets;
@@ -30,6 +41,14 @@ public class SheddingLoadRevert {
         this.selectivityFunctions = selectivityFunctions;
         sourceNode = spInfo;
         serviceNodeMap = queueingNetwork;
+        topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
+        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        //int port =  Integer.valueOf((String)conf.get(Config.STORM_ZOOKEEPER_PORT));
+        System.out.println(conf.get(Config.TOPOLOGY_NAME)+"nihao: "+zkServer.get(0)+":"+conf.get(Config.STORM_ZOOKEEPER_PORT));
+        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
+        System.out.println(client.getState()+"nibuhao");
+        if(!client.isStarted())
+        client.start();
     }
 
     public void revertLoad() {
@@ -138,6 +157,30 @@ public class SheddingLoadRevert {
         });
 
 
+    }
+
+    public void buildActiveSheddingRate() throws Exception {
+        Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();
+        if(null == client.checkExists().forPath("/drs")){
+            client.create().forPath("/drs");
+        }
+
+        if(client.checkExists().forPath("/drs/"+topologyName) == null){
+            client.create().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+        }else{
+            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+        }
+        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
+        //client.close();
+    }
+
+    private Map<String, Double> calcActiveSheddingRate() {
+        Map<String,Double> activeSheddingRateMap = new HashMap<>();
+        Random random  = new Random(1);
+        activeSheddingRateMap.put("sort-BoltC",0.2);
+        activeSheddingRateMap.put("sort-BoltB",random.nextDouble());
+        activeSheddingRateMap.put("sort-BoltD",0.5);
+        return activeSheddingRateMap;
     }
 
     private static class TopoSort{

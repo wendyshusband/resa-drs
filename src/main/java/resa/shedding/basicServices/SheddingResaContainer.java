@@ -1,4 +1,4 @@
-package resa.shedding.topology;
+package resa.shedding.basicServices;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.Nimbus;
@@ -55,7 +55,7 @@ public class SheddingResaContainer extends FilteredMetricsCollector {
         addApprovedMetirc(MetricNames.TASK_EXECUTE);
         addApprovedMetirc(MetricNames.EMIT_COUNT);
         addApprovedMetirc(MetricNames.DURATION);
-        addApprovedMetirc(MetricNames.SHEDDING_RATE);
+        addApprovedMetirc(MetricNames.PASSIVE_SHEDDING_RATE);
 
         Map<String, Object> topo = buildTopologyInfo(context);
         ctx = new SheddingResaContainer.SheddingContainerContextImpl(context.getRawTopology(), conf, (Map<String, Object>) topo.get("targets"));

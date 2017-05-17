@@ -82,6 +82,17 @@ public class AggResultCalculator {
                 return data;
             });
         }
+        //tkl
+        Map<String, Object> emitCount = (Map<String, Object>) measuredData.data.get(MetricNames.EMIT_COUNT);
+        if(emitCount != null){
+            emitCount.forEach((stream,count)->{
+                Long temp = (Long) count;
+                if( dest.getemitCount().containsKey(stream)) {
+                    temp +=  dest.getemitCount().get(stream);
+                }
+                dest.getemitCount().put(stream, temp);
+            });
+        }
         if (rawTopo.get_spouts().containsKey(measuredData.component)) {
             Map<String, Object> data = (Map<String, Object>) measuredData.data.get(MetricNames.COMPLETE_LATENCY);
             if (data != null) {
@@ -108,6 +119,17 @@ public class AggResultCalculator {
                         ((BoltAggResult) dest).getTupleProcess().computeIfAbsent(stream, (k) -> new CntMeanVar())
                                 .addAggWin(cnt, val, val_2);
                     }
+                });
+            }
+            //tkl
+            Map<String, Object> shed = (Map<String, Object>) measuredData.data.get(MetricNames.PASSIVE_SHEDDING_RATE);
+            if(shed != null){
+                shed.forEach((stream,count)->{
+                    Long temp = (Long) count;
+                    if( ((BoltAggResult)dest).getPassiveSheddingCountMap().containsKey(stream)) {
+                        temp +=  ((BoltAggResult)dest).getPassiveSheddingCountMap().get(stream);
+                    }
+                    ((BoltAggResult)dest).getPassiveSheddingCountMap().put(stream, temp);
                 });
             }
         }

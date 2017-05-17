@@ -2,17 +2,15 @@ package resa.shedding;
 
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.IRichBolt;
-import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseWindowedBolt;
 import org.apache.storm.tuple.Tuple;
-import org.apache.storm.windowing.TupleWindow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import resa.shedding.basicServices.IShedding;
 import resa.topology.DelegatedBolt;
+import resa.util.TestPrint;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -20,7 +18,7 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Created by kailin on 15/3/17.
  */
-public class WindowBaseSheddableBolt extends DelegatedBolt implements IShedding{
+public class WindowBaseSheddableBolt extends DelegatedBolt implements IShedding {
 
     public static Logger LOG = LoggerFactory.getLogger(WindowBaseSheddableBolt.class);
 
@@ -91,8 +89,8 @@ public class WindowBaseSheddableBolt extends DelegatedBolt implements IShedding{
 
 
     @Override
-    public void drop(Object[] arg) {
-
+    public int passiveDrop(Object[] arg) {
+        return 0;
     }
 
     @Override

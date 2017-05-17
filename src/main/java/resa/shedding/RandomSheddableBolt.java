@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.metrics.CMVMetric;
 import resa.metrics.MetricNames;
+import resa.shedding.basicServices.AbstractRandomShedding;
 import resa.topology.DelegatedBolt;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -65,7 +66,7 @@ public class RandomSheddableBolt extends DelegatedBolt {
 
     private int tupleQueueCapacity;
     private transient BlockingQueue<Tuple> pendingTupleQueue;
-    private transient MultiCountMetric sheddingRateMetric;
+    private transient MultiCountMetric passiveSheddingRateMetric;
     private AbstractRandomShedding _shedder;
     private transient CMVMetric executeMetric;
     private Sampler sampler;
@@ -84,7 +85,7 @@ public class RandomSheddableBolt extends DelegatedBolt {
         int interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
         executeMetric = context.registerMetric(MetricNames.TASK_EXECUTE, new CMVMetric(), interval);
         emitMetric = context.registerMetric(MetricNames.EMIT_COUNT, new MultiCountMetric(), interval);
-        sheddingRateMetric = context.registerMetric(MetricNames.SHEDDING_RATE, new MultiCountMetric(),interval);
+        passiveSheddingRateMetric = context.registerMetric(MetricNames.PASSIVE_SHEDDING_RATE, new MultiCountMetric(),interval);
         lastMetricsSent = System.currentTimeMillis();
         context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
@@ -124,13 +125,13 @@ public class RandomSheddableBolt extends DelegatedBolt {
                     shedRate = (drainer.size() * 1.0) / tupleQueueCapacity;
                     int originSize = drainer.size();
                     System.out.println("originSize: "+originSize);
-                    sheddingRateMetric.scope("allTuple").incrBy(drainer.size());
+                    passiveSheddingRateMetric.scope("allTuple").incrBy(drainer.size());
                     if (_shedder.randomTrigger(tupleQueueCapacity,drainer.size())) {
                         _shedder.randomDrop(drainer,shedRate,sheddindMeasurableCollector);
                         int increment = originSize - drainer.size();
-                        sheddingRateMetric.scope("dropTuple").incrBy(increment);
+                        passiveSheddingRateMetric.scope("dropTuple").incrBy(increment);
                     } else {
-                        sheddingRateMetric.scope("dropTuple").incrBy(0);
+                        passiveSheddingRateMetric.scope("dropTuple").incrBy(0);
                     }
                     for (Tuple t : drainer) {
                         handle(t);

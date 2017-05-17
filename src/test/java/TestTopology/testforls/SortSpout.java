@@ -7,6 +7,7 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
+import org.apache.storm.utils.Utils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class SortSpout extends BaseRichSpout {
         public void nextTuple() {
             String id = spoutIdPrefix + count;
             count++;
-            //Utils.sleep(1);
+            Utils.sleep(5);
             _collector.emit(new Values(id,"TUPLE"),id);
 
         }

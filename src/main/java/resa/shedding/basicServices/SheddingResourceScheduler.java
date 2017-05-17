@@ -1,4 +1,4 @@
-package resa.shedding.topology;
+package resa.shedding.basicServices;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;

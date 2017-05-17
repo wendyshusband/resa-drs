@@ -1,4 +1,4 @@
-package resa.shedding;
+package resa.util;
 
 import resa.util.TopologyHelper;
 

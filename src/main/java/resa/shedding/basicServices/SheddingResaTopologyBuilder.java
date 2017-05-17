@@ -1,4 +1,4 @@
-package resa.shedding.topology;
+package resa.shedding.basicServices;
 
 import org.apache.storm.topology.*;
 import resa.metrics.MeasurableSpout;

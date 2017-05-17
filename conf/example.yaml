@@ -9,7 +9,7 @@ resa.metric.approved.names:
  - "__receive recv-queue" 
  - "duration" 
  - "arrival_rate_secs"
- - "shedding_rate"
+ - "passive_shedding_rate"
 #tkl
 
 ## Determine whether to attached detailed running informaiton of resa-drs will to the LOG outputs, default is false
@@ -17,11 +17,12 @@ resa.container.metric.output: true
 
 
 ## The optimal allocation calculator we designed and implemented based on Jackson Queueing network theory. In the current version of Resa-drs, it is the only option. More options will be developed in future
-resa.optimize.alloc.class: "resa.optimize.MMKAllocCalculator"
+#resa.optimize.alloc.class: "resa.optimize.MMKAllocCalculator"
+#"resa.shedding.drswithshedding.SheddingMMKAllocCalculator"
 
 
 ## Storm built-in parameter, the period that the metrics are collected and reported by each task 
-topology.builtin.metrics.bucket.size.secs: 30
+topology.builtin.metrics.bucket.size.secs: 10
 #60
 
 
@@ -30,7 +31,8 @@ resa.comp.sample.rate: 1.0
 
 
 ## The size of the history window. It decides how much historical metrics data needs to be buffered, e.g., when topology.builtin.metrics.bucket.size.secs: 60, only the metrics data reported in the previous 300 seconds will be maintained in the buffer. The default value is 1.
-resa.opt.win.history.size: 5
+resa.opt.win.history.size: 1
+#5
 
 
 ## In the beginning, how much reported metric data shall be ignored (during the system initilization on starting a topology, the metrics data are mostly unstable), -1 means the first group of reported (at the 60th second) data needs to be ignored. The default value is 0.
@@ -38,17 +40,17 @@ resa.opt.win.history.ignore: 0
 
 
 ## The period that DRS will re-calculate the optimial allocation according to the metric data within the configured history window. The default value is 30
-resa.optimize.interval.secs: 30
+resa.optimize.interval.secs: 20
 #60
 
 
 ## A simple decision maker we have implemented for making the decision when to trigger the Topology's rebalance operation. 
 resa.scheduler.decision.class: "resa.drs.BasicDecisionMaker"
-#"resa.drs.DefaultDecisionMaker"
+#"resa.drs.DefaultDecisionMaker"BasicDecisionMaker
 
 ## Note, the following parameters are valid only when "resa.drs.DefaultDecisionMaker" is configured:
 ### The minimal expected interval that the "resa.drs.DefaultDecisionMaker" will trigger the Topology rebalance operation when it detects a better allocation suggested by drs allocation calculator. The default value is "resa.optimize.interval.secs" * 2
-resa.opt.adjust.min.sec: 180
+resa.opt.adjust.min.sec: 40
 #360
 
 ### The type of suggested allocation to consider, 
@@ -59,8 +61,8 @@ resa.opt.adjust.type: 0
 
 ### User specified QoS target, i.e., the maximal allowed expected tuple complete latency in millisecond. It is effective only when "resa.opt.adjust.type" is set to 2. The default value is 5000.
 resa.opt.smd.qos.ms: 1500
-resa.opt.smd.qos.lower.ms: 200
-resa.opt.smd.qos.upper.ms: 800
+resa.opt.smd.qos.lower.ms: 1000
+resa.opt.smd.qos.upper.ms: 1500
 ### User specified maximal available number of executors can be used. It is effective only when resa.opt.adjust.type is set to 1.
 resa.topology.allowed.executor.num: 12
 #8
@@ -122,11 +124,11 @@ loop-BoltB.mu: 15
 loop-BoltB-loopback.prob: 0.2
 
 #test sort topology
-sort-NumOfWorkers: 3
+sort-NumOfWorkers: 2
 sort-MaxSpoutPending: 20000
 ##sort-spoutA.prob: 0.6
 ##sort-spoutA-parallelism: 1
-sort-BoltB.parallelism: 3
+sort-BoltB.parallelism: 2
 sort-BoltB.mu: 10
 sort-BoltC.parallelism: 1
 sort-BoltC.mu: 5
@@ -140,5 +142,13 @@ sort-BoltF.mu: 5
 #load shedding
 #shedding queue size
 resa.shedding.tuple.queue.capacity: 1024
+#selectivity function order
 resa.shedding.selectivity.function.order: 1
+#the class for calculate selectivity function
 resa.shedding.selectivity.calc.class: "resa.shedding.drswithshedding.PolynomialRegression"
+#the stream can not shed
+resa.shedding.exclude.stream: "{\"sort-BoltB\":[\"D-Stream\"]} "
+resa.shedding.active.stream.map: "{\"sort-BoltB\":[\"D-Stream\"],\"sort-BoltC\":[\"default\"],\"sort-BoltD\":[\"default\"]}"
+#shedding thresdhold
+resa.shedding.thresdhold: 0.8
+
