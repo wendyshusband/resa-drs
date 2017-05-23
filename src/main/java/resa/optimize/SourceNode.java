@@ -139,6 +139,13 @@ public class SourceNode {
         return emitCount;
     }
 
+    /**
+     * revert complete latency for load shedding.
+     * */
+    public void revertCompleteLatency(double realCL) {
+        this.realLatencyMilliSeconds = realCL;
+    }
+
     @Override
     public String toString() {
         return String.format(

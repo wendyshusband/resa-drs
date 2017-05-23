@@ -56,6 +56,7 @@ public class SheddingResaContainer extends FilteredMetricsCollector {
         addApprovedMetirc(MetricNames.EMIT_COUNT);
         addApprovedMetirc(MetricNames.DURATION);
         addApprovedMetirc(MetricNames.PASSIVE_SHEDDING_RATE);
+        addApprovedMetirc(MetricNames.FAILURE_COUNT);
 
         Map<String, Object> topo = buildTopologyInfo(context);
         ctx = new SheddingResaContainer.SheddingContainerContextImpl(context.getRawTopology(), conf, (Map<String, Object>) topo.get("targets"));
@@ -144,8 +145,8 @@ public class SheddingResaContainer extends FilteredMetricsCollector {
         Map<String, Object> ret = dataPoints.stream().collect(Collectors.toMap(p -> p.name, p -> p.value));
         MeasuredData measuredData = new MeasuredData(taskInfo.srcComponentId, taskInfo.srcTaskId,
                 taskInfo.timestamp, ret);
-        //LOG.info(measuredData.data.toString()+"chongge"+measuredData.task+"t"+
-          //measuredData.component+"i"+measuredData.timestamp);//tkl
+        LOG.info(measuredData.data.toString()+"chongge"+measuredData.task+"t"+
+          measuredData.component+"i"+measuredData.timestamp);//tkl
         ctx.getListeners().forEach(l -> l.measuredDataReceived(measuredData));
     }
     @Override

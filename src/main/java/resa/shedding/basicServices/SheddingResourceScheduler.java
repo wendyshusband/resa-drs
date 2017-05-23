@@ -1,7 +1,6 @@
 package resa.shedding.basicServices;
 
 import org.apache.storm.Config;
-import org.apache.storm.generated.StormTopology;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +9,6 @@ import resa.drs.DefaultDecisionMaker;
 import resa.metrics.MeasuredData;
 import resa.optimize.*;
 import resa.shedding.drswithshedding.RevertRealLoad;
-import resa.shedding.drswithshedding.SheddingMMKAllocCalculator;
 import resa.util.ConfigUtil;
 import resa.util.ResaUtils;
 

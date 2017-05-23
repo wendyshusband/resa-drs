@@ -123,24 +123,24 @@ public class TestRedis {
     public static void main(String[] args) {
         TestRedis rea = new TestRedis();
         Jedis jedis = rea.getJedis();
-//        String[] s = {
-//                "i am a student.",
-//                "you are a player.",
-//                "i like you.",
-//                "this salad is very good."
-//        };
-//        int i = 25001;
-//        while(i>0){
-//            for(int j=0;j<s.length;j++){
-//                jedis.lpush("fsource",s[j]);
-//            }
-//            i--;
-//        }
-        int i =0;
-        while(i<200){
-            i++;
-            jedis.lpop("outputMetric");
+        String[] s = {
+                "i am a student.",
+                //"you are a player.",
+                //"i like you.",
+                //"this salad is very good."
+        };
+        int i = 50000;
+        while(i>0){
+            for(int j=0;j<s.length;j++){
+                jedis.lpush("fsource",s[j]);
+            }
+            i--;
         }
+//        int i =0;
+//        while(i<200){
+//            i++;
+//            jedis.lpop("outputMetric");
+//        }
         System.out.println("ok!");
     }
 }

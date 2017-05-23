@@ -103,28 +103,33 @@ public class BoltAggResult extends AggResult {
 //        System.out.println(s.values().stream().mapToInt(Number::intValue).sum());
 //        System.out.println(102<<1);
 //        System.out.println(Math.log10(0));
-        String json = "{\"2\":[\"efg\"],\"1\":[\"abc\"],\"3\":[\"D-stream\",\"C-stream\"]}";
-        HashMap<String,List<String>> m = new HashMap<>();
-        JSONParser parser = new JSONParser();
-        try {
-            JSONObject sd = (JSONObject) parser.parse(json);
-            m = sd;
-            System.out.println(m.containsKey("2a"));
-            System.out.println(m.get("1").getClass());
-            for(Object array : m.values()){
-                JSONArray array1 = (JSONArray) array;
-                System.out.println(array1.get(0));
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        String s = "sort-as";
-        Pattern pattern1 = Pattern.compile(s+"=(\\d+)\\.(\\d+)");
-        Matcher matcher1 = pattern1.matcher("{sort-a=0.5,sort-BoltA=0.3}");
-        Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
-        matcher1.find();
-        Matcher matcher2 = pattern2.matcher(matcher1.group());
-        matcher2.find();
-        System.out.println(Double.valueOf(matcher2.group()));
+//        String json = "{\"2\":[\"efg\"],\"1\":[\"abc\"],\"3\":[\"D-stream\",\"C-stream\"]}";
+//        HashMap<String,List<String>> m = new HashMap<>();
+//        JSONParser parser = new JSONParser();
+//        try {
+//            JSONObject sd = (JSONObject) parser.parse(json);
+//            m = sd;
+//            System.out.println(m.containsKey("2a"));
+//            System.out.println(m.get("1").getClass());
+//            for(Object array : m.values()){
+//                JSONArray array1 = (JSONArray) array;
+//                System.out.println(array1.get(0));
+//            }
+//        } catch (ParseException e) {
+//            e.printStackTrace();
+//        }
+//        String s = "sort-as";
+//        Pattern pattern1 = Pattern.compile(s+"=(\\d+)\\.(\\d+)");
+//        Matcher matcher1 = pattern1.matcher("{sort-a=0.5,sort-BoltA=0.3}");
+//        Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
+//        matcher1.find();
+//        Matcher matcher2 = pattern2.matcher(matcher1.group());
+//        matcher2.find();
+//        System.out.println(Double.valueOf(matcher2.group()));
+
+
+        String sv = "3  .41";
+
+        System.out.println(Integer.parseInt(sv));
     }
 }

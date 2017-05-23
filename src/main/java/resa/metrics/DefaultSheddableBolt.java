@@ -1,4 +1,4 @@
-package resa.shedding;
+package resa.metrics;
 
 import org.apache.storm.Config;
 import org.apache.storm.metric.api.MultiCountMetric;
@@ -14,8 +14,6 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.metrics.CMVMetric;
-import resa.metrics.MetricNames;
 import resa.shedding.basicServices.DRSzkHandler;
 import resa.shedding.basicServices.IShedding;
 import resa.topology.DelegatedBolt;
@@ -28,8 +26,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
 
 /**
  * Created by kailin on 4/3/17.
@@ -77,10 +73,6 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             super.emitDirect(taskId, streamId, anchors, tuple);
         }
 
-        @Override
-        public void fail(Tuple input) {
-            super.fail(input);
-        }
     }
     //drs
     private transient CMVMetric executeMetric;
@@ -109,7 +101,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         sheddindMeasurableCollector = new DefaultSheddableBolt.SheddindMeasurableOutputCollector(outputCollector);
         super.prepare(conf, context, sheddindMeasurableCollector);
         pendingTupleQueue = new ArrayBlockingQueue<>(tupleQueueCapacity);
-        failTupleQueue = new ArrayBlockingQueue<>(tupleQueueCapacity);
+        failTupleQueue = new ArrayBlockingQueue<>((tupleQueueCapacity*10));
         compID = context.getThisComponentId();
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         activeSheddingRate = 0.0;
@@ -120,8 +112,8 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        //handlePassiveLoadSheddingFailTupleThread();
-        checkActiveSheddingRateThread();
+        handlePassiveLoadSheddingFailTupleThread();
+       // checkActiveSheddingRateThread();
         handleTupleThread();
         LOG.info("Preparing DefaultSheddableBolt: " + context.getThisComponentId());
     }
@@ -267,11 +259,11 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     @Override
     public int passiveDrop(Object[] arg) {
         int sheddTupleNum = pendingTupleQueue.size() * pendingTupleQueue.size() / tupleQueueCapacity;
-        LOG.info("pending size: "+pendingTupleQueue.size());
-        LOG.info("sheddTupleNum size: "+sheddTupleNum);
-        pendingTupleQueue.drainTo(failTupleQueue,sheddTupleNum);
-        LOG.info("failTupleQueue size: "+failTupleQueue.size());
-        failTupleQueue.clear();
+        List tempList = new LinkedList();
+        pendingTupleQueue.drainTo(tempList,sheddTupleNum);
+        //if(failTupleQueue.size() < tupleQueueCapacity*10){
+            failTupleQueue.addAll(tempList);
+        //}
         return sheddTupleNum;
     }
 

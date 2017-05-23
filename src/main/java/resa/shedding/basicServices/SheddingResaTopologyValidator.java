@@ -7,8 +7,8 @@ import org.apache.storm.nimbus.ITopologyValidator;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.metrics.MeasurableSpout;
-import resa.shedding.DefaultSheddableBolt;
+import resa.metrics.DefaultSheddableSpout;
+import resa.metrics.DefaultSheddableBolt;
 
 import java.util.Map;
 
@@ -28,7 +28,7 @@ public class SheddingResaTopologyValidator implements ITopologyValidator {
     public void validate(String topologyName, Map topologyConf, StormTopology topology) throws InvalidTopologyException {
 
         topology.get_spouts().forEach((k, v) -> {
-            MeasurableSpout s = new MeasurableSpout();
+            DefaultSheddableSpout s = new DefaultSheddableSpout();
             s.setSerializedSpout(v.get_spout_object().get_serialized_java());
             v.set_spout_object(ComponentObject.serialized_java(Utils.javaSerialize(s)));
         });

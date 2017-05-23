@@ -25,4 +25,5 @@ public class MetricNames {
 
     //load shedding
     public static final String PASSIVE_SHEDDING_RATE = "passive_shedding_rate";//tkl
+    public static final String FAILURE_COUNT = "failure_count";//tkl
 }

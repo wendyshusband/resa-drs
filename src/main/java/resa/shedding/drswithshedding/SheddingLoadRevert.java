@@ -1,5 +1,6 @@
 package resa.shedding.drswithshedding;
 
+import clojure.lang.IFn;
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
@@ -30,6 +31,7 @@ public class SheddingLoadRevert {
     private List<String> topoSortResult = new ArrayList<>();
     private CuratorFramework client;
     private String topologyName;
+    private long processTimeout;
 
     public SheddingLoadRevert(Map conf,SourceNode spInfo, Map<String, ServiceNode> queueingNetwork, StormTopology stormTopology,
                               Map<String, Object> targets, Map<String, double[]> selectivityFunctions) {
@@ -41,6 +43,7 @@ public class SheddingLoadRevert {
         this.selectivityFunctions = selectivityFunctions;
         sourceNode = spInfo;
         serviceNodeMap = queueingNetwork;
+        processTimeout = (long) conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS);
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         //int port =  Integer.valueOf((String)conf.get(Config.STORM_ZOOKEEPER_PORT));
@@ -52,9 +55,21 @@ public class SheddingLoadRevert {
     }
 
     public void revertLoad() {
+        //revertCompleteLatency();
         calcProportion();
         calcAndSetRealLoad();
     }
+
+//    private void revertCompleteLatency() {
+//
+//        long tempAllCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getAllCount).sum();
+//        long tempDropCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getFailureCount).sum();
+//        double completeLatency = sourceNode.getRealLatencyMilliSeconds();
+//        double realCL = (((tempAllCount-tempDropCount)*completeLatency)
+//                +(tempDropCount * processTimeout * 1000))/tempAllCount;
+//        sourceNode.revertCompleteLatency(realCL);
+//        LOG.info(tempDropCount+"processdrop"+realCL);
+//    }
 
     private void calcProportion() {
         LOG.info("calculate proportion !");

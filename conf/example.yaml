@@ -10,6 +10,7 @@ resa.metric.approved.names:
  - "duration" 
  - "arrival_rate_secs"
  - "passive_shedding_rate"
+ - "failure_count"
 #tkl
 
 ## Determine whether to attached detailed running informaiton of resa-drs will to the LOG outputs, default is false
@@ -22,7 +23,7 @@ resa.container.metric.output: true
 
 
 ## Storm built-in parameter, the period that the metrics are collected and reported by each task 
-topology.builtin.metrics.bucket.size.secs: 10
+topology.builtin.metrics.bucket.size.secs: 30
 #60
 
 
@@ -40,7 +41,7 @@ resa.opt.win.history.ignore: 0
 
 
 ## The period that DRS will re-calculate the optimial allocation according to the metric data within the configured history window. The default value is 30
-resa.optimize.interval.secs: 20
+resa.optimize.interval.secs: 30
 #60
 
 
@@ -50,7 +51,7 @@ resa.scheduler.decision.class: "resa.drs.BasicDecisionMaker"
 
 ## Note, the following parameters are valid only when "resa.drs.DefaultDecisionMaker" is configured:
 ### The minimal expected interval that the "resa.drs.DefaultDecisionMaker" will trigger the Topology rebalance operation when it detects a better allocation suggested by drs allocation calculator. The default value is "resa.optimize.interval.secs" * 2
-resa.opt.adjust.min.sec: 40
+resa.opt.adjust.min.sec: 180
 #360
 
 ### The type of suggested allocation to consider, 
@@ -60,9 +61,9 @@ resa.opt.adjust.min.sec: 40
 resa.opt.adjust.type: 0
 
 ### User specified QoS target, i.e., the maximal allowed expected tuple complete latency in millisecond. It is effective only when "resa.opt.adjust.type" is set to 2. The default value is 5000.
-resa.opt.smd.qos.ms: 1500
+resa.opt.smd.qos.ms: 150000
 resa.opt.smd.qos.lower.ms: 1000
-resa.opt.smd.qos.upper.ms: 1500
+resa.opt.smd.qos.upper.ms: 150000
 ### User specified maximal available number of executors can be used. It is effective only when resa.opt.adjust.type is set to 1.
 resa.topology.allowed.executor.num: 12
 #8
@@ -74,14 +75,37 @@ resa.topology.max.executor.per.worker: 2
 ## This is an alternative decision maker implementation, with automatically triggering the Topology's rebalance operation disabled. Note, Resa-drs is still (passively) working, to generate measurement results, calculate and suggest optimal allocations. However, users (if they intend to) have to trigger the Topology's rebalance operation manually (either by commond line, i.e. "Storm_Home/bin/storm rebalance ... " or through Storm UI.
 #resa.scheduler.decision.class: "resa.drs.EmptyDecisionMaker"
 
+#whether user open the ACK?
+resa.ack.flag: true
 
 # User-defined topology related configuration and parameter settings
 
 ## Redis queue for input data
-redis.host: "kailin-ubuntu"
+redis.host: "127.0.0.1"
+#"kailin-ubuntu"
 redis.port: 6379
 redis.sourceQueueName: "fsource"
 redis.queue: "fsource"
+
+##wc
+#spout.redis: true
+spout.parallelism: 1
+split.parallelism: 1
+counter.parallelism: 4
+wc-NumOfWorkers: 3
+wc-MaxSpoutPending: 20000
+
+##top k
+tk.topnumber: 5
+tk.spout.parallelism: 1
+tk.counter.parallelism: 2
+tk.intermediateRanker.parallelism: 2
+tk-NumOfWorkers: 3
+tk-MaxSpoutPending: 20000
+
+maxFrequencyPerSecond: 50000
+windowsPerSecond: 500
+wc-number: 100000
 
 ## topology level
 chain-NumOfWorkers: 3
@@ -125,7 +149,7 @@ loop-BoltB-loopback.prob: 0.2
 
 #test sort topology
 sort-NumOfWorkers: 2
-sort-MaxSpoutPending: 20000
+sort-MaxSpoutPending: 500
 ##sort-spoutA.prob: 0.6
 ##sort-spoutA-parallelism: 1
 sort-BoltB.parallelism: 2
@@ -137,7 +161,11 @@ sort-BoltD.mu: 5
 sort-BoltF.parallelism: 1
 sort-BoltF.mu: 5
 
-#resa.optimize.service.model.class: "resa.optimize.GGKServiceModel"
+#TestAccuracy
+TestAccuracyBolt.parallelism: 2
+TestAccuracySpout.parallelism: 1
+TestAccuracy-NumOfWorkers: 3
+TestAccuracy-MaxSpoutPending: 2000
 
 #load shedding
 #shedding queue size
@@ -151,4 +179,7 @@ resa.shedding.exclude.stream: "{\"sort-BoltB\":[\"D-Stream\"]} "
 resa.shedding.active.stream.map: "{\"sort-BoltB\":[\"D-Stream\"],\"sort-BoltC\":[\"default\"],\"sort-BoltD\":[\"default\"]}"
 #shedding thresdhold
 resa.shedding.thresdhold: 0.8
+#topology.max.spout.pending: null
+
+
 

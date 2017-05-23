@@ -43,7 +43,8 @@ public class ServiceNode {
     protected double passiveSheddingRate;
     protected Map<String,Long> emitCount;
     protected Map<String, Long> passiveSheddingCountMap;
-
+    //protected long failureCount;
+   // protected long allCount;
 
     public ServiceNode(String componentID, int executorNumber, double compSampleRate,
                        BoltAggResult ar, double exArrivalRate){
@@ -78,7 +79,8 @@ public class ServiceNode {
         }
         this.passiveSheddingCountMap = ar.getPassiveSheddingCountMap();
         this.emitCount = ar.getemitCount();
-
+        //this.failureCount = ar.getPassiveSheddingCountMap().get("dropTuple");
+        //this.allCount = ar.getPassiveSheddingCountMap().get("allTuple");
         LOG.info("ServiceNode is created: " + toString());
     }
 
@@ -149,6 +151,17 @@ public class ServiceNode {
 
     public double getPassiveSheddingRate(){return passiveSheddingRate;}
 
+//    public long getFailureCount() {
+//        return failureCount;
+//    }
+//
+//    public long getAllCount() {
+//        return allCount;
+//    }
+
+    public Map<String, Long> getEmitCount() {
+        return emitCount;
+    }
     /**
      * revert lambda for load shedding.
      * */
@@ -158,9 +171,6 @@ public class ServiceNode {
         this.ratio = this.exArrivalRate > 0.0 ? (lambda / this.exArrivalRate) : 0;
     }
 
-    public Map<String, Long> getEmitCount() {
-        return emitCount;
-    }
     @Override
     public String toString() {
         return String.format(
