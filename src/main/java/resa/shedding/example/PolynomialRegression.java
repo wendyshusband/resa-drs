@@ -1,8 +1,10 @@
-package resa.shedding.drswithshedding;
+package resa.shedding.example;
 
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.javatuples.Pair;
+import resa.shedding.basicServices.LearningSelectivity;
+
 import java.util.List;
 
 /**

@@ -61,9 +61,9 @@ resa.opt.adjust.min.sec: 180
 resa.opt.adjust.type: 0
 
 ### User specified QoS target, i.e., the maximal allowed expected tuple complete latency in millisecond. It is effective only when "resa.opt.adjust.type" is set to 2. The default value is 5000.
-resa.opt.smd.qos.ms: 150000
+resa.opt.smd.qos.ms: 15000
 resa.opt.smd.qos.lower.ms: 1000
-resa.opt.smd.qos.upper.ms: 150000
+resa.opt.smd.qos.upper.ms: 15000
 ### User specified maximal available number of executors can be used. It is effective only when resa.opt.adjust.type is set to 1.
 resa.topology.allowed.executor.num: 12
 #8
@@ -103,9 +103,9 @@ tk.intermediateRanker.parallelism: 2
 tk-NumOfWorkers: 3
 tk-MaxSpoutPending: 20000
 
-maxFrequencyPerSecond: 50000
-windowsPerSecond: 500
-wc-number: 100000
+maxFrequencyPerSecond: 500
+windowsPerSecond: 50
+wc-number: 4000000
 
 ## topology level
 chain-NumOfWorkers: 3
@@ -173,9 +173,9 @@ resa.shedding.tuple.queue.capacity: 1024
 #selectivity function order
 resa.shedding.selectivity.function.order: 1
 #the class for calculate selectivity function
-resa.shedding.selectivity.calc.class: "resa.shedding.drswithshedding.PolynomialRegression"
+#resa.shedding.selectivity.calc.class: "resa.shedding.example.PolynomialRegression"
 #the stream can not shed
-resa.shedding.exclude.stream: "{\"sort-BoltB\":[\"D-Stream\"]} "
+#resa.shedding.exclude.stream: "{\"sort-BoltB\":[\"D-Stream\"]} "
 resa.shedding.active.stream.map: "{\"sort-BoltB\":[\"D-Stream\"],\"sort-BoltC\":[\"default\"],\"sort-BoltD\":[\"default\"]}"
 #shedding thresdhold
 resa.shedding.thresdhold: 0.8

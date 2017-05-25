@@ -39,6 +39,7 @@ public class SourceNode {
 
     /*load shedding*/
     protected Map<String,Long> emitCount;
+    protected int failureCount;
 
     public SourceNode(String componentID, int executorNumber, double compSampleRate, SpoutAggResult ar){
         this.componentID = componentID;
@@ -67,6 +68,7 @@ public class SourceNode {
         this.exArrivalScvByInterArrival = ar.getInterArrivalTimeScv();
 
         this.emitCount = ar.getemitCount();//load shedding
+        this.failureCount =ar.getFailureCount();
 
         LOG.info("SourceNode is created: " + toString());
     }

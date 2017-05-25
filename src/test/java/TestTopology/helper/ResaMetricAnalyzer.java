@@ -2,7 +2,6 @@ package TestTopology.helper;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.Nimbus;
-import org.apache.storm.generated.StormTopology;
 import org.apache.storm.generated.TopologyInfo;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.apache.storm.utils.NimbusClient;
@@ -13,7 +12,6 @@ import resa.optimize.MMKAllocCalculator;
 import resa.util.ResaConfig;
 import resa.util.TopologyHelper;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -108,7 +106,7 @@ public class ResaMetricAnalyzer {
             long currTime = System.currentTimeMillis();
             System.out.println("------Report on: " + currTime + ",last for: " + (currTime - startTime)/60000 + " minutes, " + (currTime - startTime) + " secs.----------");
             if (currAllocation.equals(updatedAllocation)) {
-                System.out.println(currAllocation + "-->" + smdm.calc(resultCalculator.getComp2ExecutorResults(), allewedExecutorNum,new StormTopology(),new HashMap<>()));
+                System.out.println(currAllocation + "-->" + smdm.calc(resultCalculator.getComp2ExecutorResults(), allewedExecutorNum));//,new StormTopology(),new HashMap<>()));
             } else {
                 currAllocation = updatedAllocation;
                 smdm.allocationChanged(currAllocation);

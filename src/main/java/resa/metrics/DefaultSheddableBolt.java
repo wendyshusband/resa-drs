@@ -14,7 +14,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.shedding.basicServices.DRSzkHandler;
+import resa.shedding.tools.DRSzkHandler;
 import resa.shedding.basicServices.IShedding;
 import resa.topology.DelegatedBolt;
 import resa.util.ConfigUtil;
@@ -80,7 +80,8 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private transient MultiCountMetric emitMetric;
     private transient DefaultSheddableBolt.SheddindMeasurableOutputCollector sheddindMeasurableCollector;
     private long lastMetricsSent;
-
+    private CuratorFramework client;
+    private int interval;
     public DefaultSheddableBolt() {
     }
 
@@ -89,7 +90,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     }
 
     public void prepare(Map conf, TopologyContext context, OutputCollector outputCollector) {
-        int interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
+        interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
         executeMetric = context.registerMetric(MetricNames.TASK_EXECUTE, new CMVMetric(), interval);
         emitMetric = context.registerMetric(MetricNames.EMIT_COUNT, new MultiCountMetric(), interval);
         passiveSheddingRateMetric = context.registerMetric(MetricNames.PASSIVE_SHEDDING_RATE, new MultiCountMetric(),interval);
@@ -106,6 +107,8 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         activeSheddingRate = 0.0;
         activeSheddingSampler = new Sampler(activeSheddingRate);
+        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
         JSONParser parser = new JSONParser();
         try {
             activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf,ResaConfig.ACTIVE_SHEDDING_MAP,"{}"));
@@ -113,7 +116,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             e.printStackTrace();
         }
         handlePassiveLoadSheddingFailTupleThread();
-       // checkActiveSheddingRateThread();
+        checkActiveSheddingRateThread();
         handleTupleThread();
         LOG.info("Preparing DefaultSheddableBolt: " + context.getThisComponentId());
     }
@@ -149,8 +152,6 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             @Override
             public void run() {
                 while(true){
-                    CuratorFramework client = DRSzkHandler.newClient("kailin-ubuntu",
-                            2181,6000,6000,1000,3);
                     if(!client.isStarted())
                         client.start();
                     try {
@@ -164,19 +165,20 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                                 Matcher matcher2 = pattern2.matcher(matcher1.group());
                                 if(matcher2.find()) {
                                     double shedRate = Double.valueOf(matcher2.group());
-                                    //
                                     if (shedRate != activeSheddingRate) {
                                         activeSheddingRate = shedRate;
                                         activeSheddingSampler = new Sampler(activeSheddingRate);
                                         LOG.info(activeSheddingSampler.toString() + "tabu");
-                                        Thread.sleep(10 * 1000);
                                     }
                                 }
                             }
                         }
+                        //LOG.info(activeSheddingRate+"woshenzhiyouyidianxiangxiaone"+shedRate);
+                        Thread.sleep(interval);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+
                 }
             }
         });
@@ -236,8 +238,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             if(activeSheddingRate != 0.0) {
                 if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
                     if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
-                        LOG.info(compID + ": " + activeSheddingRate + "wobu");
-                        LOG.info("wojiubu " + activeSheddingSampler.toString());
+                        LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple.getSourceStreamId());
                         if (activeSheddingSampler.shoudSample()) {
                             flag = false;
                         }
@@ -250,7 +251,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             if(flag)
                 pendingTupleQueue.put(tuple);
             else
-                LOG.info("shaohua this tuple is sample !");
+                LOG.info("shaohua this tuple is active remove !");
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

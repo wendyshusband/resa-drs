@@ -1,6 +1,7 @@
-package resa.optimize;
+package resa.shedding.basicServices;
 
 import org.apache.storm.generated.StormTopology;
+import resa.optimize.AggResult;
 
 import java.util.Map;
 
@@ -9,22 +10,23 @@ import java.util.Map;
  * them synchronized.
  * Created by ding on 14-4-30.
  */
-public abstract class AllocCalculator {
+public abstract class SheddingAllocCalculator {
 
     protected StormTopology rawTopology;
     protected Map<String, Object> conf;
     protected Map<String, Integer> currAllocation;
-
+    protected Map<String, Object> targets;
     /**
      * Called when a new instance was created.
      *
      * @param conf
      * @param rawTopology
      */
-    public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology) {
+    public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology, Map<String, Object> targets) {
         this.conf = conf;
         this.rawTopology = rawTopology;
         this.currAllocation = currAllocation;
+        this.targets = targets;
     }
 
     /**
@@ -36,7 +38,7 @@ public abstract class AllocCalculator {
         this.currAllocation = newAllocation;
     }
 
-    public abstract AllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors);
-                                    // StormTopology topology, Map<String, Object> targets);
+    public abstract ShedRateAndAllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors,
+                                     StormTopology topology, Map<String, Object> targets);
 
 }

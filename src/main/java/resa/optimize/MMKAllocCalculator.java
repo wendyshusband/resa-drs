@@ -2,13 +2,14 @@ package resa.optimize;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
-import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.ResaUtils;
-import java.util.*;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static resa.util.ResaConfig.SERVICE_MODEL_CLASS;
@@ -42,8 +43,8 @@ public class MMKAllocCalculator extends AllocCalculator {
     }
 
     @Override
-    public AllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors,
-                            StormTopology topology, Map<String, Object> targets) {
+    public AllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors){
+                            //StormTopology topology, Map<String, Object> targets) {
         executorAggResults.entrySet().stream().filter(e -> rawTopology.get_spouts().containsKey(e.getKey()))
                 .forEach(e -> spoutHistoricalData.putResult(e.getKey(), e.getValue()));
         executorAggResults.entrySet().stream().filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
@@ -59,7 +60,7 @@ public class MMKAllocCalculator extends AllocCalculator {
             currHistoryCursor = historySize;
         }
 
-        Map<String,double[]> selectivityFunctions = output();//test output
+        //Map<String,double[]> selectivityFunctions = output();//test output
         ///TODO: Here we assume only one spout, plan to extend to multiple spouts in future
         ///TODO: here we assume only one running topology, plan to extend to multiple running topologies in future
         double targetQoSMs = ConfigUtil.getDouble(conf, ResaConfig.OPTIMIZE_SMD_QOS_MS, 5000.0);
@@ -144,7 +145,7 @@ public class MMKAllocCalculator extends AllocCalculator {
         currHistoryCursor = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_WIN_HISTORY_SIZE_IGNORE, 0);
     }
 
-    private Map<String, double[]> output() {
+    /*private Map<String, double[]> output() {
         Map<String, double[]> selectivityCoeffs = new HashMap<>();
         Map<String, Queue<AggResult>> compHistoryResults =boltHistoricalData.compHistoryResults;
         for(Map.Entry comp : compHistoryResults.entrySet()){
@@ -170,5 +171,5 @@ public class MMKAllocCalculator extends AllocCalculator {
             }
         }
         return selectivityCoeffs;
-    }
+    }*/
 }

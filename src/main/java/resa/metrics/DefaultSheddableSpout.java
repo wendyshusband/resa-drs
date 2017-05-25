@@ -61,11 +61,9 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
         @Override
         public void spoutFail(SpoutFailInfo info) {
-
             SheddingMeasurableMsgId streamMsgId = (SheddingMeasurableMsgId) info.messageId;
+            failureCountMetric.scope("failure").incr();
             if (streamMsgId != null && streamMsgId.isSampled()) {
-                //long cost = System.currentTimeMillis() - streamMsgId.startTime;
-                //completeMetric.addMetric(streamMsgId.stream, cost);
                 if (completeStatMetric != null) {
                     completeStatMetric.fail(streamMsgId.stream);
                 }
@@ -83,6 +81,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
     private AtomicInteger pendingCount = new AtomicInteger(0);
     private int spoutMaxPending;
     private boolean ackFlag;
+    private transient MultiCountMetric failureCountMetric;
 
     public DefaultSheddableSpout(){
 
@@ -104,6 +103,8 @@ public class DefaultSheddableSpout extends DelegatedSpout{
         //passiveSheddingTupleThread();
         ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),false);
         int interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
+        failureCountMetric = context.registerMetric(MetricNames.FAILURE_COUNT,new MultiCountMetric(),interval);
+        failureCountMetric.scope("failure").incrBy(0);
         completeMetric = context.registerMetric(MetricNames.COMPLETE_LATENCY, new CMVMetric(), interval);
         // register miss metric
         qos = ConfigUtil.getLong(conf, "resa.metric.complete-latency.threshold.ms", Long.MAX_VALUE);
@@ -124,11 +125,15 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
+                if(messageId != null)
+                    pendingCount.getAndIncrement();
                 return super.emit(streamId, tuple, newStreamMessageId(streamId, messageId));
             }
 
             @Override
             public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
+                if(messageId != null)
+                    pendingCount.getAndIncrement();
                 super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
             }
 
@@ -154,14 +159,14 @@ public class DefaultSheddableSpout extends DelegatedSpout{
     @Override
     public void ack(Object msgId) {
         pendingCount.getAndDecrement();
-        LOG.info(pendingCount.get()+"ackyoho nexttuple!");
+        //LOG.info(pendingCount.get()+"ackyoho nexttuple!");
         super.ack(getUserMsgId(msgId));
     }
 
     @Override
     public void fail(Object msgId) {
         pendingCount.getAndDecrement();
-        LOG.info(pendingCount.get()+"failyoho nexttuple!");
+        //LOG.info(pendingCount.get()+"failyoho nexttuple!");
         super.fail(getUserMsgId(msgId));
     }
 
@@ -170,11 +175,12 @@ public class DefaultSheddableSpout extends DelegatedSpout{
         if(ackFlag){
             if(spoutMaxPending * 0.9 >= pendingCount.get()) {
                 super.nextTuple();
-                pendingCount.getAndIncrement();
+                //LOG.info(pendingCount.get()+"yoho nexttuple!"+ackFlag);
             }
         }else{
             super.nextTuple();
+            //LOG.info(pendingCount.get()+"yoha nexttuple!"+ackFlag);
         }
-        LOG.info(pendingCount.get()+"yoho nexttuple!"+ackFlag);
+
     }
 }

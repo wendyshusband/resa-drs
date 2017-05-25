@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import resa.metrics.FilteredMetricsCollector;
 import resa.metrics.MeasuredData;
 import resa.metrics.MetricNames;
+import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.TopologyHelper;
@@ -145,13 +146,14 @@ public class SheddingResaContainer extends FilteredMetricsCollector {
         Map<String, Object> ret = dataPoints.stream().collect(Collectors.toMap(p -> p.name, p -> p.value));
         MeasuredData measuredData = new MeasuredData(taskInfo.srcComponentId, taskInfo.srcTaskId,
                 taskInfo.timestamp, ret);
-        LOG.info(measuredData.data.toString()+"chongge"+measuredData.task+"t"+
-          measuredData.component+"i"+measuredData.timestamp);//tkl
+        //LOG.info(measuredData.data.toString()+"chongge"+measuredData.task+"t"+
+        //  measuredData.component+"i"+measuredData.timestamp);//tkl
         ctx.getListeners().forEach(l -> l.measuredDataReceived(measuredData));
     }
     @Override
     public void cleanup() {
         super.cleanup();
         resourceScheduler.stop();
+        DRSzkHandler.close();
     }
 }

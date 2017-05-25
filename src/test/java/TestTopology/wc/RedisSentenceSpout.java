@@ -5,7 +5,7 @@ import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
-import resa.shedding.FrequencyRestrictor;
+import resa.shedding.tools.FrequencyRestrictor;
 import resa.topology.RedisQueueSpout;
 
 import java.util.Map;

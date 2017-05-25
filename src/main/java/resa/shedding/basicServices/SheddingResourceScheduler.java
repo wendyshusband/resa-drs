@@ -4,11 +4,10 @@ import org.apache.storm.Config;
 import org.apache.storm.scheduler.ExecutorDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.drs.DecisionMaker;
-import resa.drs.DefaultDecisionMaker;
+import resa.drs.SheddingBasicDecisionMaker;
 import resa.metrics.MeasuredData;
-import resa.optimize.*;
-import resa.shedding.drswithshedding.RevertRealLoad;
+import resa.optimize.AggResult;
+import resa.optimize.AggResultCalculator;
 import resa.util.ConfigUtil;
 import resa.util.ResaUtils;
 
@@ -16,7 +15,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static resa.util.ResaConfig.*;
-import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
 
 /**
  * Created by kailin on 29/3/17.
@@ -29,11 +27,11 @@ public class SheddingResourceScheduler {
     private int maxExecutorsPerWorker;
     private int topologyMaxExecutors;
     private Map<String, Object> conf;
-    private AllocCalculator allocCalculator;
-    private DecisionMaker decisionMaker;
+    private SheddingAllocCalculator allocCalculator;
+    private ISheddingDecisionMaker decisionMaker;
 
     //load shedding
-    private RevertRealLoad revertRealLoad;
+    //private RevertRealLoad revertRealLoad;
     private SheddingContainerContext ctx;
     private volatile List<MeasuredData> measuredDataBuffer = new ArrayList<>();
 
@@ -51,21 +49,21 @@ public class SheddingResourceScheduler {
 
 
         // create Allocation Calculator
-        allocCalculator = ResaUtils.newInstanceThrow((String) conf.getOrDefault(ALLOC_CALC_CLASS,
-                SheddingMMKAllocCalculator.class.getName()), AllocCalculator.class);
+        allocCalculator = ResaUtils.newInstanceThrow((String) conf.getOrDefault(SHEDDING_ALLOC_CALC_CLASS,
+                SheddingMMKAllocCalculator.class.getName()), SheddingAllocCalculator.class);
         // current allocation should be retrieved from nimbus
         currAllocation = calcAllocation(this.ctx.runningExecutors());
-        allocCalculator.init(conf, Collections.unmodifiableMap(currAllocation), this.ctx.getTopology());
+        allocCalculator.init(conf, Collections.unmodifiableMap(currAllocation), this.ctx.getTopology(), this.ctx.getTargets());
 
         //create revert load function
         //revertRealLoad = new RevertRealLoad(conf,this.ctx.getTopology(),ctx.getTargets());
 
         // create Decision Maker
-        decisionMaker = ResaUtils.newInstanceThrow((String) conf.getOrDefault(DECISION_MAKER_CLASS,
-                DefaultDecisionMaker.class.getName()), DecisionMaker.class);
+        decisionMaker = ResaUtils.newInstanceThrow((String) conf.getOrDefault(SHEDDING_DECISION_MAKER_CLASS,
+                SheddingBasicDecisionMaker.class.getName()), ISheddingDecisionMaker.class);
         decisionMaker.init(conf, sheddingContainerContext.getTopology());
-        LOG.info("AllocCalculator class: {}", allocCalculator.getClass().getName());
-        LOG.info("DecisionMaker class: {}", decisionMaker.getClass().getName());
+        LOG.info("Shedding AllocCalculator class: {}", allocCalculator.getClass().getName());
+        LOG.info("Shedding DecisionMaker class: {}", decisionMaker.getClass().getName());
     }
 
     public void start() {
@@ -122,7 +120,7 @@ public class SheddingResourceScheduler {
                     getNumWorkers(currAllocation)) * maxExecutorsPerWorker : topologyMaxExecutors;
             Map<String, Integer> ret = null;
             try {
-                AllocResult decision = allocCalculator.calc(data,maxExecutors,ctx.getTopology(),ctx.getTargets());
+                ShedRateAndAllocResult decision = allocCalculator.calc(data,maxExecutors,ctx.getTopology(),ctx.getTargets());
                 if (decision != null) {
                     ctx.emitMetric("drs.alloc", decision);
                     LOG.debug("emit drs metric {}", decision);

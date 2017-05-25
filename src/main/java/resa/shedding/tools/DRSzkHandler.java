@@ -1,4 +1,4 @@
-package resa.shedding.basicServices;
+package resa.shedding.tools;
 
 import org.apache.storm.shade.org.apache.curator.RetryPolicy;
 import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
@@ -28,11 +28,11 @@ public class DRSzkHandler {
         return client;
     }
 
-    /*public static void start() {
+    public static void start() {
         client.start();
     }
 
     public static void close() {
         client.close();
-    }*/
+    }
 }

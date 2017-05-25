@@ -3,7 +3,6 @@ package resa.util;
 import org.apache.storm.Config;
 import org.apache.storm.utils.Utils;
 import resa.shedding.basicServices.SheddingResaContainer;
-import resa.topology.ResaContainer;
 
 import java.util.Map;
 
@@ -48,7 +47,9 @@ public class ResaConfig extends Config {
     public static final String SELECTIVITY_CALC_CLASS = "resa.shedding.selectivity.calc.class";
     public static final String SHEDDING_THRESHOLD = "resa.shedding.thresdhold";
     public static final String ACTIVE_SHEDDING_MAP = "resa.shedding.active.stream.map";
-
+    public static final String SHEDDING_ALLOC_CALC_CLASS = "resa.shedding.alloc.class";
+    public static final String SHEDDING_DECISION_MAKER_CLASS = "resa.shedding.decision.class";
+    public static final String SHEDDING_SERVICE_MODEL_CLASS = "resa.shedding.service.model.class";
     private ResaConfig(boolean loadDefault) {
         if (loadDefault) {
             //read default.yaml & storm.yaml

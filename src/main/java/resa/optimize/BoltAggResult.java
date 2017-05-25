@@ -1,13 +1,7 @@
 package resa.optimize;
 
-import org.apache.storm.shade.org.json.simple.JSONArray;
-import org.apache.storm.shade.org.json.simple.JSONObject;
-import org.apache.storm.shade.org.json.simple.parser.JSONParser;
-import org.apache.storm.shade.org.json.simple.parser.ParseException;
-
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by ding on 14-5-6.
@@ -40,7 +34,7 @@ public class BoltAggResult extends AggResult {
                 passiveSheddingCountMap.put(stream,count);
             }
         });
-        System.out.println("heiheihei"+passiveSheddingCountMap);
+        System.out.println("heihei"+passiveSheddingCountMap);
     }
 
     public double getAvgServTimeHis(){

@@ -55,4 +55,5 @@ public final class TotalRankingsBolt extends AbstractRankerBolt {
     return LOG;
   }
 
+
 }

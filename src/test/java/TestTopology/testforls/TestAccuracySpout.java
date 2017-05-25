@@ -1,15 +1,13 @@
 package TestTopology.testforls;
 
-import org.apache.storm.Config;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
-import resa.shedding.FrequencyRestrictor;
+import resa.shedding.tools.FrequencyRestrictor;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**

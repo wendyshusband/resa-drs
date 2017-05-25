@@ -107,6 +107,13 @@ public class AggResultCalculator {
                     }
                 });
             }
+
+            //tkl
+            Map<String, Object> failure = (Map<String, Object>) measuredData.data.get(MetricNames.FAILURE_COUNT);
+            if(failure != null){
+                int tempFailureCount = Integer.valueOf(String.valueOf(failure.get("failure")));
+                ((SpoutAggResult) dest).setFailureCount(tempFailureCount);
+            }
         } else {
             Map<String, Object> data = (Map<String, Object>) measuredData.data.get(MetricNames.TASK_EXECUTE);
             if (data != null) {

@@ -1,18 +1,12 @@
-package resa.shedding.drswithshedding;
+package resa.shedding.basicServices;
 
-import clojure.lang.IFn;
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
-import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
-import org.apache.storm.shade.org.apache.zookeeper.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.optimize.*;
-import resa.shedding.basicServices.DRSzkHandler;
-import resa.util.ConfigUtil;
-import resa.util.ResaConfig;
+import resa.optimize.ServiceNode;
+import resa.optimize.SourceNode;
 
-import java.io.IOException;
 import java.util.*;
 
 
@@ -29,8 +23,7 @@ public class SheddingLoadRevert {
     private SourceNode sourceNode;
     private Map<String, ServiceNode> serviceNodeMap;
     private List<String> topoSortResult = new ArrayList<>();
-    private CuratorFramework client;
-    private String topologyName;
+
     private long processTimeout;
 
     public SheddingLoadRevert(Map conf,SourceNode spInfo, Map<String, ServiceNode> queueingNetwork, StormTopology stormTopology,
@@ -44,32 +37,50 @@ public class SheddingLoadRevert {
         sourceNode = spInfo;
         serviceNodeMap = queueingNetwork;
         processTimeout = (long) conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS);
-        topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
-        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-        //int port =  Integer.valueOf((String)conf.get(Config.STORM_ZOOKEEPER_PORT));
-        System.out.println(conf.get(Config.TOPOLOGY_NAME)+"nihao: "+zkServer.get(0)+":"+conf.get(Config.STORM_ZOOKEEPER_PORT));
-        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
-        System.out.println(client.getState()+"nibuhao");
-        if(!client.isStarted())
-        client.start();
     }
 
     public void revertLoad() {
-        //revertCompleteLatency();
+        revertCompleteLatency();
         calcProportion();
         calcAndSetRealLoad();
     }
 
-//    private void revertCompleteLatency() {
-//
-//        long tempAllCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getAllCount).sum();
-//        long tempDropCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getFailureCount).sum();
-//        double completeLatency = sourceNode.getRealLatencyMilliSeconds();
-//        double realCL = (((tempAllCount-tempDropCount)*completeLatency)
-//                +(tempDropCount * processTimeout * 1000))/tempAllCount;
-//        sourceNode.revertCompleteLatency(realCL);
-//        LOG.info(tempDropCount+"processdrop"+realCL);
-//    }
+    /*public void sentActiveSheddingRate() throws Exception {
+        if(!client.isStarted())
+            client.start();
+        Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();
+        if(null == client.checkExists().forPath("/drs")){
+            client.create().forPath("/drs");
+        }
+        LOG.info("xiaoteng: "+activeSheddingRateMap.toString());
+        if(client.checkExists().forPath("/drs/"+topologyName) == null){
+            client.create().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+        }else{
+            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+        }
+        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
+        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
+        //client.close();
+    }
+
+    private Map<String, Double> calcActiveSheddingRate() {
+        Map<String,Double> activeSheddingRateMap = new HashMap<>();
+        Random random  = new Random(1);
+        activeSheddingRateMap.put("counter",random.nextDouble());
+        activeSheddingRateMap.put("intermediateRanker",random.nextDouble());
+        activeSheddingRateMap.put("finalRanker",0.5);
+        return activeSheddingRateMap;
+    }*/
+    private void revertCompleteLatency() {
+
+        long tempAllCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getAllCount).sum();
+        long tempDropCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getFailureCount).sum();
+        double completeLatency = sourceNode.getRealLatencyMilliSeconds();
+        double realCL = (((tempAllCount-tempDropCount)*completeLatency)
+                +(tempDropCount * processTimeout * 1000))/tempAllCount;
+        sourceNode.revertCompleteLatency(realCL);
+        LOG.info(tempDropCount+"processdrop"+realCL);
+    }
 
     private void calcProportion() {
         LOG.info("calculate proportion !");
@@ -174,30 +185,6 @@ public class SheddingLoadRevert {
 
     }
 
-    public void buildActiveSheddingRate() throws Exception {
-        Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();
-        if(null == client.checkExists().forPath("/drs")){
-            client.create().forPath("/drs");
-        }
-
-        if(client.checkExists().forPath("/drs/"+topologyName) == null){
-            client.create().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }else{
-            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }
-        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
-        //client.close();
-    }
-
-    private Map<String, Double> calcActiveSheddingRate() {
-        Map<String,Double> activeSheddingRateMap = new HashMap<>();
-        Random random  = new Random(1);
-        activeSheddingRateMap.put("sort-BoltC",0.2);
-        activeSheddingRateMap.put("sort-BoltB",random.nextDouble());
-        activeSheddingRateMap.put("sort-BoltD",0.5);
-        return activeSheddingRateMap;
-    }
-
     private static class TopoSort{
         private HashMap<String,Integer> vertexMap = new HashMap<>();
         private HashMap<String,ArrayList<String>> adjaNode = new HashMap<>();
@@ -267,11 +254,11 @@ public class SheddingLoadRevert {
             return result;
         }
 
-        public void outputResult(){
-            System.out.println("_________________result_______________");
-            for(int i=0 ;i<result.size(); i++)
-                System.out.println(result.get(i));
-            System.out.println("_______________________________________");
-        }
+//        public void outputResult(){
+//            System.out.println("_________________result_______________");
+//            for(int i=0 ;i<result.size(); i++)
+//                System.out.println(result.get(i));
+//            System.out.println("_______________________________________");
+//        }
     }
 }

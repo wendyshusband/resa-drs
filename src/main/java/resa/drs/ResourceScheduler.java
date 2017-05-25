@@ -105,7 +105,7 @@ public class ResourceScheduler {
                     getNumWorkers(currAllocation)) * maxExecutorsPerWorker : topologyMaxExecutors;
             Map<String, Integer> ret = null;
             try {
-                AllocResult decision = allocCalculator.calc(data, maxExecutors,ctx.getTopology(),new HashMap<>());
+                AllocResult decision = allocCalculator.calc(data, maxExecutors);//,ctx.getTopology(),new HashMap<>());
                 if (decision != null) {
                     ctx.emitMetric("drs.alloc", decision);
                     LOG.debug("emit drs metric {}", decision);

@@ -6,7 +6,7 @@ import TestTopology.simulated.TAWordCounter;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
-import resa.shedding.outputBolt;
+import resa.shedding.example.outputBolt;
 import resa.util.ConfigUtil;
 
 import java.io.File;

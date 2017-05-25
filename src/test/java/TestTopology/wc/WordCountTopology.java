@@ -91,7 +91,7 @@ public class WordCountTopology {
             }
             count++;
             counters.put(word, count);
-            System.out.println("haonanshou: "+word+" : "+count);
+            //System.out.println("haonanshou: "+word+" : "+count);
             //collector.emit(new Values(word, count));
         }
 

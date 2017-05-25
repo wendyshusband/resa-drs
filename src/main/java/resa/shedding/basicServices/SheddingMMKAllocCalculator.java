@@ -3,12 +3,10 @@ package resa.shedding.basicServices;
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
 import org.javatuples.Pair;
-import resa.optimize.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.shedding.drswithshedding.LearningSelectivity;
-import resa.shedding.drswithshedding.PolynomialRegression;
-import resa.shedding.drswithshedding.SheddingLoadRevert;
+import resa.optimize.*;
+import resa.shedding.example.PolynomialRegression;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.ResaUtils;
@@ -16,38 +14,38 @@ import resa.util.ResaUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static resa.util.ResaConfig.SERVICE_MODEL_CLASS;
+import static resa.util.ResaConfig.SHEDDING_SERVICE_MODEL_CLASS;
 
 /**
  * Created by kailin on 13/4/17.
  */
-public class SheddingMMKAllocCalculator extends AllocCalculator {
+public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
     private static final Logger LOG = LoggerFactory.getLogger(SheddingMMKAllocCalculator.class);
     private HistoricalCollectedData spoutHistoricalData;
     private HistoricalCollectedData boltHistoricalData;
     private int historySize;
     private int currHistoryCursor;
-    private ServiceModel serviceModel;
+    private SheddingServiceModel serviceModel;
     private LearningSelectivity calcSelectivityFunction;
     private Integer order;
 
     @Override
-    public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology) {
-        super.init(conf, currAllocation, rawTopology);
+    public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology, Map<String, Object> targets) {
+        super.init(conf, currAllocation, rawTopology, targets);
         ///The first (historySize - currHistoryCursor) window data will be ignored.
         historySize = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_WIN_HISTORY_SIZE, 1);
         currHistoryCursor = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_WIN_HISTORY_SIZE_IGNORE, 0);
         spoutHistoricalData = new HistoricalCollectedData(rawTopology, historySize);
         boltHistoricalData = new HistoricalCollectedData(rawTopology, historySize);
-        serviceModel =  ResaUtils.newInstanceThrow((String) conf.getOrDefault(SERVICE_MODEL_CLASS,
-                MMKServiceModel.class.getName()), ServiceModel.class);
+        serviceModel =  ResaUtils.newInstanceThrow((String) conf.getOrDefault(SHEDDING_SERVICE_MODEL_CLASS,
+                SheddingMMKServiceModel.class.getName()), SheddingServiceModel.class);
         calcSelectivityFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.SELECTIVITY_CALC_CLASS,
                 PolynomialRegression.class.getName()),LearningSelectivity.class);
         order = ConfigUtil.getInt(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
     }
 
     @Override
-    public AllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors,
+    public ShedRateAndAllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors,
                             StormTopology topology, Map<String, Object> targets) {
         executorAggResults.entrySet().stream().filter(e -> rawTopology.get_spouts().containsKey(e.getKey()))
                 .forEach(e -> spoutHistoricalData.putResult(e.getKey(), e.getValue()));
@@ -102,13 +100,8 @@ public class SheddingMMKAllocCalculator extends AllocCalculator {
                     ///TODO: shall we put this i2oRatio calculation here, or later to inside ServiceModel?
                     return new ServiceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar, spInfo.getExArrivalRate());
                 }));
-        SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(conf,spInfo,queueingNetwork,topology,targets,selectivityFunctions);//load shedding
+        SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(conf,spInfo,queueingNetwork,rawTopology,targets,selectivityFunctions);//load shedding
         sheddingLoadRevert.revertLoad();
-//        try {
-//            sheddingLoadRevert.buildActiveSheddingRate();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
 
         Map<String, Integer> boltAllocation = currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
@@ -123,10 +116,11 @@ public class SheddingMMKAllocCalculator extends AllocCalculator {
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey())).mapToInt(Map.Entry::getValue).sum();
 
         LOG.info("Run Optimization, tQos: " + targetQoSMs + ", currUsed: " + currentUsedThreadByBolts + ", kMax: " + maxThreadAvailable4Bolt + ", currAllo: " + currAllocation);
-        AllocResult allocResult = serviceModel.checkOptimized(
+        ShedRateAndAllocResult shedRateAndAllocResult = serviceModel.checkOptimized(
                 spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);
 
-
+        AllocResult allocResult = shedRateAndAllocResult.getAllocResult();
+        Map<String,Double> activeShedRate = shedRateAndAllocResult.getActiveShedRate();
         Map<String, Integer> retCurrAllocation = null;
         if (allocResult.currOptAllocation != null) {
             retCurrAllocation = new HashMap<>(currAllocation);
@@ -146,7 +140,7 @@ public class SheddingMMKAllocCalculator extends AllocCalculator {
         ctx.put("latency", allocResult.getContext());
         ctx.put("spout", spInfo);
         ctx.put("bolt", queueingNetwork);
-        return new AllocResult(allocResult.status, retMinReqAllocation, retCurrAllocation, retKMaxAllocation).setContext(ctx);
+        return new ShedRateAndAllocResult(allocResult.status, retMinReqAllocation, retCurrAllocation, retKMaxAllocation,activeShedRate,ctx);
     }
 
     /**

@@ -1,4 +1,4 @@
-package resa.shedding;
+package resa.shedding.example;
 
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.tuple.Tuple;

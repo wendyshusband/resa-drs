@@ -1,4 +1,4 @@
-package resa.shedding;
+package resa.shedding.tools;
 
 import org.apache.storm.utils.Utils;
 
