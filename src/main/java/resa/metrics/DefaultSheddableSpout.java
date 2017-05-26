@@ -2,15 +2,18 @@ package resa.metrics;
 
 import org.apache.storm.Config;
 import org.apache.storm.hooks.BaseTaskHook;
+import org.apache.storm.hooks.info.EmitInfo;
 import org.apache.storm.hooks.info.SpoutAckInfo;
 import org.apache.storm.hooks.info.SpoutFailInfo;
 import org.apache.storm.metric.api.MultiCountMetric;
+import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichSpout;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import resa.shedding.tools.DRSzkHandler;
 import resa.topology.DelegatedSpout;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -18,7 +21,6 @@ import resa.util.Sampler;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 /**
@@ -69,6 +71,12 @@ public class DefaultSheddableSpout extends DelegatedSpout{
                 }
             }
         }
+
+        @Override
+        public void emit(EmitInfo info) {
+
+            super.emit(info);
+        }
     }
 
     private transient CMVMetric completeMetric;
@@ -78,10 +86,15 @@ public class DefaultSheddableSpout extends DelegatedSpout{
     private transient CompleteStatMetric completeStatMetric;
     private long lastMetricsSent;
     private long qos;
-    private AtomicInteger pendingCount = new AtomicInteger(0);
+    private int pendingCount = 0;
     private int spoutMaxPending;
-    private boolean ackFlag;
+    //private boolean ackFlag;
     private transient MultiCountMetric failureCountMetric;
+    private double activeSheddingRate;
+    private String compID;
+    private String topologyName;
+    private Sampler activeSheddingSampler;
+    private CuratorFramework client;
 
     public DefaultSheddableSpout(){
 
@@ -100,11 +113,16 @@ public class DefaultSheddableSpout extends DelegatedSpout{
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         spoutMaxPending = Integer.valueOf(Utils.getString(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING)));
-        //passiveSheddingTupleThread();
-        ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),false);
+        //ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),false);
         int interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
         failureCountMetric = context.registerMetric(MetricNames.FAILURE_COUNT,new MultiCountMetric(),interval);
         failureCountMetric.scope("failure").incrBy(0);
+        compID = context.getThisComponentId();
+        topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
+        activeSheddingRate = 0.0;
+        activeSheddingSampler = new Sampler(activeSheddingRate);
+        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
         completeMetric = context.registerMetric(MetricNames.COMPLETE_LATENCY, new CMVMetric(), interval);
         // register miss metric
         qos = ConfigUtil.getLong(conf, "resa.metric.complete-latency.threshold.ms", Long.MAX_VALUE);
@@ -118,23 +136,39 @@ public class DefaultSheddableSpout extends DelegatedSpout{
         // register duration metric
         lastMetricsSent = System.currentTimeMillis();
         context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
-
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
         context.addTaskHook(new DefaultSheddableSpout.SpoutHook());
         super.open(conf, context, new SpoutOutputCollector(collector) {
 
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
-                if(messageId != null)
-                    pendingCount.getAndIncrement();
+                if(messageId != null) {//ack
+
+                    if(pendingCount <= 0.9*spoutMaxPending) {
+                        pendingCount++;
+                        return super.emit(streamId, tuple, newStreamMessageId(streamId, messageId));
+                    }
+                    else {
+                        failureCountMetric.scope("failure").incr();
+                        return null;
+                    }
+                }
                 return super.emit(streamId, tuple, newStreamMessageId(streamId, messageId));
             }
 
             @Override
             public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
-                if(messageId != null)
-                    pendingCount.getAndIncrement();
-                super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
+                if(messageId != null) {//ack
+                    if(pendingCount <= 0.9*spoutMaxPending) {
+                        super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
+                        pendingCount++;
+                    }else{
+                        failureCountMetric.scope("failure").incr();
+                    }
+                }else{// no ack
+                    super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
+                }
+
             }
 
             private SheddingMeasurableMsgId newStreamMessageId(String stream, Object messageId) {
@@ -148,7 +182,6 @@ public class DefaultSheddableSpout extends DelegatedSpout{
                 return messageId == null ? null : new SheddingMeasurableMsgId(stream, messageId, startTime);
             }
         });
-
         LOG.info("Preparing DefaultSheddableSpout: " + context.getThisComponentId());
     }
 
@@ -158,29 +191,62 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
     @Override
     public void ack(Object msgId) {
-        pendingCount.getAndDecrement();
-        //LOG.info(pendingCount.get()+"ackyoho nexttuple!");
+        if(pendingCount > 0)
+            pendingCount--;
+        LOG.info(pendingCount+"acklei");
+
         super.ack(getUserMsgId(msgId));
     }
 
     @Override
     public void fail(Object msgId) {
-        pendingCount.getAndDecrement();
-        //LOG.info(pendingCount.get()+"failyoho nexttuple!");
+        if(pendingCount> 0)
+            pendingCount--;
+        LOG.info(pendingCount+"faillei");
         super.fail(getUserMsgId(msgId));
     }
 
     @Override
     public void nextTuple() {
-        if(ackFlag){
-            if(spoutMaxPending * 0.9 >= pendingCount.get()) {
-                super.nextTuple();
-                //LOG.info(pendingCount.get()+"yoho nexttuple!"+ackFlag);
-            }
-        }else{
-            super.nextTuple();
-            //LOG.info(pendingCount.get()+"yoha nexttuple!"+ackFlag);
-        }
-
+        super.nextTuple();
+        //LOG.info(pendingCount+"jianbujian");
     }
+
+  /*  private void checkActiveSheddingRateThread() {
+        final Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    if(!client.isStarted())
+                        client.start();
+                    try {
+                        if(null != client.checkExists().forPath("/drs/"+topologyName)){
+                            String tempMap = new String(client.getData().forPath("/drs/"+topologyName));
+                            Pattern pattern1 = Pattern.compile(compID+"=(\\d+)\\.(\\d+)");
+                            Matcher matcher1 = pattern1.matcher(tempMap);
+                            if(matcher1.find()) {
+                                Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
+                                Matcher matcher2 = pattern2.matcher(matcher1.group());
+                                if(matcher2.find()) {
+                                    double shedRate = Double.valueOf(matcher2.group());
+                                    if (shedRate != activeSheddingRate) {
+                                        //LOG.info(activeSheddingRate+"woshenzhiyouyi"+compID+":"+"hehe"+shedRate);
+                                        activeSheddingRate = shedRate;
+                                        activeSheddingSampler = new Sampler(activeSheddingRate);
+                                        //LOG.info(activeSheddingSampler.toString() + "tabu");
+                                    }
+                                }
+                            }
+                        }
+                        Thread.sleep(interval);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        });
+        thread.start();
+        LOG.info("checkActiveSheddingRateThread thread start!");
+    }*/
 }

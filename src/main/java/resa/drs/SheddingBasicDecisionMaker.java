@@ -138,7 +138,7 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
 
     public void sentActiveSheddingRate(Map<String,Double> activeSheddingRateMap) throws Exception {
         if(!client.isStarted())
-            client.start();
+            DRSzkHandler.start();
         if(null == client.checkExists().forPath("/drs")){
             client.create().forPath("/drs");
         }

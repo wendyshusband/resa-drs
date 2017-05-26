@@ -103,8 +103,8 @@ tk.intermediateRanker.parallelism: 2
 tk-NumOfWorkers: 3
 tk-MaxSpoutPending: 20000
 
-maxFrequencyPerSecond: 500
-windowsPerSecond: 50
+maxFrequencyPerSecond: 3000
+windowsPerSecond: 100
 wc-number: 4000000
 
 ## topology level
@@ -149,7 +149,7 @@ loop-BoltB-loopback.prob: 0.2
 
 #test sort topology
 sort-NumOfWorkers: 2
-sort-MaxSpoutPending: 500
+sort-MaxSpoutPending: 5000
 ##sort-spoutA.prob: 0.6
 ##sort-spoutA-parallelism: 1
 sort-BoltB.parallelism: 2

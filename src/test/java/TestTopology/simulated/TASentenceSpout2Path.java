@@ -7,6 +7,7 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -42,6 +43,7 @@ public class TASentenceSpout2Path extends RedisQueueSpout {
         
         double prob = rand.nextDouble();
         if (prob < this.p){
+            List<Object> s = new Values(id,data);
         	collector.emit("P-Stream", new Values(id, data), id);
         }
         else{

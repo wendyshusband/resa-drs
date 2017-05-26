@@ -32,7 +32,8 @@ public class DRSzkHandler {
         client.start();
     }
 
-    public static void close() {
+    public static void close() throws Exception {
+        client.delete().forPath("/drs");
         client.close();
     }
 }

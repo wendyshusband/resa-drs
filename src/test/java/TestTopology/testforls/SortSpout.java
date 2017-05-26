@@ -8,6 +8,7 @@ import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
 import resa.shedding.tools.FrequencyRestrictor;
+import resa.util.ConfigUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +33,8 @@ public class SortSpout extends BaseRichSpout {
 
         public void open(Map map, TopologyContext topologyContext, SpoutOutputCollector spoutOutputCollector) {
             _collector = spoutOutputCollector;
-            frequencyRestrictor = new FrequencyRestrictor(500, 500);
+            frequencyRestrictor = new FrequencyRestrictor(ConfigUtil.getInt(map, "maxFrequencyPerSecond", 500),
+                    ConfigUtil.getInt(map, "windowsPerSecond", 500));
         }
 
         public void nextTuple() {
