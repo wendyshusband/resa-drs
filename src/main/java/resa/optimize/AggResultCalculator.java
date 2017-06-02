@@ -112,7 +112,11 @@ public class AggResultCalculator {
             Map<String, Object> failure = (Map<String, Object>) measuredData.data.get(MetricNames.FAILURE_COUNT);
             if(failure != null){
                 int tempFailureCount = Integer.valueOf(String.valueOf(failure.get("failure")));
+                int tempDropCount = Integer.valueOf(String.valueOf(failure.get("spoutDrop")));
+                int failLatencyMs = Integer.valueOf(String.valueOf(failure.get("failLatencyMs")));
                 ((SpoutAggResult) dest).setFailureCount(tempFailureCount);
+                ((SpoutAggResult) dest).setSpoutDropCount(tempDropCount);
+                ((SpoutAggResult) dest).setFailLatencyMs(failLatencyMs);
             }
         } else {
             Map<String, Object> data = (Map<String, Object>) measuredData.data.get(MetricNames.TASK_EXECUTE);

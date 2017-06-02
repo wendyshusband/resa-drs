@@ -23,12 +23,12 @@ public class SheddingLoadRevert {
     private SourceNode sourceNode;
     private Map<String, ServiceNode> serviceNodeMap;
     private List<String> topoSortResult = new ArrayList<>();
-
     private long processTimeout;
 
     public SheddingLoadRevert(Map conf,SourceNode spInfo, Map<String, ServiceNode> queueingNetwork, StormTopology stormTopology,
                               Map<String, Object> targets, Map<String, double[]> selectivityFunctions) {
         topology = stormTopology;
+
         topologyTargets=targets;
         topologyTargets.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey())).forEach(e->{
             revertRealLoadDatas.put(e.getKey(),new RevertRealLoadData(e.getKey()));
@@ -72,14 +72,14 @@ public class SheddingLoadRevert {
         return activeSheddingRateMap;
     }*/
     private void revertCompleteLatency() {
-
-        long tempAllCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getAllCount).sum();
-        long tempDropCount = serviceNodeMap.values().stream().mapToLong(ServiceNode::getFailureCount).sum();
+        long tempFailCount = sourceNode.getFailureCount();//serviceNodeMap.values().stream().mapToLong(ServiceNode::getDropCount).sum();
+        long tempDropCount = sourceNode.getSpoutDropCount();
+        long tempAllCount = sourceNode.getEmitCount().values().stream().mapToLong(Number::longValue).sum();//serviceNodeMap.values().stream().mapToLong(ServiceNode::getAllCount).sum();
         double completeLatency = sourceNode.getRealLatencyMilliSeconds();
-        double realCL = (((tempAllCount-tempDropCount)*completeLatency)
-                +(tempDropCount * processTimeout * 1000))/tempAllCount;
+        double realCL = (((tempAllCount-tempFailCount)*completeLatency)
+                +((tempDropCount+tempFailCount) * processTimeout * 1000))/(tempAllCount+tempDropCount);
         sourceNode.revertCompleteLatency(realCL);
-        LOG.info(tempDropCount+"processdrop"+realCL);
+        LOG.info("all:"+tempAllCount+"fail:"+tempFailCount+"drop:"+tempDropCount+"processdrop"+realCL);
     }
 
     private void calcProportion() {
@@ -116,11 +116,9 @@ public class SheddingLoadRevert {
 
     private void calcSourceNodeProportion() {
         Map<String,Long> emitCountMap = sourceNode.getEmitCount();
-        long denominator = 0;
-        for(Long count : emitCountMap.values()){
-            denominator += count;
-        }
+        long denominator = emitCountMap.values().stream().mapToLong(Number::longValue).sum();
         LOG.info("sourceNode : "+sourceNode.getComponentID()+" whole emit tuple number ="+ denominator);
+        sourceNode.revertLambda((sourceNode.getSpoutDropCount()+denominator)/sourceNode.getSumDurationSeconds());
         Map<String,ArrayList<String>> stream2CompLists =
                 (Map<String, ArrayList<String>>) topologyTargets.get(sourceNode.getComponentID());
         if(!stream2CompLists.isEmpty()) {
@@ -155,16 +153,16 @@ public class SheddingLoadRevert {
         for(int i=0; i<topoSortResult.size(); i++){
             double readLoadOUT = 0.0;
             double appLoadIn = 0.0;
-            System.out.println(topoSortResult.get(i)+":*****:"+revertRealLoadDatas.get(topoSortResult.get(i)).getProportion());
+            //System.out.println(topoSortResult.get(i)+":*****:"+revertRealLoadDatas.get(topoSortResult.get(i)).getProportion());
             for(Map.Entry entry : revertRealLoadDatas.get(topoSortResult.get(i)).getProportion().entrySet()){
-                System.out.println(entry.getKey()+"load shedding :: apploadIN and loadOUT!!!!!!!"+entry.getValue());
+                //System.out.println(entry.getKey()+"load shedding :: apploadIN and loadOUT!!!!!!!"+entry.getValue());
                 if(topology.get_bolts().containsKey(entry.getKey())){
-                    System.out.println("OUT: "+revertRealLoadDatas.get(entry.getKey()).getRealLoadOUT());
-                    System.out.println("PROPORTION: "+entry.getValue());
+                   // System.out.println("OUT: "+revertRealLoadDatas.get(entry.getKey()).getRealLoadOUT());
+                   // System.out.println("PROPORTION: "+entry.getValue());
                     appLoadIn += (revertRealLoadDatas.get(entry.getKey()).getRealLoadOUT() * (double) entry.getValue());
                 }else{
-                    System.out.println(entry.getKey()+"#~~~ sourceLoad ~~~#"+sourceLoad);
-                    System.out.println("PROPORTION: "+entry.getValue());
+                   // System.out.println(entry.getKey()+"#~~~ sourceLoad ~~~#"+sourceLoad);
+                  //  System.out.println("PROPORTION: "+entry.getValue());
                     appLoadIn += (sourceLoad * (double)entry.getValue());
                 }
             }
@@ -181,7 +179,7 @@ public class SheddingLoadRevert {
             serviceNodeMap.get(e.getKey()).revertLambda(e.getValue().getRealLoadIN());
             System.out.println("after: "+serviceNodeMap.get(e.getKey()).toString());
         });
-
+        LOG.info("amazing: "+sourceNode.toString());
 
     }
 

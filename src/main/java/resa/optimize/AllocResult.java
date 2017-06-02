@@ -46,4 +46,10 @@ public class AllocResult {
         this.context = context;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "(status: "+status.toString()+" minReqOptAllocation: "+minReqOptAllocation
+                +" currOptAllocation: "+currOptAllocation+" kMaxOptAllocation: "+kMaxOptAllocation+")";
+    }
 }

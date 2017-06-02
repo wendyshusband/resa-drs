@@ -109,6 +109,8 @@ public class ResourceScheduler {
                 if (decision != null) {
                     ctx.emitMetric("drs.alloc", decision);
                     LOG.debug("emit drs metric {}", decision);
+                }else{
+                    LOG.info("decision is null!");
                 }
                 // tagged by Tom, modified by troy:
                 // in decisionMaker , we need to improve this rebalance step to calc more stable and smooth

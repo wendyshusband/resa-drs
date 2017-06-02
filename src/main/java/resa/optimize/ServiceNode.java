@@ -43,7 +43,7 @@ public class ServiceNode {
     protected double passiveSheddingRate;
     protected Map<String,Long> emitCount;
     protected Map<String, Long> passiveSheddingCountMap;
-    protected long failureCount = 0;
+    protected long dropCount = 0;
     protected long allCount = 0;
 
     public ServiceNode(String componentID, int executorNumber, double compSampleRate,
@@ -74,14 +74,14 @@ public class ServiceNode {
         /*load shedding*/
         if(ar.getPassiveSheddingCountMap().get("dropTuple") !=null && ar.getPassiveSheddingCountMap().get("allTuple") !=null) {
             this.passiveSheddingRate = (1.0*ar.getPassiveSheddingCountMap().get("dropTuple")) / ar.getPassiveSheddingCountMap().get("allTuple");//tkl
-            this.failureCount = ar.getPassiveSheddingCountMap().get("dropTuple");
+            this.dropCount = ar.getPassiveSheddingCountMap().get("dropTuple");
             this.allCount = ar.getPassiveSheddingCountMap().get("allTuple");
         }else {
             this.passiveSheddingRate = -1;
         }
         this.passiveSheddingCountMap = ar.getPassiveSheddingCountMap();
         this.emitCount = ar.getemitCount();
-        LOG.info("ServiceNode is created: " + toString());
+        LOG.info(ar.getArrivalRatePerSec()+":"+executorNumber+"ServiceNode is created: " + toString());
     }
 
 
@@ -151,8 +151,8 @@ public class ServiceNode {
 
     public double getPassiveSheddingRate(){return passiveSheddingRate;}
 
-    public long getFailureCount() {
-        return failureCount;
+    public long getDropCount() {
+        return dropCount;
     }
 
     public long getAllCount() {
@@ -175,9 +175,9 @@ public class ServiceNode {
     public String toString() {
         return String.format(
                 "(ID, eNum):(%s,%d), ProcRate: %.3f, avgSTime: %.3f, scvSTime: %.3f, mu: %.3f, ProcCnt: %.1f, Dur: %.1f, sample: %.1f, SQLen: %.1f, RQLen: %.1f, " +
-                        "-----> arrRateAvg: %.3f, arrRateScv: %.3f, ratio: %.3f, rho: %.3f, passiveSheddingRate: %.3f",
+                        "-----> arrRateAvg: %.3f, arrRateScv: %.3f, ratio: %.3f, rho: %.3f, passiveSheddingRate: %.3f, exArr: %.3f",
                 componentID, executorNumber, tupleCompleteRate, avgServTimeHis, scvServTimeHis, mu,
                 numCompleteTuples, sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
-                lambda, interArrivalScv, ratio, rho, passiveSheddingRate)+" emitcount: "+emitCount+" tupleMessage: "+passiveSheddingCountMap;
+                lambda, interArrivalScv, ratio, rho, passiveSheddingRate , exArrivalRate)+" emitcount: "+emitCount+" tupleMessage: "+passiveSheddingCountMap;
     }
 }

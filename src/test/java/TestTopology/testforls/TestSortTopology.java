@@ -4,6 +4,7 @@ package TestTopology.testforls;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
+import resa.shedding.example.outputBolt;
 import resa.util.ConfigUtil;
 
 import java.io.File;
@@ -35,21 +36,22 @@ public class TestSortTopology {
 //        builder.setSpout("sort-SpoutE", new TestSortSpout(true,"E"),
 //                ConfigUtil.getInt(conf, "sort-spoutE-parallelism", 1));
 
-        builder.setBolt("sort-BoltB",new SortWorkBolt2Path("B"),
-                ConfigUtil.getInt(conf, "sort-BoltB.parallelism", 1))
-                .setNumTasks(defaultTaskNum)
-                .shuffleGrouping("sort-SpoutA");
+//        builder.setBolt("sort-BoltB",new SortWorkBolt2Path("B"),
+//                ConfigUtil.getInt(conf, "sort-BoltB.parallelism", 1))
+//                .setNumTasks(defaultTaskNum)
+//                .shuffleGrouping("sort-SpoutA");
 
         builder.setBolt("sort-BoltD",new SortWorkBolt("D"),
                 ConfigUtil.getInt(conf, "sort-BoltD.parallelism", 1))
-                .setNumTasks(defaultTaskNum)
-                .shuffleGrouping("sort-BoltB","D-Stream");
+                //.setNumTasks(defaultTaskNum)
+                .shuffleGrouping("sort-SpoutA");
+                //.shuffleGrouping("sort-BoltB","D-Stream");
 
-        builder.setBolt("sort-BoltC",new SortWorkBolt("C"),
+        builder.setBolt("sort-BoltC",new outputBolt(),//new SortWorkBolt("C"),
                 ConfigUtil.getInt(conf, "sort-BoltC.parallelism", 1))
-                .setNumTasks(defaultTaskNum)
+                //.setNumTasks(defaultTaskNum)
                 //.shuffleGrouping("sort-SpoutE")
-                .shuffleGrouping("sort-BoltB","C-Stream")
+                //.shuffleGrouping("sort-BoltB","C-Stream")
                 .shuffleGrouping("sort-BoltD");
 
 /*        builder.setBolt("sort-BoltF",new outputBolt(),
@@ -58,7 +60,7 @@ public class TestSortTopology {
                 .shuffleGrouping("sort-BoltC");*/
 
         conf.setNumWorkers(ConfigUtil.getInt(conf, "sort-NumOfWorkers", 1));
-        conf.setMaxSpoutPending(ConfigUtil.getInt(conf, "sort-MaxSpoutPending", 0));
+        //conf.setMaxSpoutPending(ConfigUtil.getInt(conf, "sort-MaxSpoutPending", 0));
         conf.setDebug(ConfigUtil.getBoolean(conf, "DebugTopology", false));
         conf.setStatsSampleRate(ConfigUtil.getDouble(conf, "StatsSampleRate", 1.0));
 

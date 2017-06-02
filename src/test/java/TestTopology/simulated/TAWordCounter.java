@@ -18,14 +18,15 @@ public class TAWordCounter extends TASleepBolt {
     @Override
     public void execute(Tuple tuple) {
         super.execute(tuple);
+        String sid = tuple.getString(0);
         String word = tuple.getString(1);
-        collector.emit(new Values(word + "!!"));
+        collector.emit(new Values(sid,word + "!!"));
         collector.ack(tuple);
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         ///declarer.declare(new Fields("word", "count"));
-        declarer.declare(new Fields("word!"));
+        declarer.declare(new Fields("id","word!"));
     }
 }

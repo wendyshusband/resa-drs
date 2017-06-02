@@ -17,12 +17,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RandomSentenceSpout extends BaseRichSpout {
 
     public static String[] SENTENCES = new String[]{
-            "the cow jumped over the moon",
+            "over the moon"
+//            "the cow jumped over the moon",
 //            "an apple a day keeps the doctor away",
 //            "four score and seven years ago",
 //            "snow white and the seven dwarfs",
 //            "i am at two with nature",
-            "the latest news from Yahoo! news",
+//            "the latest news from Yahoo! news",
 //            "breaking news latest news and current news",
 //            "the latest news from across canada and around the world",
 //            "get top headlines on international business news",

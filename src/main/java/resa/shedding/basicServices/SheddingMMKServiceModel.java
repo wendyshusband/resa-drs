@@ -281,7 +281,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         LOG.info(String.format("realLatency(ms): %.4f, estMMK: %.4f, urMMK: %.4f, reMMK: %.4f, status: %s",
                 realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, underEstimateRatio, relativeError, status.toString()));
 
-        Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();
+        Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();//active shedding
 
         ShedRateAndAllocResult shedRateAndAllocResult = new ShedRateAndAllocResult(status, adjustedAllocation, currOptAllocation, kMaxOptAllocation,activeSheddingRateMap,context);
         AllocResult retVal = shedRateAndAllocResult.getAllocResult();

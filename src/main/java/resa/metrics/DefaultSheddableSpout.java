@@ -6,14 +6,12 @@ import org.apache.storm.hooks.info.EmitInfo;
 import org.apache.storm.hooks.info.SpoutAckInfo;
 import org.apache.storm.hooks.info.SpoutFailInfo;
 import org.apache.storm.metric.api.MultiCountMetric;
-import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichSpout;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.shedding.tools.DRSzkHandler;
 import resa.topology.DelegatedSpout;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -65,6 +63,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
         public void spoutFail(SpoutFailInfo info) {
             SheddingMeasurableMsgId streamMsgId = (SheddingMeasurableMsgId) info.messageId;
             failureCountMetric.scope("failure").incr();
+            failureCountMetric.scope("failLatencyMs").incrBy(info.failLatencyMs);
             if (streamMsgId != null && streamMsgId.isSampled()) {
                 if (completeStatMetric != null) {
                     completeStatMetric.fail(streamMsgId.stream);
@@ -74,7 +73,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
         @Override
         public void emit(EmitInfo info) {
-
+            //failureCountMetric.scope("spoutEmit").incr();
             super.emit(info);
         }
     }
@@ -94,7 +93,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
     private String compID;
     private String topologyName;
     private Sampler activeSheddingSampler;
-    private CuratorFramework client;
+    //private CuratorFramework client;
 
     public DefaultSheddableSpout(){
 
@@ -112,17 +111,18 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
-        spoutMaxPending = Integer.valueOf(Utils.getString(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING)));
+        //spoutMaxPending = Integer.valueOf(Utils.getString(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING)));
         //ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),false);
         int interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
         failureCountMetric = context.registerMetric(MetricNames.FAILURE_COUNT,new MultiCountMetric(),interval);
         failureCountMetric.scope("failure").incrBy(0);
+        failureCountMetric.scope("spoutDrop").incrBy(0);
         compID = context.getThisComponentId();
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         activeSheddingRate = 0.0;
         activeSheddingSampler = new Sampler(activeSheddingRate);
-        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
+//        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+//        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
         completeMetric = context.registerMetric(MetricNames.COMPLETE_LATENCY, new CMVMetric(), interval);
         // register miss metric
         qos = ConfigUtil.getLong(conf, "resa.metric.complete-latency.threshold.ms", Long.MAX_VALUE);
@@ -143,13 +143,13 @@ public class DefaultSheddableSpout extends DelegatedSpout{
             @Override
             public List<Integer> emit(String streamId, List<Object> tuple, Object messageId) {
                 if(messageId != null) {//ack
-
-                    if(pendingCount <= 0.9*spoutMaxPending) {
-                        pendingCount++;
+                    //LOG.info(pendingCount+"jian"+collector.getPendingCount());
+                    pendingCount = (int) collector.getPendingCount();
+                    if(pendingCount <= 0.9*1024) {
                         return super.emit(streamId, tuple, newStreamMessageId(streamId, messageId));
                     }
                     else {
-                        failureCountMetric.scope("failure").incr();
+                        failureCountMetric.scope("spoutDrop").incr();
                         return null;
                     }
                 }
@@ -159,11 +159,11 @@ public class DefaultSheddableSpout extends DelegatedSpout{
             @Override
             public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
                 if(messageId != null) {//ack
-                    if(pendingCount <= 0.9*spoutMaxPending) {
+                    pendingCount = (int) collector.getPendingCount();
+                    if(pendingCount <= 0.9*1024) {
                         super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
-                        pendingCount++;
                     }else{
-                        failureCountMetric.scope("failure").incr();
+                        failureCountMetric.scope("spoutDrop").incr();
                     }
                 }else{// no ack
                     super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
@@ -191,25 +191,25 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
     @Override
     public void ack(Object msgId) {
-        if(pendingCount > 0)
-            pendingCount--;
-        LOG.info(pendingCount+"acklei");
+//        if(pendingCount > 0)
+//            pendingCount--;
+//        LOG.info(pendingCount+"acklei");
 
         super.ack(getUserMsgId(msgId));
     }
 
     @Override
     public void fail(Object msgId) {
-        if(pendingCount> 0)
-            pendingCount--;
-        LOG.info(pendingCount+"faillei");
+//        if(pendingCount> 0)
+//            pendingCount--;
+//        LOG.info(pendingCount+"faillei");
         super.fail(getUserMsgId(msgId));
     }
 
     @Override
     public void nextTuple() {
         super.nextTuple();
-        //LOG.info(pendingCount+"jianbujian");
+            //LOG.info(pendingCount+"jianbujian");
     }
 
   /*  private void checkActiveSheddingRateThread() {

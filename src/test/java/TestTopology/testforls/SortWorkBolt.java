@@ -24,9 +24,9 @@ public class SortWorkBolt implements IRichBolt {
         }
 
         public void execute(Tuple tuple) {
-            String sid = tuple.getString(0);
-            String sentence = tuple.getString(1)+cha;
-            _collector.emit(tuple,new Values(sid,sentence));
+            String sentence = tuple.getString(0)+cha;
+            _collector.emit(tuple, new Values(sentence.toUpperCase()));
+            _collector.emit(tuple,new Values(sentence.toLowerCase()));
             _collector.ack(tuple);
         }
 
@@ -35,7 +35,7 @@ public class SortWorkBolt implements IRichBolt {
         }
 
         public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-            outputFieldsDeclarer.declare(new Fields("id",cha));
+            outputFieldsDeclarer.declare(new Fields(cha));
         }
 
         public Map<String, Object> getComponentConfiguration() {

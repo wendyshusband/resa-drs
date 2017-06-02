@@ -148,16 +148,16 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
      * calculate selectivity function based on bolt history data.
      * */
     private Map<String, double[]> calcSelectivityFunction() {
-        spoutHistoricalData.compHistoryResults.entrySet().forEach(e->{
-            System.out.println(e.getKey());
-            Iterator iterator = ((Queue)e.getValue()).iterator();
-            while(iterator.hasNext()){
-                SpoutAggResult tempAggResult = (SpoutAggResult) iterator.next();
-                System.out.println("completeLatency: "+tempAggResult.getScvTupleCompleteLatency());
-                System.out.println(tempAggResult.getArrivalRatePerSec());
-                System.out.println("getTupleEmitRateOnSQ"+tempAggResult.getArrivalRatePerSec() * currAllocation.get(e.getKey()) / 2.0);
-            }
-        });
+//        spoutHistoricalData.compHistoryResults.entrySet().forEach(e->{
+//            System.out.println(e.getKey());
+//            Iterator iterator = ((Queue)e.getValue()).iterator();
+//            while(iterator.hasNext()){
+//                SpoutAggResult tempAggResult = (SpoutAggResult) iterator.next();
+//                System.out.println("completeLatency: "+tempAggResult.getScvTupleCompleteLatency());
+//                System.out.println(tempAggResult.getArrivalRatePerSec());
+//                System.out.println("getTupleEmitRateOnSQ"+tempAggResult.getArrivalRatePerSec() * currAllocation.get(e.getKey()) / 2.0);
+//            }
+//        });
         Map<String, double[]> selectivityCoeffs = new HashMap<>();
         Map<String, Queue<AggResult>> compHistoryResults =boltHistoricalData.compHistoryResults;
         for(Map.Entry comp : compHistoryResults.entrySet()){
@@ -173,21 +173,22 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                     long loadTuple = tempAggResult.getPassiveSheddingCountMap().get("allTuple")
                             - tempAggResult.getPassiveSheddingCountMap().get("dropTuple");
                     if(loadTuple > 0) {
-                        loadIN = Math.log10(loadTuple);
+                        loadIN = loadTuple;
                         int emitSum = tempAggResult.getemitCount().values().stream().mapToInt(Number::intValue).sum();
                         if(emitSum != 0)
-                            loadOUT = Math.log10(emitSum);
+                            loadOUT = emitSum;
+                        System.out.println(loadTuple+" ::~:: "+emitSum);
                     }
                 }
                 loadPairList.add(new Pair<>(loadIN,loadOUT));
-                System.out.println(comp.getKey());
-                System.out.println("emitcount "+ tempAggResult.getemitCount());
-                System.out.println("getArrivalRatePerSec"+tempAggResult.getArrivalRatePerSec());
+                //System.out.println(comp.getKey());
+                //System.out.println("emitcount "+ tempAggResult.getemitCount());
+                //System.out.println("getArrivalRatePerSec"+tempAggResult.getArrivalRatePerSec());
                // System.out.println("sheddingRate"+sheddingRate);
-                System.out.println("allTuple"+tempAggResult.getPassiveSheddingCountMap().get("allTuple"));
-                System.out.println("dropTuple"+tempAggResult.getPassiveSheddingCountMap().get("dropTuple"));
-                System.out.println("getDepartureRatePerSec"+tempAggResult.getDepartureRatePerSec());
-                System.out.println(currAllocation.get(comp.getKey()));
+                //System.out.println("allTuple"+tempAggResult.getPassiveSheddingCountMap().get("allTuple"));
+                //System.out.println("dropTuple"+tempAggResult.getPassiveSheddingCountMap().get("dropTuple"));
+                //System.out.println("getDepartureRatePerSec"+tempAggResult.getDepartureRatePerSec());
+                //System.out.println(currAllocation.get(comp.getKey()));
             }
             double[] oneCompSelectivityCoeff = calcSelectivityFunction.Fit(loadPairList,order);
             selectivityCoeffs.put((String) comp.getKey(),oneCompSelectivityCoeff);
@@ -200,7 +201,7 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                 System.out.println(value[i]);
             }
         }
-        System.out.println("**********************************************!!!!*********************************************");
+        System.out.println("*****************************************");
         return selectivityCoeffs;
     }
 

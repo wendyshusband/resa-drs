@@ -1,6 +1,5 @@
 package TestTopology.testforls;
 
-import org.apache.storm.Config;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -10,7 +9,6 @@ import org.apache.storm.tuple.Values;
 import resa.shedding.tools.FrequencyRestrictor;
 import resa.util.ConfigUtil;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -41,24 +39,24 @@ public class SortSpout extends BaseRichSpout {
             if(frequencyRestrictor.tryPermission()) {
                 String id = spoutIdPrefix + count;
                 count++;
-                //Utils.sleep(5);
-                _collector.emit(new Values(id, "TUPLE"), id);
+                _collector.emit(new Values("TUpLE"), id);
+                //_collector.emit(new Values(id, "TUPLE"));
             }
         }
 
         public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
-            outputFieldsDeclarer.declare(new Fields("id",spoutIdPrefix));
+            outputFieldsDeclarer.declare(new Fields(spoutIdPrefix));
         }
 
-        @Override
-        public Map<String, Object> getComponentConfiguration() {
-            if(!_isDistributed){
-                Map<String, Object> ret = new HashMap<String, Object>();
-                ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
-                return ret;
-            }else{
-                return null;
-            }
-
-        }
+//        @Override
+//        public Map<String, Object> getComponentConfiguration() {
+//            if(!_isDistributed){
+//                Map<String, Object> ret = new HashMap<String, Object>();
+//                ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
+//                return ret;
+//            }else{
+//                return null;
+//            }
+//
+//        }
 }

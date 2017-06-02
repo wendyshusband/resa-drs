@@ -14,17 +14,20 @@ public class ShedRateAndAllocResult {
     public ShedRateAndAllocResult(AllocResult.Status status, Map<String, Integer> minReqOptAllocation,
                                   Map<String, Integer> currOptAllocation, Map<String, Integer> kMaxOptAllocation,
                                   Map<String, Double> activeShedRate, Map<String, Object> ctx){
-        allocResult = new AllocResult(status, minReqOptAllocation, currOptAllocation, kMaxOptAllocation);
-        allocResult.setContext(ctx);
+        this.allocResult = new AllocResult(status, minReqOptAllocation, currOptAllocation, kMaxOptAllocation).setContext(ctx);
         this.activeShedRate = activeShedRate;
     }
 
     public AllocResult getAllocResult() {
-        return allocResult;
+        return this.allocResult;
     }
 
     public Map<String, Double> getActiveShedRate() {
         return activeShedRate;
     }
 
+    @Override
+    public String toString() {
+        return activeShedRate.toString()+"/"+allocResult;
+    }
 }

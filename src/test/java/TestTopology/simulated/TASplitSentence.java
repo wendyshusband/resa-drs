@@ -31,6 +31,7 @@ public class TASplitSentence extends TASleepBolt {
         if (sid.hashCode() % 10000 == 0) {
             LOG.info(sid + "," + sentence);
         }
+        collector.emit(tuple,new Values(sid, sentence));
         collector.emit(tuple, new Values(sid, sentence));
         collector.ack(tuple);
     }

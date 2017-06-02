@@ -221,6 +221,8 @@ public class ResaContainer extends FilteredMetricsCollector {
         Map<String, Object> ret = dataPoints.stream().collect(Collectors.toMap(p -> p.name, p -> p.value));
         MeasuredData measuredData = new MeasuredData(taskInfo.srcComponentId, taskInfo.srcTaskId,
                 taskInfo.timestamp, ret);
+        LOG.info(measuredData.data.toString()+" task: "+measuredData.task+" comp:"+
+          measuredData.component+" timestamp: "+measuredData.timestamp);
         ctx.getListeners().forEach(l -> l.measuredDataReceived(measuredData));
     }
 

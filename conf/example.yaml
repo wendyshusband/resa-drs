@@ -16,7 +16,6 @@ resa.metric.approved.names:
 ## Determine whether to attached detailed running informaiton of resa-drs will to the LOG outputs, default is false
 resa.container.metric.output: true
 
-
 ## The optimal allocation calculator we designed and implemented based on Jackson Queueing network theory. In the current version of Resa-drs, it is the only option. More options will be developed in future
 #resa.optimize.alloc.class: "resa.optimize.MMKAllocCalculator"
 #"resa.shedding.drswithshedding.SheddingMMKAllocCalculator"
@@ -26,13 +25,12 @@ resa.container.metric.output: true
 topology.builtin.metrics.bucket.size.secs: 30
 #60
 
-
 ## The sample rate applied on measuring those appointed metric results, the default value is 0.05
 resa.comp.sample.rate: 1.0
 
 
 ## The size of the history window. It decides how much historical metrics data needs to be buffered, e.g., when topology.builtin.metrics.bucket.size.secs: 60, only the metrics data reported in the previous 300 seconds will be maintained in the buffer. The default value is 1.
-resa.opt.win.history.size: 1
+resa.opt.win.history.size: 3
 #5
 
 
@@ -46,12 +44,12 @@ resa.optimize.interval.secs: 30
 
 
 ## A simple decision maker we have implemented for making the decision when to trigger the Topology's rebalance operation. 
-resa.scheduler.decision.class: "resa.drs.BasicDecisionMaker"
+#resa.scheduler.decision.class: "resa.drs.BasicDecisionMaker"
 #"resa.drs.DefaultDecisionMaker"BasicDecisionMaker
 
 ## Note, the following parameters are valid only when "resa.drs.DefaultDecisionMaker" is configured:
 ### The minimal expected interval that the "resa.drs.DefaultDecisionMaker" will trigger the Topology rebalance operation when it detects a better allocation suggested by drs allocation calculator. The default value is "resa.optimize.interval.secs" * 2
-resa.opt.adjust.min.sec: 180
+resa.opt.adjust.min.sec: 6000
 #360
 
 ### The type of suggested allocation to consider, 
@@ -61,11 +59,11 @@ resa.opt.adjust.min.sec: 180
 resa.opt.adjust.type: 0
 
 ### User specified QoS target, i.e., the maximal allowed expected tuple complete latency in millisecond. It is effective only when "resa.opt.adjust.type" is set to 2. The default value is 5000.
-resa.opt.smd.qos.ms: 15000
+resa.opt.smd.qos.ms: 1500
 resa.opt.smd.qos.lower.ms: 1000
-resa.opt.smd.qos.upper.ms: 15000
+resa.opt.smd.qos.upper.ms: 2000
 ### User specified maximal available number of executors can be used. It is effective only when resa.opt.adjust.type is set to 1.
-resa.topology.allowed.executor.num: 12
+resa.topology.allowed.executor.num: 8
 #8
 
 ### User specified maximal number of executors can be assigned to each worker. Note the product ("resa.topology.max.executor.per.worker" * "topology.NumberOfWorkers") is an upper bound of total available number of executors can be used and it is effective for all the three types!
@@ -76,13 +74,12 @@ resa.topology.max.executor.per.worker: 2
 #resa.scheduler.decision.class: "resa.drs.EmptyDecisionMaker"
 
 #whether user open the ACK?
-resa.ack.flag: true
+#resa.ack.flag: true
 
 # User-defined topology related configuration and parameter settings
 
 ## Redis queue for input data
-redis.host: "127.0.0.1"
-#"kailin-ubuntu"
+redis.host: "kailin-ubuntu"
 redis.port: 6379
 redis.sourceQueueName: "fsource"
 redis.queue: "fsource"
@@ -91,9 +88,9 @@ redis.queue: "fsource"
 #spout.redis: true
 spout.parallelism: 1
 split.parallelism: 1
-counter.parallelism: 4
-wc-NumOfWorkers: 3
-wc-MaxSpoutPending: 20000
+counter.parallelism: 2
+wc-NumOfWorkers: 2
+#wc-MaxSpoutPending: 1024
 
 ##top k
 tk.topnumber: 5
@@ -103,12 +100,12 @@ tk.intermediateRanker.parallelism: 2
 tk-NumOfWorkers: 3
 tk-MaxSpoutPending: 20000
 
-maxFrequencyPerSecond: 3000
-windowsPerSecond: 100
-wc-number: 4000000
+maxFrequencyPerSecond: 10
+windowsPerSecond: 10
+wc-number: 150000
 
 ## topology level
-chain-NumOfWorkers: 3
+chain-NumOfWorkers: 2
 chain-MaxSpoutPending: 20000
 
 2Path-NumOfWorkers: 3
@@ -118,14 +115,15 @@ loop-NumOfWorkers: 3
 loop-MaxSpoutPending: 20000
 
 defaultTaskNum: 5
+#5
 DebugTopology: false
 
 ## Chain-topology
-chain-BoltA.parallelism: 3
-chain-BoltA.mu: 10.0
+chain-BoltA.parallelism: 1
+chain-BoltA.mu: 150.0
 
-chain-BoltB.parallelism: 2
-chain-BoltB.mu: 15.0
+chain-BoltB.parallelism: 1
+chain-BoltB.mu: 150.0
 
 ## 2Path-topology
 2Path-spout.prob: 0.6
@@ -148,18 +146,18 @@ loop-BoltB.mu: 15
 loop-BoltB-loopback.prob: 0.2
 
 #test sort topology
-sort-NumOfWorkers: 2
+sort-NumOfWorkers: 4
 sort-MaxSpoutPending: 5000
 ##sort-spoutA.prob: 0.6
 ##sort-spoutA-parallelism: 1
-sort-BoltB.parallelism: 2
-sort-BoltB.mu: 10
-sort-BoltC.parallelism: 1
-sort-BoltC.mu: 5
+sort-BoltB.parallelism: 1
+sort-BoltB.mu: 100
+sort-BoltC.parallelism: 2
+sort-BoltC.mu: 50
 sort-BoltD.parallelism: 1
-sort-BoltD.mu: 5
+sort-BoltD.mu: 50
 sort-BoltF.parallelism: 1
-sort-BoltF.mu: 5
+sort-BoltF.mu: 50
 
 #TestAccuracy
 TestAccuracyBolt.parallelism: 2
@@ -182,4 +180,5 @@ resa.shedding.thresdhold: 0.8
 #topology.max.spout.pending: null
 
 
-
+topology.backpressure.enable: false
+topology.max.spout.pending: null

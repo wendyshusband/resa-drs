@@ -6,6 +6,7 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 
 import java.util.Map;
 
@@ -20,6 +21,7 @@ public class outputBolt extends BaseRichBolt {
 
     public void execute(Tuple tuple) {
         //new TestPrint("tupleValue=",tuple.toString());
+        collector.emit(tuple,new Values(tuple.getString(1)));
         collector.ack(tuple);
     }
 

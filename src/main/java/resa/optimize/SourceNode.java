@@ -39,7 +39,9 @@ public class SourceNode {
 
     /*load shedding*/
     protected Map<String,Long> emitCount;
+    protected int spoutDropCount;
     protected int failureCount;
+    protected int failureLatencyMs;
 
     public SourceNode(String componentID, int executorNumber, double compSampleRate, SpoutAggResult ar){
         this.componentID = componentID;
@@ -69,7 +71,8 @@ public class SourceNode {
 
         this.emitCount = ar.getemitCount();//load shedding
         this.failureCount =ar.getFailureCount();
-
+        this.spoutDropCount = ar.getSpoutDropCount();
+        this.failureLatencyMs = ar.getFailLatencyMs();
         LOG.info("SourceNode is created: " + toString());
     }
 
@@ -141,6 +144,17 @@ public class SourceNode {
         return emitCount;
     }
 
+    public int getSpoutDropCount() {
+        return spoutDropCount;
+    }
+
+
+    public int getFailureCount() {
+        return failureCount;
+    }
+    public int getFailureLatencyMs() {
+        return failureLatencyMs;
+    }
     /**
      * revert complete latency for load shedding.
      * */
@@ -155,6 +169,12 @@ public class SourceNode {
                         "-----> rateSQ: %.3f, rateSQScv: %.3f, eArr: %.3f, eArrScv: %.3f",
                 componentID, executorNumber, tupleCompleteRate, realLatencyMilliSeconds, scvRealLatency, numCompleteTuples,
                 sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
-                tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival)+" emitcount: "+emitCount;
+                tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival)
+                +" emitcount: "+emitCount+" spoutDropCount: "+spoutDropCount+" fail:"+failureCount
+                +" failureLatencyMs: "+failureLatencyMs;
+    }
+
+    public void revertLambda(double lambda) {
+        this.tupleEmitRateOnSQ = lambda;
     }
 }

@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class PolynomialRegression extends LearningSelectivity {
 
-   /* public static void main(String[] args) {
+    /*public static void main(String[] args) {
         PolynomialRegression polynomialRegression = new PolynomialRegression();
         polynomialRegression.FitTest();
         System.out.println(
@@ -24,11 +24,16 @@ public class PolynomialRegression extends LearningSelectivity {
 
     private void FitTest() {
         final WeightedObservedPoints obs = new WeightedObservedPoints();
-        obs.add(Math.log10(644),Math.log10(672));
-        obs.add(Math.log10(833),Math.log10(657));
-        obs.add(Math.log10(655),Math.log10(655));
-        obs.add(Math.log10(489),Math.log10(620));
-        obs.add(Math.log10(800),Math.log10(698));
+//        obs.add(Math.log10(644),Math.log10(67));
+//        obs.add(Math.log10(833),Math.log10(65));
+//        obs.add(Math.log10(655),Math.log10(65));
+//        obs.add(Math.log10(489),Math.log10(62));
+//        obs.add(Math.log10(800),Math.log10(69));
+        obs.add(6,67);
+        obs.add(8,65);
+        obs.add(6,65);
+        obs.add(4,62);
+        obs.add(8,69);
         obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);
         //obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);
 
@@ -46,13 +51,13 @@ public class PolynomialRegression extends LearningSelectivity {
         List list = (List) objects[0];
         int order = (int) objects[1];
         final WeightedObservedPoints obs = new WeightedObservedPoints();
-        System.out.println("list.size = "+list.size());
+        //System.out.println("list.size = "+list.size());
         for(int i=0; i<list.size();i++){
-            System.out.println("pair0 in: "+((Pair<Double,Double>)list.get(i)).getValue0());
-            System.out.println("pair1 out: "+((Pair<Double,Double>)list.get(i)).getValue1());
-            obs.add(((Pair<Double,Double>)list.get(i)).getValue0(),((Pair<Double,Double>)list.get(i)).getValue1());
+            //System.out.println("pair0 in: "+((Pair<Double,Double>)list.get(i)).getValue0());
+            //System.out.println("pair1 out: "+((Pair<Double,Double>)list.get(i)).getValue1());
+            obs.add(((Pair<Double,Double>)list.get(i)).getValue0()/100,((Pair<Double,Double>)list.get(i)).getValue1()/100);
         }
-        System.out.println("buildddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
+        //System.out.println("buildddddddddddddddddddddddddddddd");
         obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);
         obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);
         // Instantiate a third-degree polynomial fitter.

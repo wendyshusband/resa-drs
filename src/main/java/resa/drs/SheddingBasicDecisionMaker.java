@@ -2,17 +2,14 @@ package resa.drs;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
-import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.AllocResult;
 import resa.shedding.basicServices.ISheddingDecisionMaker;
 import resa.shedding.basicServices.ShedRateAndAllocResult;
-import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
-import java.util.List;
 import java.util.Map;
 
 import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
@@ -23,7 +20,7 @@ import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
 public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
 
     private static final Logger LOG = LoggerFactory.getLogger(SheddingBasicDecisionMaker.class);
-    private CuratorFramework client;
+    //private CuratorFramework client;
     private String topologyName;
 
     /**
@@ -73,11 +70,11 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcIntervalSec * 2) * 1000 - 50;
         rbTypeValue = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_REBALANCE_TYPE, RebalanceType.CurrentOpt.getValue());
 
-        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        //List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         //int port =  Integer.valueOf((String)conf.get(Config.STORM_ZOOKEEPER_PORT));
-        System.out.println(conf.get(Config.TOPOLOGY_NAME)+"nihaoma: "+zkServer.get(0)+":"+conf.get(Config.STORM_ZOOKEEPER_PORT));
-        client = DRSzkHandler.newClient(zkServer.get(0).toString(), 2181, 6000, 6000, 1000, 3);
-        System.out.println(client.getState()+"nibuhaoma");
+        //System.out.println(conf.get(Config.TOPOLOGY_NAME)+"nihaoma: "+zkServer.get(0)+":"+conf.get(Config.STORM_ZOOKEEPER_PORT));
+        //client = DRSzkHandler.newClient(zkServer.get(0).toString(), 2181, 6000, 6000, 1000, 3);
+        //System.out.println(client.getState()+"nibuhaoma");
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
 
         LOG.info("SimpleAdaptDecisionMaker.init(), stTime: " + startTimeMillis + ", minExpInteval: " + minExpectedIntervalMillis);
@@ -85,17 +82,17 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
 
     @Override
     public Map<String, Integer> make(ShedRateAndAllocResult newResult, Map<String, Integer> currAlloc) {
-        try {
-            sentActiveSheddingRate(newResult.getActiveShedRate());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        AllocResult newAllocResult = newResult.getAllocResult();
         long timeSpan = Math.max(0, System.currentTimeMillis() - startTimeMillis);
-        if (newAllocResult == null) {
-            LOG.info("SimpleAdaptDecisionMaker.make(), newAllocResult == null");
+        if (newResult == null) {
+            LOG.info("SheddingBasicDecisionMaker.make(), newResult == null");
             return null;
         }
+//      try {
+//            sentActiveSheddingRate(newResult.getActiveShedRate()); //active shedding
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        AllocResult newAllocResult = newResult.getAllocResult();
         if (timeSpan < minExpectedIntervalMillis) {
             /** if  timeSpan is not large enough, no rebalance will be triggered **/
             LOG.info("BasicDecisionMaker.make(), timeSpan (" + timeSpan + ") < minExpectedIntervalMillis (" + minExpectedIntervalMillis + ")");
@@ -103,28 +100,28 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         }
 
         if (rbTypeValue == DefaultDecisionMaker.RebalanceType.MaxExecutorOpt.getValue()) {
-            LOG.info("BasicDecisionMaker.make(), rbTypeValue == MaxExecutorOpt, rebalance is triggered with using maximum available resources");
+            LOG.info("SheddingBasicDecisionMaker.make(), rbTypeValue == MaxExecutorOpt, rebalance is triggered with using maximum available resources");
             return newAllocResult.kMaxOptAllocation;
         } else {
 
             if (newAllocResult.status.equals(AllocResult.Status.OVERPROVISIONING)) {
 
-                LOG.info("BasicDecisionMaker.make(), ewAllocResult.status == OVERPROVISIONING, rebalance is triggered with removing existing resources");
+                LOG.info("SheddingBasicDecisionMaker.make(), ewAllocResult.status == OVERPROVISIONING, rebalance is triggered with removing existing resources");
                 return newAllocResult.minReqOptAllocation;
 
             } else if (newAllocResult.status.equals(AllocResult.Status.SHORTAGE)) {
 
-                LOG.info("BasicDecisionMaker.make(), ewAllocResult.status == OVERPROVISIONING, rebalance is triggered with adding new resources");
+                LOG.info("SheddingBasicDecisionMaker.make(), ewAllocResult.status == OVERPROVISIONING, rebalance is triggered with adding new resources");
                 return newAllocResult.minReqOptAllocation;
 
             } else if (newAllocResult.status.equals(AllocResult.Status.INFEASIBLE)) {
 
-                LOG.info("BasicDecisionMaker.make(), ewAllocResult.status == INFEASIBLE, rebalance is triggered with using maximum available resources");
+                LOG.info("SheddingBasicDecisionMaker.make(), ewAllocResult.status == INFEASIBLE, rebalance is triggered with using maximum available resources");
                 return newAllocResult.kMaxOptAllocation;
 
             } else if (newAllocResult.status.equals(AllocResult.Status.FEASIBLE)) {
 
-                LOG.info("BasicDecisionMaker.make(), " +
+                LOG.info("SheddingBasicDecisionMaker.make(), " +
                         "ewAllocResult.status == FEASIBLE, rebalance is triggered without adjusting current used resources, but re-allocation to optimal may be possible");
                 ///return newAllocResult.currOptAllocation;
                 return null;
@@ -136,20 +133,20 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
     }
 
 
-    public void sentActiveSheddingRate(Map<String,Double> activeSheddingRateMap) throws Exception {
-        if(!client.isStarted())
-            DRSzkHandler.start();
-        if(null == client.checkExists().forPath("/drs")){
-            client.create().forPath("/drs");
-        }
-        LOG.info("xiaoteng: "+activeSheddingRateMap.toString());
-        if(client.checkExists().forPath("/drs/"+topologyName) == null){
-            client.create().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }else{
-            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }
-        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
-        System.out.println("rilegou: "+new String(client.getData().forPath("/drs/"+topologyName)));
-    }
+//    public void sentActiveSheddingRate(Map<String,Double> activeSheddingRateMap) throws Exception {
+//        if(!client.isStarted())
+//            DRSzkHandler.start();
+//        if(null == client.checkExists().forPath("/drs")){
+//            client.create().forPath("/drs");
+//        }
+//        LOG.info("xiaoteng: "+activeSheddingRateMap.toString());
+//        if(client.checkExists().forPath("/drs/"+topologyName) == null){
+//            client.create().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+//        }else{
+//            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+//        }
+//        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
+//        System.out.println("rilegou: "+new String(client.getData().forPath("/drs/"+topologyName)));
+//    }
 
 }

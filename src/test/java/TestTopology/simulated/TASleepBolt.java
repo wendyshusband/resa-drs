@@ -34,7 +34,7 @@ public abstract class TASleepBolt extends BaseRichBolt {
     @Override
     public void prepare(Map map, TopologyContext context, OutputCollector outputCollector) {
         this.collector = outputCollector;
-        LOG.info("TASleepBolt is prepared.");
+        LOG.info("TASleepBolt is prepared."+sleep.get());
     }
 
     @Override

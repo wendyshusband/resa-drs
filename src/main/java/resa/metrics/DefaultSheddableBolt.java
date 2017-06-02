@@ -2,7 +2,6 @@ package resa.metrics;
 
 import org.apache.storm.Config;
 import org.apache.storm.metric.api.MultiCountMetric;
-import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
 import org.apache.storm.shade.org.json.simple.JSONObject;
 import org.apache.storm.shade.org.json.simple.parser.JSONParser;
 import org.apache.storm.shade.org.json.simple.parser.ParseException;
@@ -15,7 +14,6 @@ import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.shedding.basicServices.IShedding;
-import resa.shedding.tools.DRSzkHandler;
 import resa.topology.DelegatedBolt;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -24,8 +22,6 @@ import resa.util.Sampler;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by kailin on 4/3/17.
@@ -82,7 +78,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private transient MultiCountMetric emitMetric;
     private transient DefaultSheddableBolt.SheddindMeasurableOutputCollector sheddindMeasurableCollector;
     private long lastMetricsSent;
-    private CuratorFramework client;
+    //private CuratorFramework client;
     private int interval;
 
     public DefaultSheddableBolt() {
@@ -110,22 +106,21 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         activeSheddingRate = 0.0;
         activeSheddingSampler = new Sampler(activeSheddingRate);
-        ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),false);
-        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-        int port = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT));
-        System.out.println("portli:"+port);
-        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
+        ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),true);
+        //List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        //int port = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT));
+        //client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
         JSONParser parser = new JSONParser();
         try {
             activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf,ResaConfig.ACTIVE_SHEDDING_MAP,"{}"));
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        handlePassiveLoadSheddingFailTupleThread();
         if(ackFlag) {
             failTupleQueue = new ArrayBlockingQueue<>((tupleQueueCapacity*10));
-            checkActiveSheddingRateThread();
+            handlePassiveLoadSheddingFailTupleThread();
         }
+        //checkActiveSheddingRateThread();
         handleTupleThread();
         LOG.info("Preparing DefaultSheddableBolt: " + context.getThisComponentId());
     }
@@ -156,44 +151,44 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         LOG.info("handlePassiveLoadSheddingFailTupleThread thread start!");
     }
 
-    private void checkActiveSheddingRateThread() {
-        final Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(true){
-                    if(!client.isStarted())
-                        DRSzkHandler.start();
-                    try {
-                        if(null != client.checkExists().forPath("/drs/"+topologyName)){
-                            String tempMap = new String(client.getData().forPath("/drs/"+topologyName));
-                            //Double rate = tempMap
-                            Pattern pattern1 = Pattern.compile(compID+"=(\\d+)\\.(\\d+)");
-                            Matcher matcher1 = pattern1.matcher(tempMap);
-                            if(matcher1.find()) {
-                                Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
-                                Matcher matcher2 = pattern2.matcher(matcher1.group());
-                                if(matcher2.find()) {
-                                    double shedRate = Double.valueOf(matcher2.group());
-                                    if (shedRate != activeSheddingRate) {
-                                        //LOG.info(activeSheddingRate+"woshenzhiyouyi"+compID+":"+"hehe"+shedRate);
-                                        activeSheddingRate = shedRate;
-                                        activeSheddingSampler = new Sampler(activeSheddingRate);
-                                        //LOG.info(activeSheddingSampler.toString() + "tabu");
-                                    }
-                                }
-                            }
-                        }
-                        Thread.sleep(interval);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                }
-            }
-        });
-        thread.start();
-        LOG.info("checkActiveSheddingRateThread thread start!");
-    }
+//    private void checkActiveSheddingRateThread() {
+//        final Thread thread = new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                while(true){
+//                    if(!client.isStarted())
+//                        DRSzkHandler.start();
+//                    try {
+//                        if(null != client.checkExists().forPath("/drs/"+topologyName)){
+//                            String tempMap = new String(client.getData().forPath("/drs/"+topologyName));
+//                            //Double rate = tempMap
+//                            Pattern pattern1 = Pattern.compile(compID+"=(\\d+)\\.(\\d+)");
+//                            Matcher matcher1 = pattern1.matcher(tempMap);
+//                            if(matcher1.find()) {
+//                                Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
+//                                Matcher matcher2 = pattern2.matcher(matcher1.group());
+//                                if(matcher2.find()) {
+//                                    double shedRate = Double.valueOf(matcher2.group());
+//                                    if (shedRate != activeSheddingRate) {
+//                                        //LOG.info(activeSheddingRate+"woshenzhiyouyi"+compID+":"+"hehe"+shedRate);
+//                                        activeSheddingRate = shedRate;
+//                                        activeSheddingSampler = new Sampler(activeSheddingRate);
+//                                        //LOG.info(activeSheddingSampler.toString() + "tabu");
+//                                    }
+//                                }
+//                            }
+//                        }
+//                        Thread.sleep(interval);
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                }
+//            }
+//        });
+//        thread.start();
+//        LOG.info("checkActiveSheddingRateThread thread start!");
+//    }
 
     private void handleTupleThread() {
         final Thread thread = new Thread(new Runnable() {
@@ -244,23 +239,24 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             passiveSheddingRateMetric.scope("dropTuple").incrBy(sheddTupleNum);
         }else {// do not need passive shedding
             passiveSheddingRateMetric.scope("dropTuple").incrBy(0);
-            if(activeSheddingRate != 0.0) {
-                if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
-                    if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
-                        //LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple.getSourceStreamId());
-                        if (activeSheddingSampler.shoudSample()) {
-                            flag = false;
-                        }
-                    }
-                }
-            }
+//            if(activeSheddingRate != 0.0) {
+//                if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
+//                    if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
+//                        //LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple.getSourceStreamId());
+//                        if (activeSheddingSampler.shoudSample()) {
+//                            flag = false;
+//                        }
+//                    }
+//                }
+//            }
         }
 
         try {
-            if(flag)
+            if(flag) {
                 pendingTupleQueue.put(tuple);
-//            else
-//                LOG.info("shaohua this tuple is active remove !");
+            }else{
+
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -60,7 +60,7 @@ public class SimExpServWC2Path {
                 .shuffleGrouping("2Path-BoltA-NotP");
 
         conf.setNumWorkers(ConfigUtil.getInt(conf, "2Path-NumOfWorkers", 1));
-        conf.setMaxSpoutPending(ConfigUtil.getInt(conf, "2Path-MaxSpoutPending", 0));
+        //conf.setMaxSpoutPending(ConfigUtil.getInt(conf, "2Path-MaxSpoutPending", 0));
         conf.setDebug(ConfigUtil.getBoolean(conf, "DebugTopology", false));
         conf.setStatsSampleRate(ConfigUtil.getDouble(conf, "StatsSampleRate", 1.0));
 

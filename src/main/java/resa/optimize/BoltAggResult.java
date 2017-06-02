@@ -34,7 +34,7 @@ public class BoltAggResult extends AggResult {
                 passiveSheddingCountMap.put(stream,count);
             }
         });
-        System.out.println("heihei"+passiveSheddingCountMap);
+        //System.out.println("heihei"+passiveSheddingCountMap);
     }
 
     public double getAvgServTimeHis(){

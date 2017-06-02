@@ -16,7 +16,8 @@ public class SpoutAggResult extends AggResult {
     private Map<String, CntMeanVar> completedLatency = new HashMap<>();
 
     private int failureCount = 0;
-
+    private int spoutDropCount = 0;
+    private int failLatencyMs = 0;
     public Map<String, CntMeanVar> getCompletedLatency() {
         return completedLatency;
     }
@@ -33,6 +34,8 @@ public class SpoutAggResult extends AggResult {
         ((SpoutAggResult) r).completedLatency.forEach((s, cntMeanVar) ->
                 this.completedLatency.computeIfAbsent(s, (k) -> new CntMeanVar()).addCMV(cntMeanVar));
         this.failureCount += ((SpoutAggResult) r).failureCount;
+        this.spoutDropCount += ((SpoutAggResult) r).spoutDropCount;
+        this.failLatencyMs += ((SpoutAggResult) r).failLatencyMs;
     }
 
     public double getAvgTupleCompleteLatency(){
@@ -53,5 +56,21 @@ public class SpoutAggResult extends AggResult {
 
     public void setFailureCount(int failureCount) {
         this.failureCount = failureCount;
+    }
+
+    public int getSpoutDropCount() {
+        return spoutDropCount;
+    }
+
+    public void setSpoutDropCount(int spoutDropCount) {
+        this.spoutDropCount = spoutDropCount;
+    }
+
+    public int getFailLatencyMs() {
+        return failLatencyMs;
+    }
+
+    public void setFailLatencyMs(int failLatencyMs) {
+        this.failLatencyMs = failLatencyMs;
     }
 }
