@@ -50,6 +50,12 @@ public class ResaConfig extends Config {
     public static final String SHEDDING_ALLOC_CALC_CLASS = "resa.shedding.alloc.class";
     public static final String SHEDDING_DECISION_MAKER_CLASS = "resa.shedding.decision.class";
     public static final String SHEDDING_SERVICE_MODEL_CLASS = "resa.shedding.service.model.class";
+    public static final String SPOUT_MAX_PENDING = "resa.spout.max.pending";
+    public static final String SPOUT_PENDING_THRESHOLD = "resa.spout.pending.threshold";
+    //RED
+    public static final String HIGH_SHEDDING_THRESHOLD = "resa.shedding.high.thresdhold";
+    public static final String LOW_SHEDDING_THRESHOLD = "resa.shedding.low.thresdhold";
+    public static final String MAX_SHED_RATE = "resa.max.shed.rate";
     private ResaConfig(boolean loadDefault) {
         if (loadDefault) {
             //read default.yaml & storm.yaml

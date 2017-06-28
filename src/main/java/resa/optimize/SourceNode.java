@@ -42,6 +42,7 @@ public class SourceNode {
     protected int spoutDropCount;
     protected int failureCount;
     protected int failureLatencyMs;
+    protected double dropRatio;
 
     public SourceNode(String componentID, int executorNumber, double compSampleRate, SpoutAggResult ar){
         this.componentID = componentID;
@@ -73,6 +74,7 @@ public class SourceNode {
         this.failureCount =ar.getFailureCount();
         this.spoutDropCount = ar.getSpoutDropCount();
         this.failureLatencyMs = ar.getFailLatencyMs();
+        this.dropRatio = (this.spoutDropCount*1.0)/(this.emitCount.values().stream().mapToLong(Number::longValue).sum()+this.spoutDropCount);
         LOG.info("SourceNode is created: " + toString());
     }
 
@@ -166,15 +168,16 @@ public class SourceNode {
     public String toString() {
         return String.format(
                 "(ID, eNum):(%s,%d), FinRate: %.3f, avgCTime: %.3f, scvCTime: %.3f, FinCnt: %.1f, Dur: %.1f, sample: %.1f, SQLen: %.1f, RQLen: %.1f, " +
-                        "-----> rateSQ: %.3f, rateSQScv: %.3f, eArr: %.3f, eArrScv: %.3f",
+                        "-----> rateSQ: %.3f, rateSQScv: %.3f, eArr: %.3f, eArrScv: %.3f, dropRatio: %.3f",
                 componentID, executorNumber, tupleCompleteRate, realLatencyMilliSeconds, scvRealLatency, numCompleteTuples,
                 sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
-                tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival)
+                tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival, dropRatio)
                 +" emitcount: "+emitCount+" spoutDropCount: "+spoutDropCount+" fail:"+failureCount
                 +" failureLatencyMs: "+failureLatencyMs;
     }
 
     public void revertLambda(double lambda) {
+        System.out.println("fucking lambda:"+lambda);
         this.tupleEmitRateOnSQ = lambda;
     }
 }

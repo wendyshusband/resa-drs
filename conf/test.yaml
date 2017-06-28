@@ -79,10 +79,15 @@ resa.topology.max.executor.per.worker: 2
 # User-defined topology related configuration and parameter settings
 
 ## Redis queue for input data
-redis.host: "kailin-ubuntu"
-redis.port: 6379
-redis.sourceQueueName: "fsource"
-redis.queue: "fsource"
+#redis.host: "kailin-ubuntu"
+#redis.port: 6379
+#redis.sourceQueueName: "fsource"
+#redis.queue: "fsource"
+
+
+#add
+add.parallelism: 1
+sub.parallelism: 1
 
 ##wc
 #spout.redis: true
@@ -92,78 +97,13 @@ counter.parallelism: 2
 wc-NumOfWorkers: 2
 #wc-MaxSpoutPending: 1024
 
-##top k
-tk.topnumber: 5
-tk.spout.parallelism: 1
-tk.counter.parallelism: 2
-tk.intermediateRanker.parallelism: 2
-tk-NumOfWorkers: 3
-tk-MaxSpoutPending: 20000
-
 maxFrequencyPerSecond: 10
 windowsPerSecond: 10
-wc-number: 150000
-
-## topology level
-chain-NumOfWorkers: 2
-chain-MaxSpoutPending: 20000
-
-2Path-NumOfWorkers: 3
-2Path-MaxSpoutPending: 20000
-
-loop-NumOfWorkers: 3
-loop-MaxSpoutPending: 20000
-
+wc-number: 1500
+wc_sentence: "fuck you"
 defaultTaskNum: 5
 #5
 DebugTopology: false
-
-## Chain-topology
-chain-BoltA.parallelism: 1
-chain-BoltA.mu: 150.0
-
-chain-BoltB.parallelism: 1
-chain-BoltB.mu: 150.0
-
-## 2Path-topology
-2Path-spout.prob: 0.6
-
-2Path-BoltA-P.parallelism: 1
-2Path-BoltA-P.mu: 10
-
-2Path-BoltA-NotP.parallelism: 2
-2Path-BoltA-NotP.mu: 5
-
-2Path-BoltB.parallelism: 2
-2Path-BoltB.mu: 15
-
-## Loop topology
-loop-BoltA.parallelism: 1
-loop-BoltA.mu: 10
-
-loop-BoltB.parallelism: 4
-loop-BoltB.mu: 15
-loop-BoltB-loopback.prob: 0.2
-
-#test sort topology
-sort-NumOfWorkers: 4
-sort-MaxSpoutPending: 5000
-##sort-spoutA.prob: 0.6
-##sort-spoutA-parallelism: 1
-sort-BoltB.parallelism: 1
-sort-BoltB.mu: 100
-sort-BoltC.parallelism: 2
-sort-BoltC.mu: 50
-sort-BoltD.parallelism: 1
-sort-BoltD.mu: 50
-sort-BoltF.parallelism: 1
-sort-BoltF.mu: 50
-
-#TestAccuracy
-TestAccuracyBolt.parallelism: 2
-TestAccuracySpout.parallelism: 1
-TestAccuracy-NumOfWorkers: 3
-TestAccuracy-MaxSpoutPending: 2000
 
 #load shedding
 #shedding queue size
@@ -177,9 +117,9 @@ resa.shedding.selectivity.function.order: 1
 resa.shedding.active.stream.map: "{\"sort-BoltB\":[\"D-Stream\"],\"sort-BoltC\":[\"default\"],\"sort-BoltD\":[\"default\"]}"
 #shedding thresdhold
 resa.shedding.thresdhold: 0.8
-#topology.max.spout.pending: null
 resa.spout.max.pending: 1024
 resa.spout.pending.threshold: 0.8
+resa.shedding.high.thresdhold: 0.9
+resa.shedding.low.thresdhold: 0.7
+resa.max.shed.rate: 0.1
 
-topology.backpressure.enable: false
-topology.max.spout.pending: null

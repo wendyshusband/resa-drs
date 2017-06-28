@@ -237,8 +237,10 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         if (trigger(null)){// need passive shedding
             int sheddTupleNum =passiveDrop(null);
             passiveSheddingRateMetric.scope("dropTuple").incrBy(sheddTupleNum);
+            passiveSheddingRateMetric.scope("dropFrequency").incr();
         }else {// do not need passive shedding
             passiveSheddingRateMetric.scope("dropTuple").incrBy(0);
+            passiveSheddingRateMetric.scope("dropFrequency").incrBy(0);
 //            if(activeSheddingRate != 0.0) {
 //                if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
 //                    if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {

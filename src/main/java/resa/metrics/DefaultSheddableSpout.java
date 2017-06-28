@@ -93,6 +93,8 @@ public class DefaultSheddableSpout extends DelegatedSpout{
     private String compID;
     private String topologyName;
     private Sampler activeSheddingSampler;
+    private int pendingMax;
+    private double pendingThreshold;
     //private CuratorFramework client;
 
     public DefaultSheddableSpout(){
@@ -117,9 +119,12 @@ public class DefaultSheddableSpout extends DelegatedSpout{
         failureCountMetric = context.registerMetric(MetricNames.FAILURE_COUNT,new MultiCountMetric(),interval);
         failureCountMetric.scope("failure").incrBy(0);
         failureCountMetric.scope("spoutDrop").incrBy(0);
+        failureCountMetric.scope("failLatencyMs").incrBy(0);
         compID = context.getThisComponentId();
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
         activeSheddingRate = 0.0;
+        pendingMax = ConfigUtil.getInt(conf, ResaConfig.SPOUT_MAX_PENDING, 1024);
+        pendingThreshold =ConfigUtil.getDouble(conf,ResaConfig.SPOUT_PENDING_THRESHOLD,0.8);
         activeSheddingSampler = new Sampler(activeSheddingRate);
 //        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
 //        client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
@@ -145,7 +150,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
                 if(messageId != null) {//ack
                     //LOG.info(pendingCount+"jian"+collector.getPendingCount());
                     pendingCount = (int) collector.getPendingCount();
-                    if(pendingCount <= 0.9*1024) {
+                    if(pendingCount <= (pendingThreshold * pendingMax)) {
                         return super.emit(streamId, tuple, newStreamMessageId(streamId, messageId));
                     }
                     else {
@@ -160,7 +165,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
             public void emitDirect(int taskId, String streamId, List<Object> tuple, Object messageId) {
                 if(messageId != null) {//ack
                     pendingCount = (int) collector.getPendingCount();
-                    if(pendingCount <= 0.9*1024) {
+                    if(pendingCount <= (pendingThreshold * pendingMax)) {
                         super.emitDirect(taskId, streamId, tuple, newStreamMessageId(streamId, messageId));
                     }else{
                         failureCountMetric.scope("spoutDrop").incr();
@@ -209,7 +214,6 @@ public class DefaultSheddableSpout extends DelegatedSpout{
     @Override
     public void nextTuple() {
         super.nextTuple();
-            //LOG.info(pendingCount+"jianbujian");
     }
 
   /*  private void checkActiveSheddingRateThread() {

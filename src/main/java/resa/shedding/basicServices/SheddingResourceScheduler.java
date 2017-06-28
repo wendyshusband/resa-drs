@@ -96,7 +96,6 @@ public class SheddingResourceScheduler {
                 AggResultCalculator calculator = new AggResultCalculator(data, topoExecutors,
                         ctx.getTopology());
                 calculator.calCMVStat();
-
                 //for load shedding
                 //Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
                  //       revertRealLoad.storeLoadInformation(calculator.getComp2ExecutorResults());

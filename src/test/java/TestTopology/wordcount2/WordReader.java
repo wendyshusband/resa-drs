@@ -21,7 +21,7 @@ public class WordReader extends BaseRichSpout {
     private FrequencyRestrictor frequencyRestrictor;
     private static int co = 0;
     private int number;
-    public static String SENTENCES = "over the moon";
+    public static String SENTENCES;
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
@@ -29,6 +29,7 @@ public class WordReader extends BaseRichSpout {
         frequencyRestrictor = new FrequencyRestrictor(ConfigUtil.getInt(conf, "maxFrequencyPerSecond", 500),
                 ConfigUtil.getInt(conf, "windowsPerSecond", 500));
         number = ConfigUtil.getInt(conf, "wc-number", 10000);
+        SENTENCES = ConfigUtil.getString(conf,"wc_sentence","over the moon");
     }
 
     @Override

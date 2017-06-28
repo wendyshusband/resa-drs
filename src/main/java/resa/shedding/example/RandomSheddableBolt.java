@@ -74,8 +74,6 @@ public class RandomSheddableBolt extends DelegatedBolt {
     private transient RandomSheddableBolt.SheddindMeasurableOutputCollector sheddindMeasurableCollector;
     private long lastMetricsSent;
 
-    public RandomSheddableBolt(){}
-
     public RandomSheddableBolt(IRichBolt bolt, AbstractRandomShedding shedder){
         super(bolt);
         this._shedder = shedder;

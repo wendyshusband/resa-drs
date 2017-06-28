@@ -45,6 +45,7 @@ public class ServiceNode {
     protected Map<String, Long> passiveSheddingCountMap;
     protected long dropCount = 0;
     protected long allCount = 0;
+    protected long dropFrequency = 0;
 
     public ServiceNode(String componentID, int executorNumber, double compSampleRate,
                        BoltAggResult ar, double exArrivalRate){
@@ -72,6 +73,8 @@ public class ServiceNode {
         this.ratio = this.exArrivalRate > 0.0 ? (this.lambda / this.exArrivalRate) : 0;
 
         /*load shedding*/
+        if(ar.getPassiveSheddingCountMap().get("dropFrequency") !=null)
+            this.dropFrequency = ar.getPassiveSheddingCountMap().get("dropFrequency");
         if(ar.getPassiveSheddingCountMap().get("dropTuple") !=null && ar.getPassiveSheddingCountMap().get("allTuple") !=null) {
             this.passiveSheddingRate = (1.0*ar.getPassiveSheddingCountMap().get("dropTuple")) / ar.getPassiveSheddingCountMap().get("allTuple");//tkl
             this.dropCount = ar.getPassiveSheddingCountMap().get("dropTuple");
@@ -178,6 +181,6 @@ public class ServiceNode {
                         "-----> arrRateAvg: %.3f, arrRateScv: %.3f, ratio: %.3f, rho: %.3f, passiveSheddingRate: %.3f, exArr: %.3f",
                 componentID, executorNumber, tupleCompleteRate, avgServTimeHis, scvServTimeHis, mu,
                 numCompleteTuples, sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
-                lambda, interArrivalScv, ratio, rho, passiveSheddingRate , exArrivalRate)+" emitcount: "+emitCount+" tupleMessage: "+passiveSheddingCountMap;
+                lambda, interArrivalScv, ratio, rho, passiveSheddingRate , exArrivalRate)+" dropFrequency: "+dropFrequency+" emitcount: "+emitCount+" tupleMessage: "+passiveSheddingCountMap;
     }
 }

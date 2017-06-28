@@ -118,6 +118,7 @@ public class SheddingLoadRevert {
         Map<String,Long> emitCountMap = sourceNode.getEmitCount();
         long denominator = emitCountMap.values().stream().mapToLong(Number::longValue).sum();
         LOG.info("sourceNode : "+sourceNode.getComponentID()+" whole emit tuple number ="+ denominator);
+        LOG.info("Reverted Lambda 0: "+(sourceNode.getSpoutDropCount()+denominator)/sourceNode.getSumDurationSeconds());
         sourceNode.revertLambda((sourceNode.getSpoutDropCount()+denominator)/sourceNode.getSumDurationSeconds());
         Map<String,ArrayList<String>> stream2CompLists =
                 (Map<String, ArrayList<String>>) topologyTargets.get(sourceNode.getComponentID());
