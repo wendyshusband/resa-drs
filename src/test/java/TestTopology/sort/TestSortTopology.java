@@ -1,4 +1,4 @@
-package TestTopology.testforls;
+package TestTopology.sort;
 
 
 import org.apache.storm.Config;
@@ -15,20 +15,12 @@ import java.io.File;
  */
 public class TestSortTopology {
     public static void main(String[] args) throws Exception {
-
-//        if (args.length != 1) {
-//            System.out.println("Enter path to config file!");
-//            System.exit(0);
-//        }
-        Config conf = ConfigUtil.readConfig(new File(args[0]));
-
+        Config conf = ConfigUtil.readConfig(new File(args[1]));
         if (conf == null) {
-            throw new RuntimeException("cannot find conf file " + args[0]);
+            throw new RuntimeException("cannot find conf file " + args[1]);
         }
-
         TopologyBuilder builder = new TopologyBuilder();
-
-        int defaultTaskNum = ConfigUtil.getInt(conf, "defaultTaskNum", 10);
+        //int defaultTaskNum = ConfigUtil.getInt(conf, "defaultTaskNum", 10);
 
         builder.setSpout("sort-SpoutA", new SortSpout(true,"A"),
                 ConfigUtil.getInt(conf, "sort-spoutA-parallelism", 1));
@@ -36,34 +28,29 @@ public class TestSortTopology {
 //        builder.setSpout("sort-SpoutE", new TestSortSpout(true,"E"),
 //                ConfigUtil.getInt(conf, "sort-spoutE-parallelism", 1));
 
-//        builder.setBolt("sort-BoltB",new SortWorkBolt2Path("B"),
-//                ConfigUtil.getInt(conf, "sort-BoltB.parallelism", 1))
-//                .setNumTasks(defaultTaskNum)
-//                .shuffleGrouping("sort-SpoutA");
+        builder.setBolt("sort-BoltB",new SortWorkBolt2Path("B"),
+                ConfigUtil.getInt(conf, "sort-BoltB.parallelism", 1))
+                .shuffleGrouping("sort-SpoutA");
 
         builder.setBolt("sort-BoltD",new SortWorkBolt("D"),
                 ConfigUtil.getInt(conf, "sort-BoltD.parallelism", 1))
                 //.setNumTasks(defaultTaskNum)
-                .shuffleGrouping("sort-SpoutA");
-                //.shuffleGrouping("sort-BoltB","D-Stream");
+                .shuffleGrouping("sort-BoltB","D-Stream");
 
         builder.setBolt("sort-BoltC",new outputBolt(),//new SortWorkBolt("C"),
                 ConfigUtil.getInt(conf, "sort-BoltC.parallelism", 1))
                 //.setNumTasks(defaultTaskNum)
                 //.shuffleGrouping("sort-SpoutE")
-                //.shuffleGrouping("sort-BoltB","C-Stream")
-                .shuffleGrouping("sort-BoltD");
+                .shuffleGrouping("sort-BoltB","C-Stream");
 
-/*        builder.setBolt("sort-BoltF",new outputBolt(),
+        builder.setBolt("sort-BoltF",new outputBolt(),
                 ConfigUtil.getInt(conf, "sort-BoltF.parallelism", 1))
-                .setNumTasks(defaultTaskNum)
-                .shuffleGrouping("sort-BoltC");*/
+                .shuffleGrouping("sort-BoltC");
 
         conf.setNumWorkers(ConfigUtil.getInt(conf, "sort-NumOfWorkers", 1));
-        //conf.setMaxSpoutPending(ConfigUtil.getInt(conf, "sort-MaxSpoutPending", 0));
         conf.setDebug(ConfigUtil.getBoolean(conf, "DebugTopology", false));
         conf.setStatsSampleRate(ConfigUtil.getDouble(conf, "StatsSampleRate", 1.0));
 
-        StormSubmitter.submitTopology(args[1], conf, builder.createTopology());
+        StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
     }
 }

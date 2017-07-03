@@ -105,7 +105,7 @@ public class BasicDecisionMaker implements DecisionMaker {
 
             } else if (newAllocResult.status.equals(AllocResult.Status.SHORTAGE)) {
 
-                LOG.info("BasicDecisionMaker.make(), ewAllocResult.status == OVERPROVISIONING, rebalance is triggered with adding new resources");
+                LOG.info("BasicDecisionMaker.make(), ewAllocResult.status == SHORTAGE, rebalance is triggered with adding new resources");
                 return newAllocResult.minReqOptAllocation;
 
             } else if (newAllocResult.status.equals(AllocResult.Status.INFEASIBLE)) {

@@ -56,7 +56,7 @@ public class SourceNode {
         this.scvRealLatency = ar.getScvTupleCompleteLatency();
 
         this.numCompleteTuples = ar.getNumOfCompletedTuples();
-        this.sumDurationSeconds = ar.getDurationSeconds();
+        this.sumDurationSeconds = ar.getDurationSeconds() / executorNumber;
         this.tupleCompleteRate = numCompleteTuples * executorNumber / (sumDurationSeconds * compSampleRate);
 
         /** the calculation on tupleEmitRate is affected by whether the acker is enabled **/
@@ -75,7 +75,7 @@ public class SourceNode {
         this.spoutDropCount = ar.getSpoutDropCount();
         this.failureLatencyMs = ar.getFailLatencyMs();
         this.dropRatio = (this.spoutDropCount*1.0)/(this.emitCount.values().stream().mapToLong(Number::longValue).sum()+this.spoutDropCount);
-        LOG.info("SourceNode is created: " + toString());
+        LOG.info((ar.getDepartureRatePerSec()/2)+":"+executorNumber+"SourceNode is created: " + toString());
     }
 
     public String getComponentID() {
@@ -179,5 +179,6 @@ public class SourceNode {
     public void revertLambda(double lambda) {
         System.out.println("fucking lambda:"+lambda);
         this.tupleEmitRateOnSQ = lambda;
+        this.exArrivalRate = lambda;
     }
 }

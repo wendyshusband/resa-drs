@@ -113,6 +113,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+        System.out.println(conf);
         //spoutMaxPending = Integer.valueOf(Utils.getString(conf.get(Config.TOPOLOGY_MAX_SPOUT_PENDING)));
         //ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),false);
         int interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));

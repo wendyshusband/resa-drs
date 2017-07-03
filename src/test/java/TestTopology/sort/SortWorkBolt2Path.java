@@ -1,8 +1,8 @@
-package TestTopology.testforls;
+package TestTopology.sort;
 
+import TestTopology.simulated.TASleepBolt;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
-import org.apache.storm.topology.IRichBolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
@@ -15,7 +15,7 @@ import java.util.Random;
 /**
  * Created by kailin on 11/4/17.
  */
-public class SortWorkBolt2Path implements IRichBolt{
+public class SortWorkBolt2Path extends TASleepBolt {
     OutputCollector _collector;
     String cha;
     public SortWorkBolt2Path(String cha){

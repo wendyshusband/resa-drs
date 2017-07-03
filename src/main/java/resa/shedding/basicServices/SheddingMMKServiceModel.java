@@ -8,6 +8,7 @@ import resa.optimize.SourceNode;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.DoublePredicate;
 import java.util.stream.Collectors;
 
 /**
@@ -17,6 +18,35 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 
     private static final Logger LOG = LoggerFactory.getLogger(SheddingMMKServiceModel.class);
 
+    /**
+     * Class for active shedding including suggestAllocation and activeShedRate.
+     * */
+    private static class NewAllocationAndActiveShedRates{
+        public Map<String, Integer> fixedAllocation;
+        public Map<String, Double> activeShedRates;
+
+        public NewAllocationAndActiveShedRates(Map<String, Integer> fixedAllocation,
+                Map<String, Double> activeShedRates){
+            this.activeShedRates = activeShedRates;
+            this.fixedAllocation = fixedAllocation;
+        }
+
+        public void setActiveShedRates(Map<String, Double> activeShedRates) {
+            this.activeShedRates = activeShedRates;
+        }
+
+        public Map<String, Integer> getFixedAllocation() {
+            return fixedAllocation;
+        }
+
+        public void setFixedAllocation(Map<String, Integer> fixedAllocation) {
+            this.fixedAllocation = fixedAllocation;
+        }
+
+        public Map<String, Double> getActiveShedRates() {
+            return activeShedRates;
+        }
+    }
     /**
      * We assume the stability check for each node is done beforehand!
      * Jackson OQN assumes all the arrival and departure are iid and exponential
@@ -38,6 +68,72 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
             retVal += (avgSojournTime * serviceNode.getRatio());
         }
         return retVal;
+    }
+
+    /**
+     * @param sourceNode
+     * @param serviceNodes
+     * @param totalResourceCount
+     * @param messageTimeOut
+     * @param
+     * @param selectivityFunctions (for bolt active shedding when choice shedding location)
+     * @param targets (for bolt active shedding when choice shedding location)
+     * @return null if a) minReq of any component is Integer.MAX_VALUE (invalid parameter mu = 0.0)
+     * b) total minReq can not be satisfied (total minReq > totalResourceCount)
+     * otherwise, the Map data structure.
+     */
+    static NewAllocationAndActiveShedRates suggestAllocationWithShedRate(SourceNode sourceNode, Map<String, ServiceNode> serviceNodes, int totalResourceCount,
+                                                                         int messageTimeOut, double relativeError, Map<String, double[]> selectivityFunctions, Map<String, Object> targets) {
+
+        if (serviceNodes.values().stream().mapToDouble(ServiceNode::getMu).anyMatch(new DoublePredicate() {
+            @Override
+            public boolean test(double value) {
+                if (value == 0.0){
+                    return true;
+                }
+                return  false;
+            }
+        })) {
+            return new NewAllocationAndActiveShedRates(null,null);
+        }
+
+        Map<String, Integer> tempAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes, totalResourceCount);
+        if (tempAllocation == null) {// need shedding
+
+            double highMark = sourceNode.getTupleEmitRateOnSQ();
+            double lowMark = 0.0;
+            double lambda0 = (lowMark + highMark) / 2;
+            Map<String, Double> activeShedRateMap = new HashMap<>();
+            Map<String, Integer> fixedAllocation = new HashMap<>();
+
+            while (lambda0 > 0) {
+                for (ServiceNode serviceNode:serviceNodes.values()) {
+                    serviceNode.revertLambda(lambda0 * serviceNode.getRatio());
+                }
+                tempAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes,totalResourceCount);
+                if (tempAllocation != null) {
+                    double estimateT = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes,tempAllocation);
+                    if (Math.abs(estimateT-messageTimeOut) <relativeError) {
+                        break;
+                    } else {
+                        if (estimateT > messageTimeOut) {
+                            highMark = lambda0;
+                            lambda0 = (lowMark + highMark) / 2;
+                        } else {
+                            lowMark = lambda0;
+                            lambda0 = (lowMark + highMark) / 2;
+                        }
+                    }
+                } else {
+                    highMark = lambda0;
+                    lambda0 = (lowMark + highMark) / 2;
+                }
+
+            }
+            return null;
+        } else {
+            return new NewAllocationAndActiveShedRates(tempAllocation,null);
+        }
     }
 
     /**
@@ -132,7 +228,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 
         Map<String, Integer> currAllocation = null;
         if (lowerBoundServiceTimeSeconds * adjRatio * 1000.0 < completeTimeMilliSecUpper && totalMinReq < maxAvailableExec) {
-            LOG.debug("getMinReqServerAllocationGeneralTopApplyMMK(), " +
+            LOG.debug(" getMinReqServerAllocationGeneralTopApplyMMK(), " +
                     "lowerBoundServiceTimeSeconds * adjRatio * 1000.0 < completeTimeMilliSecUpper && totalMinReq < maxAvailableExec");
 
             int i = currentUsedThreadByBolts + reUnit;
@@ -165,19 +261,19 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
             totalMinReq2 += getMinReqServerCount(lambda, mu);
         }
 
-        Map<String, Integer> minPossibleAllocation = serviceNodes.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+        Map<String, Integer>  minPossibleAllocation = serviceNodes.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
                 e -> getMinReqServerCount(e.getValue().getLambda(), e.getValue().getMu())));
         int totalMinReq = minPossibleAllocation.values().stream().mapToInt(Integer::intValue).sum();
 
         if (totalMinReq != totalMinReq2){
-            LOG.warn("getMinReqServerAllocationGeneralTopApplyMMK(), totalMinReq (" + totalMinReq + ") != totalMinReq2 (" + totalMinReq2 + ").");
+            LOG.warn(" getMinReqServerAllocationGeneralTopApplyMMK(), totalMinReq (" + totalMinReq + ") != totalMinReq2 (" + totalMinReq2 + ").");
         }
 
         double adjRatio = realLatencyMilliSeconds / estTotalSojournTimeMilliSec_MMK;
 
         Map<String, Integer> currAllocation = null;
         if (currentUsedThreadByBolts > totalMinReq){
-            LOG.debug("In getRemovedAllocationGeneralTopApplyMMK(), currentUsedThreadByBolts > totalMinReq");
+            LOG.debug(" In getRemovedAllocationGeneralTopApplyMMK(), currentUsedThreadByBolts > totalMinReq");
             int i = currentUsedThreadByBolts - reUnit;
             for (; i > totalMinReq; i = i - reUnit) {
                 currAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes, i);
@@ -230,7 +326,6 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         return AllocResult.Status.FEASIBLE;
     }
 
-
     @Override
     public ShedRateAndAllocResult checkOptimized(SourceNode sourceNode, Map<String, ServiceNode> queueingNetwork,
                                                  double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
@@ -255,11 +350,10 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 
         Map<String, Integer> adjustedAllocation = null;
         if (status.equals(AllocResult.Status.SHORTAGE)) {
-            LOG.debug("Status is resource shortage, calling resource adjustment");
+            LOG.debug("Status is resource shortage, calling resource adjustment ");
             adjustedAllocation = getMinReqServerAllocationGeneralTopApplyMMK(
                     realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, queueingNetwork,
                     completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, resourceUnit);
-
             if (adjustedAllocation == null){
                 LOG.debug("Status is resource shortage and no feasible re-allocation solution");
                 status = AllocResult.Status.INFEASIBLE;
@@ -285,6 +379,70 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 
         ShedRateAndAllocResult shedRateAndAllocResult = new ShedRateAndAllocResult(status, adjustedAllocation, currOptAllocation, kMaxOptAllocation,activeSheddingRateMap,context);
         AllocResult retVal = shedRateAndAllocResult.getAllocResult();
+
+        LOG.info("MMK, reUnit: " + resourceUnit  +  ", alloStat: " + retVal.status);
+        LOG.info("MMK, currOptAllo: " + retVal.currOptAllocation);
+        LOG.info("MMK, adjustAllo: " + retVal.minReqOptAllocation);
+        LOG.info("MMK, kMaxOptAllo: " + retVal.kMaxOptAllocation);
+
+        return shedRateAndAllocResult;
+    }
+
+    @Override
+    public ShedRateAndAllocResult checkOptimizedWithShedding(SourceNode sourceNode, Map<String, ServiceNode> queueingNetwork,
+                                                 double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
+                                                 Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
+                                                 int currentUsedThreadByBolts, int resourceUnit, Map<String, double[]> selectivityFunctions) {
+
+        ///Caution about the time unit!, second is used in all the functions of calculation
+        /// millisecond is used in the output display!
+
+        Map<String, Integer> kMaxOptAllocation = suggestAllocationAndResourceShedRateGeneralTopApplyMMK(sourceNode, queueingNetwork, selectivityFunctions, maxAvailable4Bolt);
+        Map<String, Integer> currOptAllocation = suggestAllocationGeneralTopApplyMMK(queueingNetwork, currentUsedThreadByBolts);
+        double estTotalSojournTimeMilliSec_MMKOpt = 1000.0 * getExpectedTotalSojournTimeForJacksonOQN(queueingNetwork, currOptAllocation);
+        double estTotalSojournTimeMilliSec_MMK = 1000.0 * getExpectedTotalSojournTimeForJacksonOQN(queueingNetwork, currBoltAllocation);
+
+        double realLatencyMilliSeconds = sourceNode.getRealLatencyMilliSeconds();
+        ///for better estimation, we remain (learn) this ratio, and assume that the estimated is always smaller than real.
+        double underEstimateRatio = Math.max(1.0, realLatencyMilliSeconds / estTotalSojournTimeMilliSec_MMK);
+        ///relativeError (rE)
+        double relativeError = Math.abs(realLatencyMilliSeconds - estTotalSojournTimeMilliSec_MMK) * 100.0 / realLatencyMilliSeconds;
+
+        AllocResult.Status status = getStatusMMK(realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, estTotalSojournTimeMilliSec_MMKOpt,
+                queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower);
+
+        Map<String, Integer> adjustedAllocation = null;
+        if (status.equals(AllocResult.Status.SHORTAGE)) {
+            LOG.debug("Status is resource shortage, calling resource adjustment ");
+            adjustedAllocation = getMinReqServerAllocationGeneralTopApplyMMK(
+                    realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, queueingNetwork,
+                    completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, resourceUnit);
+            if (adjustedAllocation == null){
+                LOG.debug("Status is resource shortage and no feasible re-allocation solution");
+                status = AllocResult.Status.INFEASIBLE;
+            }
+
+        } else if (status.equals(AllocResult.Status.OVERPROVISIONING)) {
+            LOG.debug("Status is resource over-provisioning");
+            adjustedAllocation = getRemovedAllocationGeneralTopApplyMMK(
+                    realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, queueingNetwork,
+                    completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, resourceUnit);
+        }
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("realLatency", realLatencyMilliSeconds);
+        context.put("estMMK", estTotalSojournTimeMilliSec_MMK);
+        context.put("urMMK", underEstimateRatio);
+        context.put("reMMK", relativeError);
+
+        LOG.info(String.format("realLatency(ms): %.4f, estMMK: %.4f, urMMK: %.4f, reMMK: %.4f, status: %s",
+                realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, underEstimateRatio, relativeError, status.toString()));
+
+        Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();//active shedding
+
+        ShedRateAndAllocResult shedRateAndAllocResult = new ShedRateAndAllocResult(status, adjustedAllocation, currOptAllocation, kMaxOptAllocation,activeSheddingRateMap,context);
+        AllocResult retVal = shedRateAndAllocResult.getAllocResult();
+
         LOG.info("MMK, reUnit: " + resourceUnit  +  ", alloStat: " + retVal.status);
         LOG.info("MMK, currOptAllo: " + retVal.currOptAllocation);
         LOG.info("MMK, adjustAllo: " + retVal.minReqOptAllocation);

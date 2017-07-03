@@ -28,4 +28,10 @@ public interface SheddingServiceModel {
             double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
             Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
             int currentUsedThreadByBolts, int resourceUnit);
+
+    ShedRateAndAllocResult checkOptimizedWithShedding(
+            SourceNode sourceNode, Map<String, ServiceNode> queueingNetwork,
+            double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
+            Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
+            int currentUsedThreadByBolts, int resourceUnit, Map<String, double[]> selectivityFunctions);
 }

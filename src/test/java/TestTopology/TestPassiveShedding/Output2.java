@@ -23,11 +23,11 @@ public class Output2 extends BaseRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        if(tuple.getIntegerByField("sub") != 0){
-            num++;
-        }
+//        if(tuple.getIntegerByField("sub") != 0){
+//            num++;
+//        }
         //System.out.println(num+"hehehe");
-        collector.emit(tuple,new Values(tuple.getIntegerByField("sub")));
+        collector.emit(tuple,new Values(tuple.getString(0)));
         collector.ack(tuple);
     }
 

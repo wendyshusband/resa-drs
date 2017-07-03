@@ -60,7 +60,7 @@ public class ServiceNode {
         this.scvServTimeHis = ar.getScvServTimeHis();
 
         this.numCompleteTuples = ar.getNumCompleteTuples();
-        this.sumDurationSeconds = ar.getDurationSeconds();
+        this.sumDurationSeconds = ar.getDurationSeconds() / executorNumber;
         this.tupleCompleteRate = numCompleteTuples * executorNumber / (sumDurationSeconds * compSampleRate);
 
         this.lambda = ar.getArrivalRatePerSec() * executorNumber;

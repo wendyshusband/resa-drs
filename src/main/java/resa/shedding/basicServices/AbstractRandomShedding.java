@@ -2,7 +2,6 @@ package resa.shedding.basicServices;
 
 
 import org.apache.storm.task.OutputCollector;
-import resa.shedding.basicServices.IShedding;
 
 import java.util.List;
 
@@ -24,4 +23,5 @@ public abstract class AbstractRandomShedding  implements IShedding {
     public boolean trigger(Object[] arg) {
         return false;
     }
+    
 }

@@ -7,8 +7,8 @@ import org.apache.storm.nimbus.ITopologyValidator;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import resa.metrics.DefaultSheddableBolt;
 import resa.metrics.DefaultSheddableSpout;
-import resa.shedding.example.TraditionSheddableBolt;
 
 import java.util.Map;
 
@@ -34,11 +34,11 @@ public class SheddingResaTopologyValidator implements ITopologyValidator {
         });
 
         topology.get_bolts().forEach((k, v) -> {
-            //DefaultSheddableBolt b = new DefaultSheddableBolt();
+            DefaultSheddableBolt b = new DefaultSheddableBolt();
             //SimpleREDsheddableBolt b = new SimpleREDsheddableBolt();
             //MeasurableBolt b = new MeasurableBolt();
             //FullREDsheddableBolt b = new FullREDsheddableBolt();
-            TraditionSheddableBolt b = new TraditionSheddableBolt();
+            //TraditionSheddableBolt b = new TraditionSheddableBolt();
             b.setSerializedBolt(v.get_bolt_object().get_serialized_java());
             v.set_bolt_object(ComponentObject.serialized_java(Utils.javaSerialize(b)));
         });

@@ -1,5 +1,6 @@
 package TestTopology.wordcount2;
 
+import TestTopology.TestPassiveShedding.Output2;
 import TestTopology.helper.IntervalSupplier;
 import TestTopology.simulated.TASleepBolt;
 import org.apache.storm.Config;
@@ -31,6 +32,7 @@ public class CountWord {
         }
         @Override
         public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
+            System.out.println(topologyContext.getThisComponentId()+"wozihengdao"+map.get(Config.TOPOLOGY_BACKPRESSURE_ENABLE).toString());
             collector = outputCollector;
         }
 
@@ -78,6 +80,7 @@ public class CountWord {
                 Integer c = counters.get(str) + 1;
                 counters.put(str, c);
             }
+            collector.emit(tuple, new Values(str));
             collector.ack(tuple);
         }
 
@@ -98,16 +101,20 @@ public class CountWord {
             throw new RuntimeException("cannot find conf file " + args[1]);
         }
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout("spout", new WordReader(), ConfigUtil.getInt(conf, "spout.parallelism", 1));
+        builder.setSpout("spout", new WordReader(), ConfigUtil.getInt(conf, "spout.parallelism", 1))
+               ;// .setNumTasks(3);
         double split_mu = ConfigUtil.getDouble(conf, "split.mu", 1.0);
 
         builder.setBolt("split", new Split(() -> (long) (1000.0 / split_mu)), ConfigUtil.getInt(conf, "split.parallelism", 1))
+                //.setNumTasks(4)
                 .shuffleGrouping("spout");
         double count_mu = ConfigUtil.getDouble(conf, "count.mu", 1.0);
 
         builder.setBolt("counter", new Count(() -> (long) (1000.0 / count_mu)), ConfigUtil.getInt(conf, "counter.parallelism", 1))
+               // .setNumTasks(3)
                 .fieldsGrouping("split", new Fields("word"));
-
+        builder.setBolt("out", new Output2(),1)
+                .shuffleGrouping("counter");
         conf.setNumWorkers(ConfigUtil.getInt(conf, "wc-NumOfWorkers", 1));
         conf.setDebug(ConfigUtil.getBoolean(conf, "DebugTopology", false));
         conf.setStatsSampleRate(ConfigUtil.getDouble(conf, "StatsSampleRate", 1.0));

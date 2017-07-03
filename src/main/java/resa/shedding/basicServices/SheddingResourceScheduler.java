@@ -96,11 +96,6 @@ public class SheddingResourceScheduler {
                 AggResultCalculator calculator = new AggResultCalculator(data, topoExecutors,
                         ctx.getTopology());
                 calculator.calCMVStat();
-                //for load shedding
-                //Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
-                 //       revertRealLoad.storeLoadInformation(calculator.getComp2ExecutorResults());
-                //tkl
-
                 //TODO: (added by Tom) we need to calc the maxProcessedDataSize as a configuration parameter.
                 // set a return value (count) from calculator.calCMVStat()
                 // if the count == maxProcessedDataSize (current is 500, say), we need to do something,
@@ -140,6 +135,7 @@ public class SheddingResourceScheduler {
             return ret;
         }
     }
+
 
     private static Map<String, Integer> calcAllocation(Map<String, List<ExecutorDetails>> topoExecutors) {
         return topoExecutors == null ? Collections.emptyMap() : topoExecutors.entrySet().stream()

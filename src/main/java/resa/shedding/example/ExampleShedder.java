@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Created by kailin on 19/4/17.
  */
-public class ExampleShedder extends AbstractRandomShedding implements Serializable{
+public class ExampleShedder extends AbstractRandomShedding implements Serializable {
 
 
     @Override
@@ -19,7 +19,7 @@ public class ExampleShedder extends AbstractRandomShedding implements Serializab
         Iterator<Tuple> it = queue.iterator();
         int count = 0;
         int shedTupleCount = (int) (queue.size() * shedRate);
-        while(it.hasNext() && count <= shedTupleCount){
+        while (it.hasNext() && count <= shedTupleCount) {
             Tuple t = it.next();
             outputCollector.fail(t);
             it.remove();
@@ -29,7 +29,7 @@ public class ExampleShedder extends AbstractRandomShedding implements Serializab
 
     @Override
     public boolean randomTrigger(int tupleQueueCapacity, int allTupleSize) {
-        if(allTupleSize >= tupleQueueCapacity/2){
+        if (allTupleSize >= tupleQueueCapacity / 2) {
             return true;
         }
         return false;

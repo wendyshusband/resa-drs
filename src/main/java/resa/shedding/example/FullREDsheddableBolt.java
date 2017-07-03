@@ -202,7 +202,7 @@ public class FullREDsheddableBolt extends DelegatedBolt implements IShedding{
         } else {
             drop = 0;
         }
-        System.out.println(count+"~"+drop+"~"+tupleNums+"~"+currentPenddingRate+"RED sheddTuple: "+sheddTupleRate);
+        //System.out.println(count+"~"+drop+"~"+tupleNums+"~"+currentPenddingRate+"RED sheddTuple: "+sheddTupleRate);
         return drop;
     }
 

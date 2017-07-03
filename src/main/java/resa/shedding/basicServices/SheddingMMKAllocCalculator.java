@@ -27,7 +27,8 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
     private int currHistoryCursor;
     private SheddingServiceModel serviceModel;
     private LearningSelectivity calcSelectivityFunction;
-    private Integer order;
+    private Double order;
+    private Map<String,Double> selectivityOrder;
 
     @Override
     public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology, Map<String, Object> targets) {
@@ -41,7 +42,10 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                 SheddingMMKServiceModel.class.getName()), SheddingServiceModel.class);
         calcSelectivityFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.SELECTIVITY_CALC_CLASS,
                 PolynomialRegression.class.getName()),LearningSelectivity.class);
-        order = ConfigUtil.getInt(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
+        order = ConfigUtil.getDouble(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
+        currAllocation.keySet().stream().forEach(e->{
+            selectivityOrder.put(e,order);
+        });
     }
 
     @Override
@@ -116,8 +120,10 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey())).mapToInt(Map.Entry::getValue).sum();
 
         LOG.info("Run Optimization, tQos: " + targetQoSMs + ", currUsed: " + currentUsedThreadByBolts + ", kMax: " + maxThreadAvailable4Bolt + ", currAllo: " + currAllocation);
-        ShedRateAndAllocResult shedRateAndAllocResult = serviceModel.checkOptimized(
-                spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);
+//        ShedRateAndAllocResult shedRateAndAllocResult = serviceModel.checkOptimized(
+//                spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);
+        ShedRateAndAllocResult shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork,
+                completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, selectivityFunctions);
 
         AllocResult allocResult = shedRateAndAllocResult.getAllocResult();
         Map<String,Double> activeShedRate = shedRateAndAllocResult.getActiveShedRate();
@@ -181,14 +187,6 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                     }
                 }
                 loadPairList.add(new Pair<>(loadIN,loadOUT));
-                //System.out.println(comp.getKey());
-                //System.out.println("emitcount "+ tempAggResult.getemitCount());
-                //System.out.println("getArrivalRatePerSec"+tempAggResult.getArrivalRatePerSec());
-               // System.out.println("sheddingRate"+sheddingRate);
-                //System.out.println("allTuple"+tempAggResult.getPassiveSheddingCountMap().get("allTuple"));
-                //System.out.println("dropTuple"+tempAggResult.getPassiveSheddingCountMap().get("dropTuple"));
-                //System.out.println("getDepartureRatePerSec"+tempAggResult.getDepartureRatePerSec());
-                //System.out.println(currAllocation.get(comp.getKey()));
             }
             double[] oneCompSelectivityCoeff = calcSelectivityFunction.Fit(loadPairList,order);
             selectivityCoeffs.put((String) comp.getKey(),oneCompSelectivityCoeff);

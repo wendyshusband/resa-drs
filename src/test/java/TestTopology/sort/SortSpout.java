@@ -1,4 +1,4 @@
-package TestTopology.testforls;
+package TestTopology.sort;
 
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
@@ -20,6 +20,7 @@ public class SortSpout extends BaseRichSpout {
         SpoutOutputCollector _collector;
         private String spoutIdPrefix;
         private transient long count = 0;
+        private int number;
         public SortSpout() {
             this(true,"spOut");
         }
@@ -33,10 +34,11 @@ public class SortSpout extends BaseRichSpout {
             _collector = spoutOutputCollector;
             frequencyRestrictor = new FrequencyRestrictor(ConfigUtil.getInt(map, "maxFrequencyPerSecond", 500),
                     ConfigUtil.getInt(map, "windowsPerSecond", 500));
+            number = ConfigUtil.getInt(map, "wc-number", 10000);
         }
 
         public void nextTuple() {
-            if(frequencyRestrictor.tryPermission()) {
+            if(frequencyRestrictor.tryPermission() && count < number) {
                 String id = spoutIdPrefix + count;
                 count++;
                 _collector.emit(new Values("TUpLE"), id);
@@ -47,16 +49,4 @@ public class SortSpout extends BaseRichSpout {
         public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
             outputFieldsDeclarer.declare(new Fields(spoutIdPrefix));
         }
-
-//        @Override
-//        public Map<String, Object> getComponentConfiguration() {
-//            if(!_isDistributed){
-//                Map<String, Object> ret = new HashMap<String, Object>();
-//                ret.put(Config.TOPOLOGY_MAX_TASK_PARALLELISM, 1);
-//                return ret;
-//            }else{
-//                return null;
-//            }
-//
-//        }
 }
