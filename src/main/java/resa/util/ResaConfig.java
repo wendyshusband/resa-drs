@@ -41,6 +41,8 @@ public class ResaConfig extends Config {
     public static final String DECISION_MAKER_CLASS = "resa.scheduler.decision.class";
 
     //load shedding
+    public static final String PASSIVE_SHEDDING_ENABLE = "resa.passive.shedding.enable";
+    public static final String ACTIVE_SHEDDING_ENABLE = "resa.active.shedding.enable";
     public static final String TUPLE_QUEUE_CAPACITY = "resa.shedding.tuple.queue.capacity";
     public static final String LAMBDA_FOR_SELECTIVITY_HISTORY_SIZE = "resa.shedding.lambda.selectivity.history.size";
     public static final String SELECTIVITY_FUNCTION_ORDER = "resa.shedding.selectivity.function.order";
@@ -53,6 +55,7 @@ public class ResaConfig extends Config {
     public static final String SPOUT_MAX_PENDING = "resa.spout.max.pending";
     public static final String SPOUT_PENDING_THRESHOLD = "resa.spout.pending.threshold";
     public static final String SHEDDING_ACTIVE_RATE_UNIT = "resa.active.shedding.rate.unit";
+    public static final String ACTIVE_SHEDDING_RELATIVE_ERROR_THRESHOLD = "resa.active.shedding.relative.error.threshold";
     //RED
     public static final String HIGH_SHEDDING_THRESHOLD = "resa.shedding.high.thresdhold";
     public static final String LOW_SHEDDING_THRESHOLD = "resa.shedding.low.thresdhold";

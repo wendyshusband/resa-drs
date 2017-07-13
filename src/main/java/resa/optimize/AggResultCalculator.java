@@ -114,9 +114,11 @@ public class AggResultCalculator {
                 int tempFailureCount = Integer.valueOf(String.valueOf(failure.get("failure")));
                 int tempDropCount = Integer.valueOf(String.valueOf(failure.get("spoutDrop")));
                 int failLatencyMs = Integer.valueOf(String.valueOf(failure.get("failLatencyMs")));
+                int tempActiveDropCount = Integer.valueOf(String.valueOf(failure.get("activeSpoutDrop")));
                 ((SpoutAggResult) dest).setFailureCount(tempFailureCount);
                 ((SpoutAggResult) dest).setSpoutDropCount(tempDropCount);
                 ((SpoutAggResult) dest).setFailLatencyMs(failLatencyMs);
+                ((SpoutAggResult) dest).setActiveSpoutDropCount(tempActiveDropCount);
             }
         } else {
             Map<String, Object> data = (Map<String, Object>) measuredData.data.get(MetricNames.TASK_EXECUTE);
@@ -133,7 +135,7 @@ public class AggResultCalculator {
                 });
             }
             //tkl
-            Map<String, Object> shed = (Map<String, Object>) measuredData.data.get(MetricNames.PASSIVE_SHEDDING_RATE);
+            Map<String, Object> shed = (Map<String, Object>) measuredData.data.get(MetricNames.SHEDDING_RATE);
             if(shed != null){
                 shed.forEach((stream,count)->{
                     Long temp = (Long) count;

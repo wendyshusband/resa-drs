@@ -10,10 +10,10 @@ import java.util.Map;
 public class ShedRateAndAllocResult {
 
     public AllocResult allocResult;
-    public Map<String,Double> activeShedRate;
+    public Map<String, Map<String,Double>> activeShedRate;
     public ShedRateAndAllocResult(AllocResult.Status status, Map<String, Integer> minReqOptAllocation,
                                   Map<String, Integer> currOptAllocation, Map<String, Integer> kMaxOptAllocation,
-                                  Map<String, Double> activeShedRate, Map<String, Object> ctx){
+                                  Map<String, Map<String,Double>> activeShedRate, Map<String, Object> ctx){
         this.allocResult = new AllocResult(status, minReqOptAllocation, currOptAllocation, kMaxOptAllocation).setContext(ctx);
         this.activeShedRate = activeShedRate;
     }
@@ -22,7 +22,7 @@ public class ShedRateAndAllocResult {
         return this.allocResult;
     }
 
-    public Map<String, Double> getActiveShedRate() {
+    public Map<String, Map<String,Double>> getActiveShedRate() {
         return activeShedRate;
     }
 

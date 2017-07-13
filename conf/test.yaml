@@ -9,7 +9,7 @@ resa.metric.approved.names:
  - "__receive recv-queue" 
  - "duration" 
  - "arrival_rate_secs"
- - "passive_shedding_rate"
+ - "shedding_rate"
  - "failure_count"
 #tkl
 

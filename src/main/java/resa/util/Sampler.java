@@ -19,4 +19,15 @@ public class Sampler {
         return counter++ % sampleValue == 0;
     }
 
+//    public static void main(String[] args) {
+//        FixedSizeQueue f  = new FixedSizeQueue(5);
+//
+//        System.out.println(f.size());
+//        boolean a = f.add(new Pair<>(1,2));
+//        System.out.println(a);
+//        System.out.println(f.getLast().toString());
+//        System.out.println(f.getFirst().toString());
+//        System.out.println(f.size());
+//    }
+
 }

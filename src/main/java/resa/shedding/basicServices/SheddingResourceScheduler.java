@@ -47,7 +47,6 @@ public class SheddingResourceScheduler {
         maxExecutorsPerWorker = ConfigUtil.getInt(conf, MAX_EXECUTORS_PER_WORKER, 8);
         topologyMaxExecutors = ConfigUtil.getInt(conf, ALLOWED_EXECUTOR_NUM, -1);
 
-
         // create Allocation Calculator
         allocCalculator = ResaUtils.newInstanceThrow((String) conf.getOrDefault(SHEDDING_ALLOC_CALC_CLASS,
                 SheddingMMKAllocCalculator.class.getName()), SheddingAllocCalculator.class);
@@ -88,7 +87,7 @@ public class SheddingResourceScheduler {
             // TODO: Executors == null means nimbus temporarily unreachable or this topology has been killed
             Map<String, Integer> allc = topoExecutors != null ? calcAllocation(topoExecutors) : null;
             if (allc != null && !allc.equals(currAllocation)) {
-                LOG.info("Topology allocation changed");
+                LOG.info(" Topology allocation changed");
                 currAllocation = allc;
                 // discard old MeasuredData
                 allocCalculator.allocationChanged(Collections.unmodifiableMap(currAllocation));

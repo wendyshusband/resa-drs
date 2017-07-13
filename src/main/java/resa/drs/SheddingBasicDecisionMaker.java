@@ -8,9 +8,11 @@ import org.slf4j.LoggerFactory;
 import resa.optimize.AllocResult;
 import resa.shedding.basicServices.ISheddingDecisionMaker;
 import resa.shedding.basicServices.ShedRateAndAllocResult;
+import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
+import java.util.List;
 import java.util.Map;
 
 import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
@@ -21,7 +23,7 @@ import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
 public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
 
     private static final Logger LOG = LoggerFactory.getLogger(SheddingBasicDecisionMaker.class);
-    private CuratorFramework client;
+    private transient CuratorFramework client;
     private String topologyName;
 
     /**
@@ -71,14 +73,14 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcIntervalSec * 2) * 1000 - 50;
         rbTypeValue = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_REBALANCE_TYPE, RebalanceType.CurrentOpt.getValue());
 
-       // List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-       // int port =  Integer.valueOf((String)conf.get(Config.STORM_ZOOKEEPER_PORT));
-       // System.out.println(conf.get(Config.TOPOLOGY_NAME)+"nihaoma: "+zkServer.get(0)+":"+conf.get(Config.STORM_ZOOKEEPER_PORT));
-       // client = DRSzkHandler.newClient(zkServer.get(0).toString(), port, 6000, 6000, 1000, 3);
-        //System.out.println(client.getState()+"nibuhaoma");
+        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        int port = Math.toIntExact((long) conf.get(Config.STORM_ZOOKEEPER_PORT));
+        System.out.println(conf.get(Config.TOPOLOGY_NAME)+"nihaoma: "+zkServer.get(0)+":"+conf.get(Config.STORM_ZOOKEEPER_PORT));
+        client = DRSzkHandler.newClient(zkServer.get(0).toString(), port, 6000, 6000, 1000, 3);
+        System.out.println(client.getState()+"nibuhaoma");
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
 
-        LOG.info("SimpleAdaptDecisionMaker.init(), stTime: " + startTimeMillis + ", minExpInteval: " + minExpectedIntervalMillis);
+        LOG.info("SheddingBasicDecisionMaker.init(), stTime: " + startTimeMillis + ", minExpInteval: " + minExpectedIntervalMillis);
     }
 
     @Override
@@ -88,11 +90,14 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
             LOG.info("SheddingBasicDecisionMaker.make(), newResult == null");
             return null;
         }
-//        try {
-//            sentActiveSheddingRate(newResult.getActiveShedRate()); //active shedding
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+
+        Map<String, Map<String,Double>> activeShedRate = newResult.getActiveShedRate();
+        try {
+            sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("sheddingBasicDecisionMaker activeRate:"+activeShedRate);
         AllocResult newAllocResult = newResult.getAllocResult();
         if (timeSpan < minExpectedIntervalMillis) {
             /** if  timeSpan is not large enough, no rebalance will be triggered **/
@@ -107,17 +112,17 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
 
             if (newAllocResult.status.equals(AllocResult.Status.OVERPROVISIONING)) {
 
-                LOG.info("SheddingBasicDecisionMaker.make(), ewAllocResult.status == OVERPROVISIONING, rebalance is triggered with removing existing resources");
+                LOG.info("SheddingBasicDecisionMaker.make(), newAllocResult.status == OVERPROVISIONING, rebalance is triggered with removing existing resources");
                 return newAllocResult.minReqOptAllocation;
 
             } else if (newAllocResult.status.equals(AllocResult.Status.SHORTAGE)) {
 
-                LOG.info("SheddingBasicDecisionMaker.make(), ewAllocResult.status == OVERPROVISIONING, rebalance is triggered with adding new resources");
+                LOG.info("SheddingBasicDecisionMaker.make(), newAllocResult.status == SHORTAGE, rebalance is triggered with adding new resources");
                 return newAllocResult.minReqOptAllocation;
 
             } else if (newAllocResult.status.equals(AllocResult.Status.INFEASIBLE)) {
 
-                LOG.info("SheddingBasicDecisionMaker.make(), ewAllocResult.status == INFEASIBLE, rebalance is triggered with using maximum available resources");
+                LOG.info("SheddingBasicDecisionMaker.make(), newAllocResult.status == INFEASIBLE, rebalance is triggered with using maximum available resources");
                 return newAllocResult.kMaxOptAllocation;
 
             } else if (newAllocResult.status.equals(AllocResult.Status.FEASIBLE)) {
@@ -134,19 +139,20 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
     }
 
 
-//    public void sentActiveSheddingRate(Map<String,Double> activeSheddingRateMap) throws Exception {
-//        if(!client.isStarted())
-//            DRSzkHandler.start();
-////        if(null == client.checkExists().forPath("/drs")){
-////            client.create().forPath("/drs");
-////        }
-//        LOG.info("active shedding rate map: "+activeSheddingRateMap.toString());
-//        if(client.checkExists().forPath("/drs/"+topologyName) == null){
-//            client.create().creatingParentsIfNeeded().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-//        }else{
-//            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+    public void sentActiveSheddingRate(Map<String,Double> activeSheddingRateMap) throws Exception {
+        if (!client.isStarted()) {
+            DRSzkHandler.start();
+        }
+//        if(null == client.checkExists().forPath("/drs")){
+//            client.create().forPath("/drs");
 //        }
-//        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
-//    }
+        LOG.info("active shedding rate map: "+activeSheddingRateMap.toString());
+        if(client.checkExists().forPath("/drs/"+topologyName) == null){
+            client.create().creatingParentsIfNeeded().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+        }else{
+            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+        }
+        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
+    }
 
 }

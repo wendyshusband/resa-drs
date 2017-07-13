@@ -46,6 +46,7 @@ public class ServiceNode {
     protected long dropCount = 0;
     protected long allCount = 0;
     protected long dropFrequency = 0;
+    protected long activeDropCount = 0;
 
     public ServiceNode(String componentID, int executorNumber, double compSampleRate,
                        BoltAggResult ar, double exArrivalRate){
@@ -73,9 +74,13 @@ public class ServiceNode {
         this.ratio = this.exArrivalRate > 0.0 ? (this.lambda / this.exArrivalRate) : 0;
 
         /*load shedding*/
-        if(ar.getPassiveSheddingCountMap().get("dropFrequency") !=null)
+        if (ar.getPassiveSheddingCountMap().get("activeDrop") !=null) {
+            this.activeDropCount = ar.getPassiveSheddingCountMap().get("activeDrop");
+        }
+        if (ar.getPassiveSheddingCountMap().get("dropFrequency") !=null) {
             this.dropFrequency = ar.getPassiveSheddingCountMap().get("dropFrequency");
-        if(ar.getPassiveSheddingCountMap().get("dropTuple") !=null && ar.getPassiveSheddingCountMap().get("allTuple") !=null) {
+        }
+        if (ar.getPassiveSheddingCountMap().get("dropTuple") !=null && ar.getPassiveSheddingCountMap().get("allTuple") !=null) {
             this.passiveSheddingRate = (1.0*ar.getPassiveSheddingCountMap().get("dropTuple")) / ar.getPassiveSheddingCountMap().get("allTuple");//tkl
             this.dropCount = ar.getPassiveSheddingCountMap().get("dropTuple");
             this.allCount = ar.getPassiveSheddingCountMap().get("allTuple");
@@ -162,16 +167,33 @@ public class ServiceNode {
         return allCount;
     }
 
+    public long getActiveDropCount() {
+        return activeDropCount;
+    }
+
     public Map<String, Long> getEmitCount() {
         return emitCount;
     }
     /**
-     * revert lambda for load shedding.
+     * revert lambda for DRS detect system under load shedding status.
+     * in this case  exArrivalRate have revert in sourceNode
      * */
-    public void revertLambda(double lambda) {
+    public void revertLambda(double lambda, double exArrivalRate) {
         this.lambda = lambda;
         this.rho = lambda * avgServTimeHis / (executorNumber * 1000.0);
+        this.exArrivalRate = exArrivalRate;
         this.ratio = this.exArrivalRate > 0.0 ? (lambda / this.exArrivalRate) : 0;
+    }
+
+    /**
+     * revert lambda and other.
+     * need revert ratio
+     * */
+    public void changeLambdaAndOtherRelateParam(double lambda, double exArrivalRate){
+        this.lambda = lambda;
+        this.rho = lambda * avgServTimeHis / (executorNumber * 1000.0);
+        this.exArrivalRate = exArrivalRate;
+        //this.ratio = this.exArrivalRate > 0.0 ? (lambda / this.exArrivalRate) : 0;
     }
 
     @Override

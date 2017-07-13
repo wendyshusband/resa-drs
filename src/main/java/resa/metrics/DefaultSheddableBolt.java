@@ -35,13 +35,16 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private transient BlockingQueue<Tuple> pendingTupleQueue;
     private transient BlockingQueue<Tuple> failTupleQueue;
     private double passiveSheddingThreshold;
-    private transient MultiCountMetric passiveSheddingRateMetric;
+    private transient MultiCountMetric sheddingRateMetric;
     private HashMap<String,List<String>> activeSheddingStreamMap;
     private double activeSheddingRate;
     private String compID;
     private String topologyName;
     private Sampler activeSheddingSampler;
-    private boolean ackFlag;
+    //private boolean ackFlag;
+    private boolean enablePassiveShedding;
+    private boolean enableActiveShedding;
+    private int sheddingCase = 0;
 
     private class SheddindMeasurableOutputCollector extends OutputCollector {
 
@@ -78,7 +81,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private transient MultiCountMetric emitMetric;
     private transient DefaultSheddableBolt.SheddindMeasurableOutputCollector sheddindMeasurableCollector;
     private long lastMetricsSent;
-    //private CuratorFramework client;
+    //private transient CuratorFramework client;
     private int interval;
 
     public DefaultSheddableBolt() {
@@ -89,39 +92,66 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     }
 
     public void prepare(Map conf, TopologyContext context, OutputCollector outputCollector) {
+        enablePassiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.PASSIVE_SHEDDING_ENABLE, true);
+        enableActiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.ACTIVE_SHEDDING_ENABLE, true);
+        if (enablePassiveShedding == false && enableActiveShedding == false) {
+            sheddingCase = 0;
+            LOG.info("application running under no shedding status: "+sheddingCase);
+        } else if (enablePassiveShedding == true && enableActiveShedding == true) {
+            sheddingCase = 1;
+            LOG.info("application running under active shedding and passive shedding status: "+sheddingCase);
+        } else if (enablePassiveShedding == true && enableActiveShedding == false) {
+            sheddingCase = 2;
+            LOG.info("application running under passive shedding status: "+sheddingCase);
+        } else if (enablePassiveShedding == false && enableActiveShedding == true) {
+            sheddingCase = 3;
+            LOG.info("application running under active shedding status: "+sheddingCase);
+        }
         interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
+        context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
         executeMetric = context.registerMetric(MetricNames.TASK_EXECUTE, new CMVMetric(), interval);
         emitMetric = context.registerMetric(MetricNames.EMIT_COUNT, new MultiCountMetric(), interval);
-        passiveSheddingRateMetric = context.registerMetric(MetricNames.PASSIVE_SHEDDING_RATE, new MultiCountMetric(),interval);
+        sheddingRateMetric = context.registerMetric(MetricNames.SHEDDING_RATE, new MultiCountMetric(),interval);
+
         lastMetricsSent = System.currentTimeMillis();
-        context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
         tupleQueueCapacity = ConfigUtil.getInt(conf,ResaConfig.TUPLE_QUEUE_CAPACITY,1024);
         passiveSheddingThreshold = ConfigUtil.getDouble(conf,ResaConfig.SHEDDING_THRESHOLD,0.8);
-        sheddindMeasurableCollector = new DefaultSheddableBolt.SheddindMeasurableOutputCollector(outputCollector);
+
+        sheddindMeasurableCollector = new SheddindMeasurableOutputCollector(outputCollector);
         super.prepare(conf, context, sheddindMeasurableCollector);
         pendingTupleQueue = new ArrayBlockingQueue<>(tupleQueueCapacity);
-        //Config.TOPOLOGY_ACKER_EXECUTORS
-        compID = context.getThisComponentId();
-        topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
-        activeSheddingRate = 0.0;
-        activeSheddingSampler = new Sampler(activeSheddingRate);
-        ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),true);
-        //List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-        //int port = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT));
-        //client= DRSzkHandler.newClient(zkServer.get(0).toString(),2181,6000,6000,1000,3);
-        JSONParser parser = new JSONParser();
-        try {
-            activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf,ResaConfig.ACTIVE_SHEDDING_MAP,"{}"));
-        } catch (ParseException e) {
-            e.printStackTrace();
+
+        if (enableActiveShedding) {
+            compID = context.getThisComponentId();
+            topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
+            activeSheddingRate = 0.0;
+            activeSheddingSampler = new Sampler(activeSheddingRate);
+            //ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),true);
+            //List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+            //int port = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT));
+            //client= DRSzkHandler.newClient(zkServer.get(0).toString(),port,6000,6000,1000,3);
+            JSONParser parser = new JSONParser();
+            try {
+                activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf, ResaConfig.ACTIVE_SHEDDING_MAP, "{}"));
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            //checkActiveSheddingRateThread();
         }
-        if(ackFlag) {
-            failTupleQueue = new ArrayBlockingQueue<>((tupleQueueCapacity*10));
-            handlePassiveLoadSheddingFailTupleThread();
+
+        //if(ackFlag) {
+        if (sheddingCase != 0) {
+            failTupleQueue = new ArrayBlockingQueue<>((tupleQueueCapacity * 10));
+            handleLoadSheddingFailTupleThread();
         }
-        //checkActiveSheddingRateThread();
+        //}
         handleTupleThread();
+        sheddingRateMetric.scope("dropTuple").incrBy(0);
+        sheddingRateMetric.scope("dropFrequency").incrBy(0);
+        sheddingRateMetric.scope("allTuple").incrBy(0);
+        sheddingRateMetric.scope("activeDrop").incrBy(0);
+
         LOG.info("Preparing DefaultSheddableBolt: " + context.getThisComponentId());
     }
 
@@ -132,7 +162,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         return duration;
     }
 
-    private void handlePassiveLoadSheddingFailTupleThread() {
+    private void handleLoadSheddingFailTupleThread() {
         final Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -232,48 +262,80 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     }
 
     public void execute(Tuple tuple) {
+        sheddingRateMetric.scope("allTuple").incr();
         boolean flag = true;
-        passiveSheddingRateMetric.scope("allTuple").incr();
-        if (trigger(null)){// need passive shedding
-            int sheddTupleNum =passiveDrop(null);
-            passiveSheddingRateMetric.scope("dropTuple").incrBy(sheddTupleNum);
-            passiveSheddingRateMetric.scope("dropFrequency").incr();
-        }else {// do not need passive shedding
-            passiveSheddingRateMetric.scope("dropTuple").incrBy(0);
-            passiveSheddingRateMetric.scope("dropFrequency").incrBy(0);
-//            if(activeSheddingRate != 0.0) {
-//                if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
-//                    if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
-//                        //LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple.getSourceStreamId());
-//                        if (activeSheddingSampler.shoudSample()) {
-//                            flag = false;
-//                        }
-//                    }
-//                }
-//            }
+        switch (sheddingCase) {
+            case 0: {
+                break;
+            }
+            case 1: {
+                if (trigger(null)){// need passive shedding
+                    int sheddTupleNum =passiveDrop(null);
+                    sheddingRateMetric.scope("dropTuple").incrBy(sheddTupleNum);
+                    sheddingRateMetric.scope("dropFrequency").incr();
+                } else {
+                    if(activeSheddingRate != 0.0) {
+                        if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
+                            if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
+                                //LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple.getSourceStreamId());
+                                if (activeSheddingSampler.shoudSample()) {
+                                    flag = false;
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            case 2: {
+                if (trigger(null)){// need passive shedding
+                    int sheddTupleNum =passiveDrop(null);
+                    sheddingRateMetric.scope("dropTuple").incrBy(sheddTupleNum);
+                    sheddingRateMetric.scope("dropFrequency").incr();
+                }
+                break;
+            }
+            case 3: {
+                if(activeSheddingRate != 0.0) {
+                    if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
+                        if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
+                            //LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple.getSourceStreamId());
+                            if (activeSheddingSampler.shoudSample()) {
+                                flag = false;
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            default: {
+                LOG.error("bad sheddingCase. start no shedding bolt");
+            }
         }
-
         try {
             if(flag) {
                 pendingTupleQueue.put(tuple);
             }else{
-
+                failTupleQueue.put(tuple);
+                sheddingRateMetric.scope("activeDrop").incr();
+                sheddingRateMetric.scope("dropTuple").incr();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
+
     @Override
     public int passiveDrop(Object[] arg) {
         int sheddTupleNum = pendingTupleQueue.size() * pendingTupleQueue.size() / tupleQueueCapacity;
         List tempList = new LinkedList();
         pendingTupleQueue.drainTo(tempList,sheddTupleNum);
-        if(ackFlag){
-            failTupleQueue.addAll(tempList);
-        }else{
-            tempList.clear();
-        }
+        //if(ackFlag){
+        failTupleQueue.addAll(tempList);
+//        }else{
+//            tempList.clear();
+//        }
         return sheddTupleNum;
     }
 

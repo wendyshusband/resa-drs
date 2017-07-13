@@ -84,7 +84,7 @@ public class AStopology {
         double sub_mu = ConfigUtil.getDouble(conf, "sub.mu", 1.0);
         System.out.println("submumumu:"+sub_mu);
         builder.setBolt("sub", new SubBolt(() -> (long) (1000.0 / sub_mu)), ConfigUtil.getInt(conf, "sub.parallelism", 1)).shuffleGrouping("add");
-        builder.setBolt("out", new Output2(), 1).shuffleGrouping("sub");
+        builder.setBolt("out", new Output2(() -> (long) (1000.0 / sub_mu)), 1).shuffleGrouping("sub");
 
         //conf.setDebug(true);
         conf.setNumWorkers(ConfigUtil.getInt(conf, "wc-NumOfWorkers", 1));

@@ -101,23 +101,29 @@ public class CountWord {
             throw new RuntimeException("cannot find conf file " + args[1]);
         }
         TopologyBuilder builder = new TopologyBuilder();
+        int defaultTaskNum = ConfigUtil.getInt(conf, "defaultTaskNum", 10);
+
         builder.setSpout("spout", new WordReader(), ConfigUtil.getInt(conf, "spout.parallelism", 1))
-               ;// .setNumTasks(3);
+                ;//.setNumTasks(3);
         double split_mu = ConfigUtil.getDouble(conf, "split.mu", 1.0);
 
         builder.setBolt("split", new Split(() -> (long) (1000.0 / split_mu)), ConfigUtil.getInt(conf, "split.parallelism", 1))
-                //.setNumTasks(4)
+                .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("spout");
         double count_mu = ConfigUtil.getDouble(conf, "count.mu", 1.0);
 
         builder.setBolt("counter", new Count(() -> (long) (1000.0 / count_mu)), ConfigUtil.getInt(conf, "counter.parallelism", 1))
-               // .setNumTasks(3)
+                .setNumTasks(defaultTaskNum)
                 .fieldsGrouping("split", new Fields("word"));
-        builder.setBolt("out", new Output2(),1)
+        builder.setBolt("out", new Output2(() -> (long) 2),1)
+                .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("counter");
         conf.setNumWorkers(ConfigUtil.getInt(conf, "wc-NumOfWorkers", 1));
         conf.setDebug(ConfigUtil.getBoolean(conf, "DebugTopology", false));
         conf.setStatsSampleRate(ConfigUtil.getDouble(conf, "StatsSampleRate", 1.0));
         StormSubmitter.submitTopology(args[0], conf, builder.createTopology());
+        //LocalCluster cluster = new LocalCluster();
+        //cluster.submitTopology("test", conf, builder.createTopology());
+        //Utils.sleep(10000);
     }
 }

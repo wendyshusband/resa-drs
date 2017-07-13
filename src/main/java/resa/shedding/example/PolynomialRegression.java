@@ -12,13 +12,9 @@ import java.util.List;
  */
 public class PolynomialRegression extends LearningSelectivity {
 
-    /*public static void main(String[] args) {
+    public static void main(String[] args) {
         PolynomialRegression polynomialRegression = new PolynomialRegression();
         polynomialRegression.FitTest();
-        System.out.println(
-                Math.log10(644)+"a"+
-                Math.log10(672)
-        );
     }
 
 
@@ -29,10 +25,10 @@ public class PolynomialRegression extends LearningSelectivity {
 //        obs.add(Math.log10(655),Math.log10(65));
 //        obs.add(Math.log10(489),Math.log10(62));
 //        obs.add(Math.log10(800),Math.log10(69));
-        obs.add(6,67);
-        obs.add(8,65);
-        obs.add(6,65);
-        obs.add(4,62);
+        obs.add(119,124);
+        obs.add(130,165);
+        obs.add(124,149);
+        obs.add(128,162);
         obs.add(8,69);
         obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);
         //obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);
@@ -44,7 +40,7 @@ public class PolynomialRegression extends LearningSelectivity {
         final double[] coeff = fitter.fit(obs.toList());
         for(int i=0;i<coeff.length;i++)
             System.out.println(coeff[i]);
-    }*/
+    }
 
     @Override
     public double[] Fit(Object[] objects) {

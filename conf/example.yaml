@@ -9,7 +9,7 @@ resa.metric.approved.names:
  - "__receive recv-queue" 
  - "duration" 
  - "arrival_rate_secs"
- - "passive_shedding_rate"
+ - "shedding_rate"
  - "failure_count"
 #tkl
 
@@ -183,3 +183,6 @@ resa.spout.pending.threshold: 0.8
 
 topology.backpressure.enable: false
 topology.max.spout.pending: null
+
+resa.passive.shedding.enable: true
+resa.active.shedding.enable: true

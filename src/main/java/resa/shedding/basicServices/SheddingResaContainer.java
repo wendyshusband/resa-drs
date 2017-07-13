@@ -55,7 +55,7 @@ public class SheddingResaContainer extends FilteredMetricsCollector {
         addApprovedMetirc(MetricNames.TASK_EXECUTE);
         addApprovedMetirc(MetricNames.EMIT_COUNT);
         addApprovedMetirc(MetricNames.DURATION);
-        addApprovedMetirc(MetricNames.PASSIVE_SHEDDING_RATE);
+        addApprovedMetirc(MetricNames.SHEDDING_RATE);
         addApprovedMetirc(MetricNames.FAILURE_COUNT);
 
         Map<String, Object> topo = buildTopologyInfo(context);

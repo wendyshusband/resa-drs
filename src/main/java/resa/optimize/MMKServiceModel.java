@@ -173,7 +173,7 @@ public class MMKServiceModel implements ServiceModel {
         double adjRatio = realLatencyMilliSeconds / estTotalSojournTimeMilliSec_MMK;
 
         Map<String, Integer> currAllocation = null;
-        if (currentUsedThreadByBolts > totalMinReq){
+        if (currentUsedThreadByBolts > totalMinReq) {
             LOG.debug("In getRemovedAllocationGeneralTopApplyMMK(), currentUsedThreadByBolts > totalMinReq");
             int i = currentUsedThreadByBolts - reUnit;
             for (; i > totalMinReq; i = i - reUnit) {

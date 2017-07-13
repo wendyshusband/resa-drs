@@ -42,6 +42,7 @@ public class SourceNode {
     protected int spoutDropCount;
     protected int failureCount;
     protected int failureLatencyMs;
+    protected int activeDropCount;
     protected double dropRatio;
 
     public SourceNode(String componentID, int executorNumber, double compSampleRate, SpoutAggResult ar){
@@ -74,8 +75,18 @@ public class SourceNode {
         this.failureCount =ar.getFailureCount();
         this.spoutDropCount = ar.getSpoutDropCount();
         this.failureLatencyMs = ar.getFailLatencyMs();
+        this.activeDropCount = ar.getActiveSpoutDropCount();
         this.dropRatio = (this.spoutDropCount*1.0)/(this.emitCount.values().stream().mapToLong(Number::longValue).sum()+this.spoutDropCount);
+
         LOG.info((ar.getDepartureRatePerSec()/2)+":"+executorNumber+"SourceNode is created: " + toString());
+    }
+
+    public int getActiveDropCount() {
+        return activeDropCount;
+    }
+
+    public double getDropRatio() {
+        return dropRatio;
     }
 
     public String getComponentID() {
@@ -173,11 +184,10 @@ public class SourceNode {
                 sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
                 tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival, dropRatio)
                 +" emitcount: "+emitCount+" spoutDropCount: "+spoutDropCount+" fail:"+failureCount
-                +" failureLatencyMs: "+failureLatencyMs;
+                +" failureLatencyMs: "+failureLatencyMs+" activeDrop: "+activeDropCount;
     }
 
     public void revertLambda(double lambda) {
-        System.out.println("fucking lambda:"+lambda);
         this.tupleEmitRateOnSQ = lambda;
         this.exArrivalRate = lambda;
     }

@@ -24,6 +24,6 @@ public class MetricNames {
     public static final String QUEUE_SOJOURN_TIME_MS = "sojourn_time_ms";
 
     //load shedding
-    public static final String PASSIVE_SHEDDING_RATE = "passive_shedding_rate";//tkl
+    public static final String SHEDDING_RATE = "shedding_rate";//tkl
     public static final String FAILURE_COUNT = "failure_count";//tkl
 }

@@ -2,6 +2,7 @@ package resa.shedding.basicServices;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.utils.Utils;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +28,10 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
     private int currHistoryCursor;
     private SheddingServiceModel serviceModel;
     private LearningSelectivity calcSelectivityFunction;
-    private Double order;
-    private Map<String,Double> selectivityOrder;
+    private Integer order;
+    private Map<String,Integer> selectivityOrder = new HashMap<>();
+    private boolean enablePassiveShedding;
+    private boolean enableActiveShedding;
 
     @Override
     public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology, Map<String, Object> targets) {
@@ -42,10 +45,12 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                 SheddingMMKServiceModel.class.getName()), SheddingServiceModel.class);
         calcSelectivityFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.SELECTIVITY_CALC_CLASS,
                 PolynomialRegression.class.getName()),LearningSelectivity.class);
-        order = ConfigUtil.getDouble(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
+        order = ConfigUtil.getInt(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
         currAllocation.keySet().stream().forEach(e->{
             selectivityOrder.put(e,order);
         });
+        enablePassiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.PASSIVE_SHEDDING_ENABLE, true);
+        enableActiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.ACTIVE_SHEDDING_ENABLE, true);
     }
 
     @Override
@@ -78,6 +83,9 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         double recvQSizeThreshRatio = ConfigUtil.getDouble(conf, ResaConfig.OPTIMIZE_SMD_RECV_QUEUE_THRESH_RATIO, 0.6);
         double recvQSizeThresh = recvQSizeThreshRatio * maxRecvQSize;
         int resourceUnit = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_SMD_RESOURCE_UNIT,1);
+        int messageTimeOut = Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+        double relativeE = ConfigUtil.getDouble(conf, ResaConfig.ACTIVE_SHEDDING_RELATIVE_ERROR_THRESHOLD,0.9);
+        ShedRateAndAllocResult shedRateAndAllocResult;
 
         ///TODO: check how metrics are sampled in the current implementation.
         double componentSampelRate = ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 1.0);
@@ -104,8 +112,10 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                     ///TODO: shall we put this i2oRatio calculation here, or later to inside ServiceModel?
                     return new ServiceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar, spInfo.getExArrivalRate());
                 }));
+
         SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(conf,spInfo,queueingNetwork,rawTopology,targets,selectivityFunctions);//load shedding
         sheddingLoadRevert.revertLoad();
+
 
         Map<String, Integer> boltAllocation = currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
@@ -120,13 +130,19 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey())).mapToInt(Map.Entry::getValue).sum();
 
         LOG.info("Run Optimization, tQos: " + targetQoSMs + ", currUsed: " + currentUsedThreadByBolts + ", kMax: " + maxThreadAvailable4Bolt + ", currAllo: " + currAllocation);
-//        ShedRateAndAllocResult shedRateAndAllocResult = serviceModel.checkOptimized(
-//                spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);
-        ShedRateAndAllocResult shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork,
-                completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, selectivityFunctions);
+
+        if (enableActiveShedding) {
+            //shedRateAndAllocResult = serviceModel.checkOptimizedWithActiveShedding(spInfo, queueingNetwork,
+            //        completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, relativeE, messageTimeOut, selectivityFunctions, targets);
+            shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork,
+                   completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, relativeE, messageTimeOut, selectivityFunctions, targets);
+        } else {
+            shedRateAndAllocResult = serviceModel.checkOptimized(
+                    spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);
+        }
 
         AllocResult allocResult = shedRateAndAllocResult.getAllocResult();
-        Map<String,Double> activeShedRate = shedRateAndAllocResult.getActiveShedRate();
+        Map<String, Map<String,Double>> activeShedRate = shedRateAndAllocResult.getActiveShedRate();
         Map<String, Integer> retCurrAllocation = null;
         if (allocResult.currOptAllocation != null) {
             retCurrAllocation = new HashMap<>(currAllocation);
@@ -166,40 +182,46 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
 //        });
         Map<String, double[]> selectivityCoeffs = new HashMap<>();
         Map<String, Queue<AggResult>> compHistoryResults =boltHistoricalData.compHistoryResults;
-        for(Map.Entry comp : compHistoryResults.entrySet()){
+
+        for (Map.Entry comp : compHistoryResults.entrySet()) {
             Iterator iterator = ((Queue)comp.getValue()).iterator();
             LinkedList<Pair<Double,Double>> loadPairList = new LinkedList<>();
-            while(iterator.hasNext()){
+
+            while (iterator.hasNext()) {
                 BoltAggResult tempAggResult = (BoltAggResult) iterator.next();
                 //double sheddingRate = 0.0;
                 double loadIN = 0.0;
                 double loadOUT = 0.0;
-                if(tempAggResult.getPassiveSheddingCountMap().get("allTuple") != null &&
+                if (tempAggResult.getPassiveSheddingCountMap().get("allTuple") != null &&
                         tempAggResult.getPassiveSheddingCountMap().get("allTuple") != 0) {
                     long loadTuple = tempAggResult.getPassiveSheddingCountMap().get("allTuple")
                             - tempAggResult.getPassiveSheddingCountMap().get("dropTuple");
-                    if(loadTuple > 0) {
+                    if (loadTuple > 0) {
                         loadIN = loadTuple;
                         int emitSum = tempAggResult.getemitCount().values().stream().mapToInt(Number::intValue).sum();
-                        if(emitSum != 0)
+                        if (emitSum != 0) {
                             loadOUT = emitSum;
+                        }
                         System.out.println(loadTuple+" ::~:: "+emitSum);
                     }
                 }
                 loadPairList.add(new Pair<>(loadIN,loadOUT));
             }
+
             double[] oneCompSelectivityCoeff = calcSelectivityFunction.Fit(loadPairList,order);
             selectivityCoeffs.put((String) comp.getKey(),oneCompSelectivityCoeff);
         }
+
         System.out.println("this is the selectivity coeff!!!!!!");
-        for(Map.Entry comp : selectivityCoeffs.entrySet()){
-            System.out.println(comp.getKey());
+        for (Map.Entry comp : selectivityCoeffs.entrySet()) {
+            System.out.println((String) comp.getKey());
             double[] value = (double[]) comp.getValue();
             for(int i=0; i<value.length; i++){
-                System.out.println(value[i]);
+                System.out.println(String.valueOf(value[i]));
             }
         }
-        System.out.println("*****************************************");
+        System.out.println("_______________________________________");
+
         return selectivityCoeffs;
     }
 
