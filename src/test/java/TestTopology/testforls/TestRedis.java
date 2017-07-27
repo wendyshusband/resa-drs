@@ -5,7 +5,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
 /**
- * Created by 44931 on 2016/12/28.
+ * Created by kailin on 2016/12/28.
  */
 public class TestRedis {
     private static JedisPool jedisPool = null;
@@ -22,7 +22,7 @@ public class TestRedis {
         config.setMaxWaitMillis(maxWait);
         config.setTestOnBorrow(testOnBorrow);
         config.setTestOnReturn(onreturn);
-        jedisPool = new JedisPool(config, "kailin-ubuntu", 6379);
+        jedisPool = new JedisPool(config, "10.21.50.20", 6379);
     }
 
     public synchronized static Jedis getJedis() {
@@ -129,18 +129,21 @@ public class TestRedis {
                 //"i like you.",
                 //"this salad is very good."
         };
-        int i = 50000;
-        while(i>0){
-            for(int j=0;j<s.length;j++){
-                jedis.lpush("fsource",s[j]);
-            }
-            i--;
-        }
-//        int i =0;
-//        while(i<200){
-//            i++;
-//            jedis.lpop("outputMetric");
+//        int i = 50000;
+//        while(i>0){
+//            for(int j=0;j<s.length;j++){
+//                jedis.lpush("fsource",s[j]);
+//            }
+//            i--;
 //        }
+        int i = 0;
+        while(i<200000){
+            i++;
+            //jedis.lpop("outputMetric");
+            if(null == jedis.lpop("fsource")){
+                break;
+            }
+        }
         System.out.println("ok!");
     }
 }

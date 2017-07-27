@@ -54,8 +54,9 @@ public class ResaConfig extends Config {
     public static final String SHEDDING_SERVICE_MODEL_CLASS = "resa.shedding.service.model.class";
     public static final String SPOUT_MAX_PENDING = "resa.spout.max.pending";
     public static final String SPOUT_PENDING_THRESHOLD = "resa.spout.pending.threshold";
-    public static final String SHEDDING_ACTIVE_RATE_UNIT = "resa.active.shedding.rate.unit";
-    public static final String ACTIVE_SHEDDING_RELATIVE_ERROR_THRESHOLD = "resa.active.shedding.relative.error.threshold";
+   // public static final String SHEDDING_ACTIVE_RATE_UNIT = "resa.active.shedding.rate.unit";
+    public static final String ACTIVE_SHEDDING_ADJUSTRATIO_BIAS_THRESHOLD = "resa.active.shedding.adjustRatio.bias.threshold";
+    public static final String ADJRATIO_CALC_CLASS = "resa.shedding.adjustratio.calc.class";
     //RED
     public static final String HIGH_SHEDDING_THRESHOLD = "resa.shedding.high.thresdhold";
     public static final String LOW_SHEDDING_THRESHOLD = "resa.shedding.low.thresdhold";

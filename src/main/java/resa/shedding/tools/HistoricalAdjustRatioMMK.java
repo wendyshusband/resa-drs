@@ -5,10 +5,12 @@ import org.javatuples.Pair;
 import resa.util.FixedSizeQueue;
 
 /**
- * Created by 44931 on 2017/7/7.
+ * Created by kailin on 2017/7/7.
  */
 public class HistoricalAdjustRatioMMK {
 
+    private Pair historyMean;
+    //private int historyCountForMean;
     private int historySize;
     public FixedSizeQueue historyAdjustRatioResults;
 
@@ -19,10 +21,9 @@ public class HistoricalAdjustRatioMMK {
     }
 
     public void putResult(double realLatency, double estSojournTime) {
-        //System.out.println(historySize+"haiwode");
         System.out.println(realLatency+"!!!"+estSojournTime);
-        boolean a = historyAdjustRatioResults.add(new Pair<>(estSojournTime, realLatency));
-        //System.out.println(historyAdjustRatioResults.size()+"wobuxinshilinga"+a);
+       // historyAdjustRatioResults.toArray();
+        historyAdjustRatioResults.add(new Pair<>(estSojournTime, realLatency));
     }
 
     public void clear() {

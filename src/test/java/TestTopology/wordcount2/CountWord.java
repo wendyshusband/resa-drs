@@ -28,11 +28,9 @@ public class CountWord {
 
         public Split(IntervalSupplier sleep){
             super(sleep);
-            System.out.println("splitsleeptime:"+sleep.get());
         }
         @Override
         public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
-            System.out.println(topologyContext.getThisComponentId()+"wozihengdao"+map.get(Config.TOPOLOGY_BACKPRESSURE_ENABLE).toString());
             collector = outputCollector;
         }
 
@@ -61,7 +59,6 @@ public class CountWord {
 
         public Count(IntervalSupplier sleep){
             super(sleep);
-            System.out.println("countsleeptime:"+sleep.get());
         }
         @Override
         public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
@@ -107,15 +104,15 @@ public class CountWord {
                 ;//.setNumTasks(3);
         double split_mu = ConfigUtil.getDouble(conf, "split.mu", 1.0);
 
-        builder.setBolt("split", new Split(() -> (long) (1000.0 / split_mu)), ConfigUtil.getInt(conf, "split.parallelism", 1))
+        builder.setBolt("split", new Split(() -> (long) (-Math.log(Math.random()) * 1000.0 / split_mu)), ConfigUtil.getInt(conf, "split.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("spout");
         double count_mu = ConfigUtil.getDouble(conf, "count.mu", 1.0);
 
-        builder.setBolt("counter", new Count(() -> (long) (1000.0 / count_mu)), ConfigUtil.getInt(conf, "counter.parallelism", 1))
+        builder.setBolt("counter", new Count(() -> (long) (-Math.log(Math.random()) * 1000.0 / count_mu)), ConfigUtil.getInt(conf, "counter.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .fieldsGrouping("split", new Fields("word"));
-        builder.setBolt("out", new Output2(() -> (long) 2),1)
+        builder.setBolt("out", new Output2(() -> 2L),1)
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("counter");
         conf.setNumWorkers(ConfigUtil.getInt(conf, "wc-NumOfWorkers", 1));

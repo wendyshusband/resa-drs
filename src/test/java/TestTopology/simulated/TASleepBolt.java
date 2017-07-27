@@ -40,6 +40,7 @@ public abstract class TASleepBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         long inter = this.sleep.get();
+        //System.out.println("inter shiduoshao: "+inter);
         if (inter > 0) {
             performSleep(inter);
         }

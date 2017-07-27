@@ -68,16 +68,14 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         startTimeMillis = System.currentTimeMillis();
         long calcIntervalSec = ConfigUtil.getInt(conf, OPTIMIZE_INTERVAL, 30);
         /** if OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL is not found in configuration files,
-         * we use twice of OPTIMIZE_INTERVAL as default
+             * we use twice of OPTIMIZE_INTERVAL as default
          * here we -50 for synchronization purpose, this needs to be tested **/
         minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcIntervalSec * 2) * 1000 - 50;
         rbTypeValue = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_REBALANCE_TYPE, RebalanceType.CurrentOpt.getValue());
 
         List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         int port = Math.toIntExact((long) conf.get(Config.STORM_ZOOKEEPER_PORT));
-        System.out.println(conf.get(Config.TOPOLOGY_NAME)+"nihaoma: "+zkServer.get(0)+":"+conf.get(Config.STORM_ZOOKEEPER_PORT));
         client = DRSzkHandler.newClient(zkServer.get(0).toString(), port, 6000, 6000, 1000, 3);
-        System.out.println(client.getState()+"nibuhaoma");
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
 
         LOG.info("SheddingBasicDecisionMaker.init(), stTime: " + startTimeMillis + ", minExpInteval: " + minExpectedIntervalMillis);
@@ -92,17 +90,19 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         }
 
         Map<String, Map<String,Double>> activeShedRate = newResult.getActiveShedRate();
-        try {
-            sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
         System.out.println("sheddingBasicDecisionMaker activeRate:"+activeShedRate);
         AllocResult newAllocResult = newResult.getAllocResult();
         if (timeSpan < minExpectedIntervalMillis) {
             /** if  timeSpan is not large enough, no rebalance will be triggered **/
             LOG.info("BasicDecisionMaker.make(), timeSpan (" + timeSpan + ") < minExpectedIntervalMillis (" + minExpectedIntervalMillis + ")");
             return null;
+        }
+
+        try {
+            sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         if (rbTypeValue == DefaultDecisionMaker.RebalanceType.MaxExecutorOpt.getValue()) {
@@ -143,16 +143,13 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         if (!client.isStarted()) {
             DRSzkHandler.start();
         }
-//        if(null == client.checkExists().forPath("/drs")){
-//            client.create().forPath("/drs");
-//        }
         LOG.info("active shedding rate map: "+activeSheddingRateMap.toString());
         if(client.checkExists().forPath("/drs/"+topologyName) == null){
             client.create().creatingParentsIfNeeded().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
         }else{
             client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
         }
-        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
+        //System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
     }
 
 }

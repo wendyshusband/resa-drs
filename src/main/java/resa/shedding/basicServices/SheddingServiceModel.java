@@ -33,13 +33,13 @@ public interface SheddingServiceModel {
             SourceNode sourceNode, Map<String, ServiceNode> queueingNetwork,
             double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
             Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
-            int currentUsedThreadByBolts, int resourceUnit, double relativeE,
-            double messageTimeOut, Map<String, double[]> selectivityFunctions, Map<String,Object> targets);
+            int currentUsedThreadByBolts, int resourceUnit, double tolerant,
+            double messageTimeOut, Map<String, double[]> selectivityFunctions, LearningModel calcAdjRatioFunction, Map<String,Object> targets);
 
     ShedRateAndAllocResult checkOptimizedWithActiveShedding(
             SourceNode sourceNode, Map<String, ServiceNode> queueingNetwork,
             double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
             Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
-            int currentUsedThreadByBolts, int resourceUnit, double relativeE,
-            double messageTimeOut, Map<String, double[]> selectivityFunctions, Map<String,Object> targets);
+            int currentUsedThreadByBolts, int resourceUnit, double tolerant,
+            double messageTimeOut, Map<String, double[]> selectivityFunctions,  Map<String,Object> targets);
 }

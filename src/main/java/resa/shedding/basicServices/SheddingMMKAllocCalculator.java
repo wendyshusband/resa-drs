@@ -27,7 +27,7 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
     private int historySize;
     private int currHistoryCursor;
     private SheddingServiceModel serviceModel;
-    private LearningSelectivity calcSelectivityFunction;
+    private LearningModel calcSelectivityFunction;
     private Integer order;
     private Map<String,Integer> selectivityOrder = new HashMap<>();
     private boolean enablePassiveShedding;
@@ -44,7 +44,7 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         serviceModel =  ResaUtils.newInstanceThrow((String) conf.getOrDefault(SHEDDING_SERVICE_MODEL_CLASS,
                 SheddingMMKServiceModel.class.getName()), SheddingServiceModel.class);
         calcSelectivityFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.SELECTIVITY_CALC_CLASS,
-                PolynomialRegression.class.getName()),LearningSelectivity.class);
+                PolynomialRegression.class.getName()),LearningModel.class);
         order = ConfigUtil.getInt(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
         currAllocation.keySet().stream().forEach(e->{
             selectivityOrder.put(e,order);
@@ -84,7 +84,9 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         double recvQSizeThresh = recvQSizeThreshRatio * maxRecvQSize;
         int resourceUnit = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_SMD_RESOURCE_UNIT,1);
         int messageTimeOut = Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
-        double relativeE = ConfigUtil.getDouble(conf, ResaConfig.ACTIVE_SHEDDING_RELATIVE_ERROR_THRESHOLD,0.9);
+        double tolerant = ConfigUtil.getDouble(conf, ResaConfig.ACTIVE_SHEDDING_ADJUSTRATIO_BIAS_THRESHOLD,0.9);
+        LearningModel calcAdjRatioFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.ADJRATIO_CALC_CLASS,
+                PolynomialRegression.class.getName()),LearningModel.class);
         ShedRateAndAllocResult shedRateAndAllocResult;
 
         ///TODO: check how metrics are sampled in the current implementation.
@@ -116,7 +118,6 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(conf,spInfo,queueingNetwork,rawTopology,targets,selectivityFunctions);//load shedding
         sheddingLoadRevert.revertLoad();
 
-
         Map<String, Integer> boltAllocation = currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -133,9 +134,9 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
 
         if (enableActiveShedding) {
             //shedRateAndAllocResult = serviceModel.checkOptimizedWithActiveShedding(spInfo, queueingNetwork,
-            //        completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, relativeE, messageTimeOut, selectivityFunctions, targets);
+            //        completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions, targets);
             shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork,
-                   completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, relativeE, messageTimeOut, selectivityFunctions, targets);
+                   completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions, calcAdjRatioFunction, targets);
         } else {
             shedRateAndAllocResult = serviceModel.checkOptimized(
                     spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);
@@ -202,17 +203,17 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                         if (emitSum != 0) {
                             loadOUT = emitSum;
                         }
-                        System.out.println(loadTuple+" ::~:: "+emitSum);
+                        //System.out.println(loadTuple+" ::~:: "+emitSum);
                     }
                 }
                 loadPairList.add(new Pair<>(loadIN,loadOUT));
             }
 
-            double[] oneCompSelectivityCoeff = calcSelectivityFunction.Fit(loadPairList,order);
+            double[] oneCompSelectivityCoeff = calcSelectivityFunction.Fit(loadPairList,order,false);
             selectivityCoeffs.put((String) comp.getKey(),oneCompSelectivityCoeff);
         }
 
-        System.out.println("this is the selectivity coeff!!!!!!");
+        System.out.println("this is the selectivity coeff!!!!!??????????????!");
         for (Map.Entry comp : selectivityCoeffs.entrySet()) {
             System.out.println((String) comp.getKey());
             double[] value = (double[]) comp.getValue();

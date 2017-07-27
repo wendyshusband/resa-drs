@@ -5,7 +5,7 @@ import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.AggResult;
-import resa.shedding.basicServices.LearningSelectivity;
+import resa.shedding.basicServices.LearningModel;
 import resa.shedding.basicServices.RevertRealLoadData;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -25,7 +25,7 @@ public class RevertRealLoad {
     private StormTopology topology;
     private Integer historyLambdaSize;
     private Integer order;
-    private LearningSelectivity calcSelectivityFunction;
+    private LearningModel calcSelectivityFunction;
     private Map<String,Object> topologyTargets = new HashMap<>();
     private final Map<String,LinkedList<Pair<Double,Double>>> historyLambdaForSelectivity = new HashMap<>();
     private final Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
@@ -37,7 +37,7 @@ public class RevertRealLoad {
         topology = stormTopology;
         order = ConfigUtil.getInt(conf, ResaConfig.SELECTIVITY_FUNCTION_ORDER,1);
         calcSelectivityFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.SELECTIVITY_CALC_CLASS,
-                PolynomialRegression.class.getName()),LearningSelectivity.class);
+                PolynomialRegression.class.getName()),LearningModel.class);
         topologyTargets=targets;
         topologyTargets.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey())).forEach(e->{
             revertRealLoadDatas.put(e.getKey(),new RevertRealLoadData(e.getKey()));

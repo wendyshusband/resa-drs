@@ -32,8 +32,10 @@ public class MMKServiceModel implements ServiceModel {
             int serverCount = allocation.get(cid).intValue();
 
             double avgSojournTime = sojournTime_MMK(serviceNode.getLambda(), serviceNode.getMu(), serverCount);
+            System.out.println(serviceNode.getComponentID()+"/"+serverCount+"mingyi"+avgSojournTime+" lambda:"+serviceNode.getLambda()+" mu: "+serviceNode.getMu());
             retVal += (avgSojournTime * serviceNode.getRatio());
         }
+        System.out.println("retval hehe:" +retVal+"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
         return retVal;
     }
 

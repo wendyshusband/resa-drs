@@ -4,7 +4,7 @@ import TestTopology.simulated.TASleepBolt;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 
 /**
- * Created by 44931 on 2017/6/29.
+ * Created by kailin on 2017/6/29.
  */
 public class SortJoinBolt extends TASleepBolt {
     @Override

@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import resa.metrics.FilteredMetricsCollector;
 import resa.metrics.MeasuredData;
 import resa.metrics.MetricNames;
+import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.TopologyHelper;
@@ -153,10 +154,10 @@ public class SheddingResaContainer extends FilteredMetricsCollector {
     public void cleanup() {
         super.cleanup();
         resourceScheduler.stop();
-//        try {
-//            DRSzkHandler.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
+        try {
+            DRSzkHandler.close("/drs");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

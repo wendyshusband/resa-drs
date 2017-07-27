@@ -12,7 +12,7 @@ import org.apache.storm.tuple.Values;
 import java.util.Map;
 
 /**
- * Created by 44931 on 2017/6/9.
+ * Created by kailin on 2017/6/9.
  */
 public class Output2 extends TASleepBolt {
     private OutputCollector collector;

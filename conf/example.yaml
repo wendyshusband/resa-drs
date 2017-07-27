@@ -120,9 +120,8 @@ DebugTopology: false
 
 ## Chain-topology
 chain-BoltA.parallelism: 1
-chain-BoltA.mu: 150.0
-
 chain-BoltB.parallelism: 1
+chain-BoltA.mu: 150.0
 chain-BoltB.mu: 150.0
 
 ## 2Path-topology
@@ -186,3 +185,4 @@ topology.max.spout.pending: null
 
 resa.passive.shedding.enable: true
 resa.active.shedding.enable: true
+resa.active.shedding.adjustRatio.bias.threshold: 0.95

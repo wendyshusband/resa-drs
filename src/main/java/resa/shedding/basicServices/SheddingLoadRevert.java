@@ -14,6 +14,7 @@ import java.util.*;
  * Created by kailin on 12/4/17.
  */
 public class SheddingLoadRevert {
+
     private static final Logger LOG = LoggerFactory.getLogger(SheddingLoadRevert.class);
 
     private Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
@@ -40,44 +41,18 @@ public class SheddingLoadRevert {
     }
 
     public void revertLoad() {
-        revertCompleteLatency();
+        //revertCompleteLatency();
         calcProportion();
         calcAndSetRealLoad();
     }
 
-    /*public void sentActiveSheddingRate() throws Exception {
-        if(!client.isStarted())
-            client.start();
-        Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();
-        if(null == client.checkExists().forPath("/drs")){
-            client.create().forPath("/drs");
-        }
-        LOG.info("xiaoteng: "+activeSheddingRateMap.toString());
-        if(client.checkExists().forPath("/drs/"+topologyName) == null){
-            client.create().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }else{
-            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }
-        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
-        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
-        //client.close();
-    }
-
-    private Map<String, Double> calcActiveSheddingRate() {
-        Map<String,Double> activeSheddingRateMap = new HashMap<>();
-        Random random  = new Random(1);
-        activeSheddingRateMap.put("counter",random.nextDouble());
-        activeSheddingRateMap.put("intermediateRanker",random.nextDouble());
-        activeSheddingRateMap.put("finalRanker",0.5);
-        return activeSheddingRateMap;
-    }*/
     private void revertCompleteLatency() {
         long tempFailCount = sourceNode.getFailureCount();//serviceNodeMap.values().stream().mapToLong(ServiceNode::getDropCount).sum();
         long tempDropCount = sourceNode.getSpoutDropCount();
         long tempAllCount = sourceNode.getEmitCount().values().stream().mapToLong(Number::longValue).sum();//serviceNodeMap.values().stream().mapToLong(ServiceNode::getAllCount).sum();
         double completeLatency = sourceNode.getRealLatencyMilliSeconds();
-        double realCL = (((tempAllCount-tempFailCount)*completeLatency)
-                +((tempDropCount+tempFailCount) * processTimeout * 1000))/(tempAllCount+tempDropCount);
+        double realCL = (((tempAllCount - tempFailCount) * completeLatency)
+                + ((tempDropCount + tempFailCount) * processTimeout * 1000)) / (tempAllCount + tempDropCount);
         sourceNode.revertCompleteLatency(realCL);
         LOG.info("all:"+tempAllCount+"fail:"+tempFailCount+"drop:"+tempDropCount+"processdrop"+realCL);
     }
@@ -95,15 +70,15 @@ public class SheddingLoadRevert {
             LOG.info("serviceNODE : "+serviceNode.getKey()+" whole emit tuple number ="+ denominator);
             Map<String,ArrayList<String>> stream2CompLists =
                     (Map<String, ArrayList<String>>) topologyTargets.get(serviceNode.getKey());
-            if(!stream2CompLists.isEmpty()) {
-                for(Map.Entry stream2CompList : stream2CompLists.entrySet()){
+            if (!stream2CompLists.isEmpty()) {
+                for (Map.Entry stream2CompList : stream2CompLists.entrySet()) {
                     ArrayList<String> compList = (ArrayList<String>) stream2CompList.getValue();
-                    if(allEmitCountMap.containsKey(stream2CompList.getKey())) {
-                        for (int i = 0; i < compList.size(); i++) {
+                    if (allEmitCountMap.containsKey(stream2CompList.getKey())) {
+                        for (int i=0; i<compList.size(); i++) {
                             revertRealLoadDatas.get(compList.get(i)).addProportion((String) serviceNode.getKey(),
                                     (1.0 * allEmitCountMap.get(stream2CompList.getKey())) / denominator);
                         }
-                    }else{
+                    } else {
                         for (int i = 0; i < compList.size(); i++) {
                             revertRealLoadDatas.get(compList.get(i)).addProportion((String) serviceNode.getKey(),
                                     0.0);
@@ -118,20 +93,20 @@ public class SheddingLoadRevert {
         Map<String,Long> emitCountMap = sourceNode.getEmitCount();
         long denominator = emitCountMap.values().stream().mapToLong(Number::longValue).sum();
         LOG.info("sourceNode : "+sourceNode.getComponentID()+" whole emit tuple number ="+ denominator);
-        sourceNode.revertLambda((sourceNode.getSpoutDropCount()+denominator)/sourceNode.getSumDurationSeconds());
-        LOG.info("Reverted Lambda 0: "+(sourceNode.getSpoutDropCount()+denominator)/sourceNode.getSumDurationSeconds());
+        sourceNode.revertLambda((sourceNode.getSpoutDropCount()+denominator) / sourceNode.getSumDurationSeconds());
+        LOG.info("Reverted Lambda 0: "+(sourceNode.getSpoutDropCount()+denominator) / sourceNode.getSumDurationSeconds());
         Map<String,ArrayList<String>> stream2CompLists =
                 (Map<String, ArrayList<String>>) topologyTargets.get(sourceNode.getComponentID());
         if (!stream2CompLists.isEmpty()) {
             for (Map.Entry stream2CompList : stream2CompLists.entrySet()) {
                 ArrayList<String> compList = (ArrayList<String>) stream2CompList.getValue();
                 if (emitCountMap.containsKey(stream2CompList.getKey())) {
-                    for (int i = 0; i < compList.size(); i++) {
+                    for (int i=0; i<compList.size(); i++) {
                         revertRealLoadDatas.get(compList.get(i)).addProportion(sourceNode.getComponentID(),
                                 (1.0 * emitCountMap.get(stream2CompList.getKey())) / denominator);
                     }
                 } else {
-                    for (int i = 0; i < compList.size(); i++) {
+                    for (int i=0; i<compList.size(); i++) {
                         revertRealLoadDatas.get(compList.get(i)).addProportion(sourceNode.getComponentID(),
                                 0.0);
                     }
@@ -175,11 +150,11 @@ public class SheddingLoadRevert {
             revertRealLoadDatas.get(topoSortResult.get(i)).setRealLoadIN(appLoadIn);
         }
         revertRealLoadDatas.entrySet().stream().forEach(e->{
-            System.out.println("before: "+serviceNodeMap.get(e.getKey()).toString());
+            //System.out.println("before: "+serviceNodeMap.get(e.getKey()).toString());
             serviceNodeMap.get(e.getKey()).revertLambda(e.getValue().getRealLoadIN(),sourceNode.getExArrivalRate());
-            System.out.println("after: "+serviceNodeMap.get(e.getKey()).toString());
+            //System.out.println("after: "+serviceNodeMap.get(e.getKey()).toString());
         });
-        System.out.println("after sourceNode: "+sourceNode.toString());
+        //System.out.println("after SourceNode: "+sourceNode.toString());
 
     }
 

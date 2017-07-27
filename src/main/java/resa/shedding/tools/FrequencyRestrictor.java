@@ -31,7 +31,7 @@ public class FrequencyRestrictor {
 //                    Utils.sleep(Math.max(0, millisecondPerWindows - (currentTime - lastSleepTime)));
 //                    lastSleepTime = System.currentTimeMillis();
 //                    semaphore.release(frequencyPerWindow);
-                    Utils.sleep(millisecondPerWindows);
+                    Utils.sleep(millisecondPerWindows);//millisecondPerWindows//(int)(-Math.log(Math.random()) * 1000.0 / windowsPerSecond)
                     final long now = System.currentTimeMillis();
                     semaphore.release((int)((now - lastSleepTime) / (double) millisecondPerWindows * frequencyPerWindow) );
                     lastSleepTime = now;

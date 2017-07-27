@@ -3,7 +3,7 @@ package resa.util;
 import org.junit.Test;
 
 /**
- * Created by 44931 on 2017/7/6.
+ * Created by kailin on 2017/7/6.
  */
 public class SamplerTest {
     @Test

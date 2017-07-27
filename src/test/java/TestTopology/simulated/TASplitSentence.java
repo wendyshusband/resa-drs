@@ -8,6 +8,8 @@ import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.StringTokenizer;
+
 /**
  * Created by ding on 14-1-27.
  */
@@ -24,15 +26,15 @@ public class TASplitSentence extends TASleepBolt {
         super.execute(tuple);
         String sid = tuple.getString(0);
         String sentence = tuple.getString(1);
-//        StringTokenizer tokenizer = new StringTokenizer(sentence);
-//        while (tokenizer.hasMoreTokens()) {
-//            collector.emit(tuple, new Values(sid, tokenizer.nextToken()));
-//        }
+        StringTokenizer tokenizer = new StringTokenizer(sentence, " ");
+        while (tokenizer.hasMoreTokens()) {
+            collector.emit(tuple, new Values(sid, tokenizer.nextToken()));
+        }
         if (sid.hashCode() % 10000 == 0) {
             LOG.info(sid + "," + sentence);
         }
-        collector.emit(tuple,new Values(sid, sentence));
-        collector.emit(tuple, new Values(sid, sentence));
+        //collector.emit(tuple,new Values(sid, sentence));
+        //collector.emit(tuple, new Values(sid, sentence));
         collector.ack(tuple);
     }
 

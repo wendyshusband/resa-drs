@@ -26,7 +26,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 /**
- * Created by 44931 on 2017/6/27.
+ * Created by kailin on 2017/6/27.
  */
 public class TraditionSheddableBolt extends DelegatedBolt implements IShedding{
     public static Logger LOG = LoggerFactory.getLogger(TraditionSheddableBolt.class);

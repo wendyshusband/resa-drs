@@ -55,27 +55,57 @@ public class DataSender {
             }
         }
     }
-
     public void send2Queue(Path inputFile, int batchSize, LongSupplier sleep) throws IOException, InterruptedException {
         BlockingQueue<String> dataQueue = new ArrayBlockingQueue<>(10000);
         for (int i = 0; i < 1; i++) {
             new PushThread(dataQueue).start();
         }
+        int count = 0;
         try (BufferedReader reader = Files.newBufferedReader(inputFile)) {
             String line;
             int batchCnt = 0;
             while ((line = reader.readLine()) != null) {
                 dataQueue.put(processData(line));
+                count++;
                 if (++batchCnt == batchSize) {
                     batchCnt = 0;
                     long ms = sleep.getAsLong();
                     if (ms > 0) {
+                        System.out.println(count+"always ms"+ms);
                         Utils.sleep(ms);
                     }
                 }
             }
         } finally {
             dataQueue.put(END);
+        }
+    }
+
+    public void send2QueueControlTime(Path inputFile, int batchSize, LongSupplier sleep) throws IOException, InterruptedException {
+        BlockingQueue<String> dataQueue = new ArrayBlockingQueue<>(10000);
+        for (int i = 0; i < 1; i++) {
+            new PushThread(dataQueue).start();
+        }
+        int count = 0;
+        try (BufferedReader reader = Files.newBufferedReader(inputFile)) {
+            String line;
+            int batchCnt = 0;
+            long time = System.currentTimeMillis();
+            while ((line = reader.readLine()) != null && (System.currentTimeMillis() - time) <= (160 * 1000)) {//tkl
+                dataQueue.put(processData(line));
+                count++;
+                if (++batchCnt == batchSize) {
+                    batchCnt = 0;
+                    long ms = sleep.getAsLong();
+                    if (ms > 0) {
+                        System.out.println("ms"+ms);
+                        Utils.sleep(ms);
+                    }
+                }
+            }
+        } finally {
+            dataQueue.put(END);
+            System.out.println("count= "+count);
         }
     }
 
@@ -92,23 +122,32 @@ public class DataSender {
     protected static void runWithInstance(DataSender sender, String[] args) throws IOException, InterruptedException {
         if (args.length < 4) {
             printUsage();
+            System.out.println(1);
             return;
         }
         int batchSize = Integer.parseInt(args[2]);
-        System.out.println("start sender");
+        System.out.println("start sender" + batchSize);
         Path dataFile = Paths.get(args[1]);
         switch (args[3].substring(1)) {
             case "deter":
+                System.out.println("case deter");
                 long sleep = (long) (1000 / Float.parseFloat(args[4]));
                 sender.send2Queue(dataFile, batchSize, () -> sleep);
                 break;
             case "poison":
                 double lambda = Float.parseFloat(args[4]);
-                sender.send2Queue(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
+                System.out.println("case poison "+lambda);
+                if (lambda >=1) {
+                    sender.send2Queue(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
+                } else {
+                    sender.send2QueueControlTime(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
+                }
                 break;
             case "uniform":
+                System.out.println("case uniform");
                 if (args.length < 6) {
                     printUsage();
+                    System.out.println(2);
                     return;
                 }
                 double left = Float.parseFloat(args[4]);
@@ -117,6 +156,7 @@ public class DataSender {
                 break;
             default:
                 printUsage();
+                System.out.println(3);
                 break;
         }
         System.out.println("end sender");
@@ -124,8 +164,20 @@ public class DataSender {
 
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        DataSender sender = new DataSender(ConfigUtil.readConfig(new File(args[0])));
-        runWithInstance(sender, args);
+        String[] arg = new String[5];
+        arg[0] = "";
+        arg[1] = "E:/testData/testRedis.txt";
+        arg[2] = String.valueOf(1);
+        arg[3] = " poison";
+        int load = 3;
+        long startTime = System.currentTimeMillis();
+        while (load <= 12) {
+            load +=2;
+            arg[4] = String.valueOf(load);
+            DataSender sender = new DataSender(ConfigUtil.readConfig(new File(args[0])));
+            runWithInstance(sender, arg);
+        }
+
     }
 
 }

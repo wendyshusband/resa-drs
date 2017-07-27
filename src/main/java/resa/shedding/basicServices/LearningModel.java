@@ -4,7 +4,7 @@ package resa.shedding.basicServices;
 /**
  * Created by kailin on 27/3/17.
  */
-public abstract class LearningSelectivity<T> {
+public abstract class LearningModel<T> {
     /**
      * Fit the input and output selectivity function.
      * */

@@ -3,7 +3,7 @@ package resa.shedding.basicServices;
 import org.junit.Test;
 
 /**
- * Created by 44931 on 2017/7/4.
+ * Created by kailin on 2017/7/4.
  */
 public class SheddingMMKServiceModelTest {
     @Test
@@ -11,4 +11,8 @@ public class SheddingMMKServiceModelTest {
 
     }
 
+    @Test
+    public void avgSojurnTime() throws Exception {
+        System.out.println(SheddingMMKServiceModel.avgQueueingTime_MMK(41.364236342314,41.364236342313,1));
+    }
 }

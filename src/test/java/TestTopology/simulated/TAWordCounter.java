@@ -20,7 +20,7 @@ public class TAWordCounter extends TASleepBolt {
         super.execute(tuple);
         String sid = tuple.getString(0);
         String word = tuple.getString(1);
-        collector.emit(new Values(sid,word + "!!"));
+        collector.emit(tuple, new Values(sid,word + "!!"));
         collector.ack(tuple);
     }
 
