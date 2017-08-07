@@ -186,7 +186,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
 //            @Override
 //            public void run() {
 //                while(true){
-//                    if(!client.isStarted())
+//                    if(!DRSzkHandler.clientIsStart())
 //                        DRSzkHandler.start();
 //                    try {
 //                        if(null != client.checkExists().forPath("/drs/"+topologyName)){

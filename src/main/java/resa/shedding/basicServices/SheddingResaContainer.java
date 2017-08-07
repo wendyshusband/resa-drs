@@ -113,7 +113,7 @@ public class SheddingResaContainer extends FilteredMetricsCollector {
         }
 
         @Override
-        public Map<String, List<ExecutorDetails>> runningExecutors() {
+        public synchronized Map<String, List<ExecutorDetails>> runningExecutors() {
             return TopologyHelper.getTopologyExecutors(nimbus, topologyId).entrySet().stream()
                     .filter(e -> !Utils.isSystemId(e.getKey()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

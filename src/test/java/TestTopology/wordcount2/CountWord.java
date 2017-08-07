@@ -112,7 +112,7 @@ public class CountWord {
         builder.setBolt("counter", new Count(() -> (long) (-Math.log(Math.random()) * 1000.0 / count_mu)), ConfigUtil.getInt(conf, "counter.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .fieldsGrouping("split", new Fields("word"));
-        builder.setBolt("out", new Output2(() -> 2L),1)
+        builder.setBolt("out", new Output2(() -> 1L),1)
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("counter");
         conf.setNumWorkers(ConfigUtil.getInt(conf, "wc-NumOfWorkers", 1));

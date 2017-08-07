@@ -91,7 +91,7 @@ public class DataSender {
             String line;
             int batchCnt = 0;
             long time = System.currentTimeMillis();
-            while ((line = reader.readLine()) != null && (System.currentTimeMillis() - time) <= (160 * 1000)) {//tkl
+            while ((line = reader.readLine()) != null && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
                 dataQueue.put(processData(line));
                 count++;
                 if (++batchCnt == batchSize) {
@@ -108,6 +108,39 @@ public class DataSender {
             System.out.println("count= "+count);
         }
     }
+
+    public void send2QueueForOutLier(Path inputFile, int batchSize, LongSupplier sleep) throws IOException, InterruptedException {
+        BlockingQueue<String> dataQueue = new ArrayBlockingQueue<>(10000);
+        for (int i = 0; i < 1; i++) {
+            new PushThread(dataQueue).start();
+        }
+        int count = 0;
+        try (BufferedReader reader = Files.newBufferedReader(inputFile)) {
+            String line;
+            int batchCnt = 0;
+            long time = System.currentTimeMillis();
+            while ((line = reader.readLine()) != null) {// && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
+                dataQueue.put(fixAndProcessData(count, line));
+                count++;
+                if (++batchCnt == batchSize) {
+                    batchCnt = 0;
+                    long ms = sleep.getAsLong();
+                    if (ms > 0) {
+                        Utils.sleep(ms);
+                    }
+                }
+            }
+        } finally {
+            dataQueue.put(END);
+            System.out.println("count= "+count);
+        }
+    }
+
+    private String fixAndProcessData(int count, String line) {
+        long time = System.currentTimeMillis();
+        return count+"|"+time+"|"+line;
+    }
+
 
     protected String processData(String line) {
         return line;
@@ -137,7 +170,7 @@ public class DataSender {
             case "poison":
                 double lambda = Float.parseFloat(args[4]);
                 System.out.println("case poison "+lambda);
-                if (lambda >=1) {
+                if (lambda >=12) {
                     sender.send2Queue(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
                 } else {
                     sender.send2QueueControlTime(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
@@ -162,14 +195,14 @@ public class DataSender {
         System.out.println("end sender");
     }
 
-
     public static void main(String[] args) throws IOException, InterruptedException {
         String[] arg = new String[5];
         arg[0] = "";
-        arg[1] = "E:/testData/testRedis.txt";
+        //arg[1] = "E:/testData/testRedis.txt";
+        arg[1] = "";
         arg[2] = String.valueOf(1);
         arg[3] = " poison";
-        int load = 3;
+        int load = 2;
         long startTime = System.currentTimeMillis();
         while (load <= 12) {
             load +=2;
@@ -177,7 +210,5 @@ public class DataSender {
             DataSender sender = new DataSender(ConfigUtil.readConfig(new File(args[0])));
             runWithInstance(sender, arg);
         }
-
     }
-
 }

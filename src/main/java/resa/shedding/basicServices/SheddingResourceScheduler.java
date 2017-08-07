@@ -9,6 +9,7 @@ import resa.metrics.MeasuredData;
 import resa.optimize.AggResult;
 import resa.optimize.AggResultCalculator;
 import resa.util.ConfigUtil;
+import resa.util.ResaConfig;
 import resa.util.ResaUtils;
 
 import java.util.*;
@@ -23,17 +24,18 @@ public class SheddingResourceScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(SheddingResourceScheduler.class);
 
     private final Timer timer = new Timer(true);
+    private final Timer activeShedRateTrimTimer = new Timer(true);
     private Map<String, Integer> currAllocation;
     private int maxExecutorsPerWorker;
     private int topologyMaxExecutors;
     private Map<String, Object> conf;
     private SheddingAllocCalculator allocCalculator;
     private ISheddingDecisionMaker decisionMaker;
-
-    //load shedding
-    //private RevertRealLoad revertRealLoad;
     private SheddingContainerContext ctx;
+    private ActiveSheddingRateTrimer trimActiveSheddingRate;
+    private boolean enableActiveShedding;
     private volatile List<MeasuredData> measuredDataBuffer = new ArrayList<>();
+    private volatile List<MeasuredData> measuredDataBufferForsheddingTrim = new ArrayList<>();
 
     public void init(SheddingContainerContext sheddingContainerContext) {
         this.conf = sheddingContainerContext.getConfig();
@@ -42,8 +44,10 @@ public class SheddingResourceScheduler {
             @Override
             public void measuredDataReceived(MeasuredData measuredData) {
                 measuredDataBuffer.add(measuredData);
+                measuredDataBufferForsheddingTrim.add(measuredData);
             }
         });
+        enableActiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.ACTIVE_SHEDDING_ENABLE, true);
         maxExecutorsPerWorker = ConfigUtil.getInt(conf, MAX_EXECUTORS_PER_WORKER, 8);
         topologyMaxExecutors = ConfigUtil.getInt(conf, ALLOWED_EXECUTOR_NUM, -1);
 
@@ -53,10 +57,13 @@ public class SheddingResourceScheduler {
         // current allocation should be retrieved from nimbus
         currAllocation = calcAllocation(this.ctx.runningExecutors());
         allocCalculator.init(conf, Collections.unmodifiableMap(currAllocation), this.ctx.getTopology(), this.ctx.getTargets());
-
-        //create revert load function
-        //revertRealLoad = new RevertRealLoad(conf,this.ctx.getTopology(),ctx.getTargets());
-
+        if (enableActiveShedding) {
+            //trim active shedding rate
+            trimActiveSheddingRate = ResaUtils.newInstanceThrow((String) conf.getOrDefault(ACTIVE_SHEDDING_TRIM_CLASS,
+                    SpoutActiveSheddingRateTrimer.class.getName()), ActiveSheddingRateTrimer.class);
+            trimActiveSheddingRate.init(conf, this.ctx.getTopology());
+            LOG.info("active Shedding trim class: {}", trimActiveSheddingRate.getClass().getName());
+        }
         // create Decision Maker
         decisionMaker = ResaUtils.newInstanceThrow((String) conf.getOrDefault(SHEDDING_DECISION_MAKER_CLASS,
                 SheddingBasicDecisionMaker.class.getName()), ISheddingDecisionMaker.class);
@@ -69,11 +76,35 @@ public class SheddingResourceScheduler {
         long calcInterval = ConfigUtil.getInt(conf, OPTIMIZE_INTERVAL, 30) * 1000;
         //start optimize thread
         timer.scheduleAtFixedRate(new SheddingResourceScheduler.OptimizeTask(), calcInterval * 2, calcInterval);
+        if (enableActiveShedding) {
+            //start active shed rate trim thread
+            long minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcInterval * 2) * 1000 - 50;
+            long trimInterval = ConfigUtil.getLong(conf, TRIM_INTERVAL, 30) * 1000;
+            long delay =Math.max(minExpectedIntervalMillis, calcInterval * 2);
+            activeShedRateTrimTimer.scheduleAtFixedRate(new SheddingResourceScheduler.activeShedRateTrimTask(), delay, trimInterval);
+            LOG.info(delay+"Init Topology active sheding trim successfully with interval is {} ms", trimInterval);
+        }
         LOG.info("Init Topology Optimizer successfully with calc interval is {} ms", calcInterval);
+    }
+
+    private class activeShedRateTrimTask extends TimerTask {
+        @Override
+        public void run() {
+            System.out.println("activeShedRateTrimTaskliuhui");
+            List<MeasuredData> data = measuredDataBufferForsheddingTrim;
+            measuredDataBufferForsheddingTrim = new ArrayList<>();
+            // get current ExecutorDetails from nimbus
+            Map<String, List<ExecutorDetails>> topoExecutors = ctx.runningExecutors();
+
+            AggResultCalculator calculator = new AggResultCalculator(data, topoExecutors, ctx.getTopology());
+            calculator.calCMVStat();
+            trimActiveSheddingRate.trim(calculator.getComp2ExecutorResults());
+        }
     }
 
     public void stop() {
         timer.cancel();
+        activeShedRateTrimTimer.cancel();
     }
 
     private class OptimizeTask extends TimerTask {
@@ -149,5 +180,6 @@ public class SheddingResourceScheduler {
         }
         return numWorkers;
     }
+
 
 }

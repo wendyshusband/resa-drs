@@ -20,7 +20,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
     private static final Logger LOG = LoggerFactory.getLogger(SheddingMMKServiceModel.class);
     private static final int HISTORY_SIZE = 100;
     private static final int ADJUST_RATIO_FUNCTION_ORDER = 1;
-    private static final int LEARNLING_THRESHOLD = 13;
+    private static final int LEARNLING_THRESHOLD = 5;
     private static final int DEVIATION_RATIO = 3;
     //private LearningSelectivity calcAdjRatioFunction;
     private HistoricalAdjustRatioMMK paramPairForCalcAdjRatio = new HistoricalAdjustRatioMMK(HISTORY_SIZE);
@@ -828,7 +828,8 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 //            System.out.println("yohoho"+(realLatencyMilliSeconds / 1000.0));
 //            //paramPairForCalcAdjRatio.putResult(realLatencyMilliSeconds / 1000.0, realLatencyMilliSeconds / 1000.0);
 //        } else {
-            if (activeShedRate <= 0 && estTotalSojournTimeMilliSec_MMK >= 0.0 && estTotalSojournTimeMilliSec_MMK/realLatencyMilliSeconds < DEVIATION_RATIO) {
+            if (activeShedRate <= 0 && estTotalSojournTimeMilliSec_MMK >= 0.0 && estTotalSojournTimeMilliSec_MMK/realLatencyMilliSeconds < DEVIATION_RATIO
+                    && realLatencyMilliSeconds/estTotalSojournTimeMilliSec_MMK < DEVIATION_RATIO) {
                 System.out.println((estTotalSojournTimeMilliSec_MMK ) + "yoheihei" + (realLatencyMilliSeconds)+" shedding rate:"+activeShedRate);
                 paramPairForCalcAdjRatio.putResult(realLatencyMilliSeconds , estTotalSojournTimeMilliSec_MMK );
             } else {

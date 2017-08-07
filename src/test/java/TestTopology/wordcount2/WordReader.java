@@ -50,13 +50,13 @@ public class WordReader extends BaseRichSpout {
     public void nextTuple() {
         if (System.currentTimeMillis() - startTime >= timeSpan) {
             //System.out.println(maxFrequencyPerSecond+"~~heihei~~"+times);
-            maxFrequencyPerSecond += 2;
-            windowsPerSecond += 2;
+            maxFrequencyPerSecond += 100;
+            windowsPerSecond += 100;
             frequencyRestrictor = new FrequencyRestrictor(maxFrequencyPerSecond,windowsPerSecond);
             LOG.info(System.currentTimeMillis()+"heigezhiai test time enough, we will change the frequency restrictor: "+ maxFrequencyPerSecond);
 
             count++;
-            if (count >= 4) {
+            if (count >= 3) {
                 startTime = Long.MAX_VALUE;
                 LOG.info(System.currentTimeMillis()+"heigezhiai"+count+" starttime"+startTime);
             } else {

@@ -2,12 +2,14 @@ package resa.shedding.basicServices;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
+import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
 import org.apache.storm.utils.Utils;
 import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.*;
 import resa.shedding.example.PolynomialRegression;
+import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.ResaUtils;
@@ -33,6 +35,9 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
     private boolean enablePassiveShedding;
     private boolean enableActiveShedding;
 
+    private transient CuratorFramework client;
+    private String topologyName;
+
     @Override
     public void init(Map<String, Object> conf, Map<String, Integer> currAllocation, StormTopology rawTopology, Map<String, Object> targets) {
         super.init(conf, currAllocation, rawTopology, targets);
@@ -51,6 +56,12 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         });
         enablePassiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.PASSIVE_SHEDDING_ENABLE, true);
         enableActiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.ACTIVE_SHEDDING_ENABLE, true);
+        if (enableActiveShedding) {
+            List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+            int port = Math.toIntExact((long) conf.get(Config.STORM_ZOOKEEPER_PORT));
+            client = DRSzkHandler.newClient(zkServer.get(0).toString(), port, 6000, 6000, 1000, 3);
+            topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
+        }
     }
 
     @Override

@@ -15,6 +15,7 @@ import org.apache.storm.topology.IRichSpout;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import resa.shedding.tools.ISampler;
 import resa.shedding.tools.ActiveSheddingSampler;
 import resa.shedding.tools.DRSzkHandler;
 import resa.topology.DelegatedSpout;
@@ -24,18 +25,54 @@ import resa.util.Sampler;
 
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
  * Created by kailin on 17/5/17.
  */
-public class DefaultSheddableSpout extends DelegatedSpout{
+public class DefaultSheddableSpout extends DelegatedSpout {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultSheddableSpout.class);
+
+    private transient CMVMetric completeMetric;
+    private Sampler sampler;
+    private transient MultiCountMetric emitMetric;
+    private transient CMVMetric missMetric;
+    private transient CompleteStatMetric completeStatMetric;
+    private long lastMetricsSent;
+    private long qos;
+    private int pendingCount = 0;
+    private transient MultiCountMetric failureCountMetric;
+    private double activeSheddingRate;
+    private String compID;
+    private String topologyName;
+    private ISampler activeSheddingSampler;
+    private int pendingMax;
+    private double pendingThreshold;
+    private transient CuratorFramework client;
+    private boolean enablePassiveShedding;
+    private boolean enableActiveShedding;
+    private int dropCase = 0;
+    private int interval;
+    //private NodeCache nodeCache;
+    private int taskId;
+
+    public DefaultSheddableSpout(){
+
+    }
+    public DefaultSheddableSpout(IRichSpout delegate) {
+        super(delegate);
+    }
+
+    private long getMetricsDuration() {
+        long now = System.currentTimeMillis();
+        long duration = now - lastMetricsSent;
+        lastMetricsSent = now;
+        return duration;
+    }
+
     private class SheddingMeasurableMsgId {
         final String stream;
-        final Object msgId;
+        public final Object msgId;
         final long startTime;
 
         private SheddingMeasurableMsgId(String stream, Object msgId, long startTime) {
@@ -53,8 +90,8 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
         @Override
         public void spoutAck(SpoutAckInfo info) {
-            SheddingMeasurableMsgId streamMsgId = (SheddingMeasurableMsgId) info.messageId;
-            if (streamMsgId != null && streamMsgId.isSampled()) {
+            DefaultSheddableSpout.SheddingMeasurableMsgId streamMsgId = (DefaultSheddableSpout.SheddingMeasurableMsgId) info.messageId;
+            if (streamMsgId != null && streamMsgId. isSampled()) {
                 long cost = System.currentTimeMillis() - streamMsgId.startTime;
                 completeMetric.addMetric(streamMsgId.stream, cost);
                 if (cost > qos) {
@@ -68,7 +105,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
 
         @Override
         public void spoutFail(SpoutFailInfo info) {
-            SheddingMeasurableMsgId streamMsgId = (SheddingMeasurableMsgId) info.messageId;
+            DefaultSheddableSpout.SheddingMeasurableMsgId streamMsgId = (DefaultSheddableSpout.SheddingMeasurableMsgId) info.messageId;
             failureCountMetric.scope("failure").incr();
             failureCountMetric.scope("failLatencyMs").incrBy(info.failLatencyMs);
             if (streamMsgId != null && streamMsgId.isSampled()) {
@@ -83,43 +120,6 @@ public class DefaultSheddableSpout extends DelegatedSpout{
             //failureCountMetric.scope("spoutEmit").incr();
             super.emit(info);
         }
-    }
-
-    private transient CMVMetric completeMetric;
-    private Sampler sampler;
-    private transient MultiCountMetric emitMetric;
-    private transient CMVMetric missMetric;
-    private transient CompleteStatMetric completeStatMetric;
-    private long lastMetricsSent;
-    private long qos;
-    private int pendingCount = 0;
-    private transient MultiCountMetric failureCountMetric;
-    private double activeSheddingRate;
-    private String compID;
-    private String topologyName;
-    private ActiveSheddingSampler activeSheddingSampler;
-    private int pendingMax;
-    private double pendingThreshold;
-    private transient CuratorFramework client;
-    private boolean enablePassiveShedding;
-    private boolean enableActiveShedding;
-    private int dropCase = 0;
-    private int interval;
-    private NodeCache nodeCache;
-    private int taskId;
-
-    public DefaultSheddableSpout(){
-
-    }
-    public DefaultSheddableSpout(IRichSpout delegate) {
-        super(delegate);
-    }
-
-    private long getMetricsDuration() {
-        long now = System.currentTimeMillis();
-        long duration = now - lastMetricsSent;
-        lastMetricsSent = now;
-        return duration;
     }
 
     @Override
@@ -157,19 +157,18 @@ public class DefaultSheddableSpout extends DelegatedSpout{
         lastMetricsSent = System.currentTimeMillis();
         context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
-        context.addTaskHook(new DefaultSheddableSpout.SpoutHook());
+        context.addTaskHook(new SpoutHook());
         if (enableActiveShedding) {
             compID = context.getThisComponentId();
             topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
             List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
             client = DRSzkHandler.newClient(zkServer.get(0).toString(), 2181, 6000, 6000, 1000, 3);
             try {
-                if (!client.isStarted()) {
+                if (!DRSzkHandler.clientIsStart()) {
                     client.start();
                 }
-                activeSheddingRate = 0.0;
+                activeSheddingRate = 0.0;//0.0;
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
-                nodeCache = new NodeCache(client,"/drs/"+topologyName);
                 watchActiveShedRate();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -199,6 +198,7 @@ public class DefaultSheddableSpout extends DelegatedSpout{
                         if(pendingCount <= (pendingThreshold * pendingMax)){
                             if(activeSheddingRate != 0.0 && activeSheddingSampler.shoudSample()){
                                 failureCountMetric.scope("spoutDrop").incr();
+                                //System.out.println(activeSheddingSampler.getSampleValue()+"luoda"+activeSheddingRate);
                                 failureCountMetric.scope("activeSpoutDrop").incr();
                                 return null;
                             }
@@ -327,26 +327,13 @@ public class DefaultSheddableSpout extends DelegatedSpout{
         super.nextTuple();
     }
 
-    private double parseActiveShedRateMap(byte[] activeShedRateMapBytes) {
-        String tempMap = new String(activeShedRateMapBytes);
-        Pattern pattern1 = Pattern.compile(compID + "=(\\d+)\\.(\\d+)");
-        Matcher matcher1 = pattern1.matcher(tempMap);
-        if (matcher1.find()) {
-            Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
-            Matcher matcher2 = pattern2.matcher(matcher1.group());
-            if (matcher2.find()) {
-                return Double.valueOf(matcher2.group());
-            }
-        }
-        return Double.MAX_VALUE;
-    }
-
     public void watchActiveShedRate() throws Exception {
-        if (client.isStarted()) {
+        NodeCache nodeCache = DRSzkHandler.createNodeCache("/drs/"+topologyName);
+        if (DRSzkHandler.clientIsStart()) {
             nodeCache.getListenable().addListener(new NodeCacheListener() {
 
                 public void nodeChanged() throws Exception {
-                    double shedRate = parseActiveShedRateMap(nodeCache.getCurrentData().getData());
+                    double shedRate = DRSzkHandler.parseActiveShedRateMap(nodeCache.getCurrentData().getData(), compID);
                     if (shedRate != Double.MAX_VALUE && shedRate != activeSheddingRate) {
                         System.out.println(activeSheddingRate + "nimabi" + compID + ":" + "hehe" + shedRate);
                         activeSheddingRate = shedRate;

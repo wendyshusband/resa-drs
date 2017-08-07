@@ -141,6 +141,7 @@ public class TestRedis {
             i++;
             //jedis.lpop("outputMetric");
             if(null == jedis.lpop("fsource")){
+                System.out.println("null");
                 break;
             }
         }

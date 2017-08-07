@@ -100,7 +100,7 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         }
 
         try {
-            sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"));
+            DRSzkHandler.sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -136,20 +136,6 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
                 throw new IllegalArgumentException("Illegal status: " + newAllocResult.status);
             }
         }
-    }
-
-
-    public void sentActiveSheddingRate(Map<String,Double> activeSheddingRateMap) throws Exception {
-        if (!client.isStarted()) {
-            DRSzkHandler.start();
-        }
-        LOG.info("active shedding rate map: "+activeSheddingRateMap.toString());
-        if(client.checkExists().forPath("/drs/"+topologyName) == null){
-            client.create().creatingParentsIfNeeded().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }else{
-            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }
-        //System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
     }
 
 }

@@ -1,10 +1,10 @@
 package TestTopology.outdet;
 
 import org.apache.storm.Config;
-import org.apache.storm.StormSubmitter;
+import org.apache.storm.LocalCluster;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
-//import resa.metrics.RedisMetricsCollector;
+import org.junit.Test;
 import resa.topology.ResaTopologyBuilder;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -18,10 +18,23 @@ import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
+//import resa.metrics.RedisMetricsCollector;
+
 /**
  * Created by ding on 14-3-17.
  */
 public class OutlierDetectionTop {
+
+    @Test
+    public void a() {
+        List<double[]> v = OutlierDetectionTop.generateRandomVectors(2,1);
+        for (int i=0; i<v.size(); i++) {
+            for (int j=0; j<v.get(i).length; j++) {
+                System.out.println("~"+v.get(i)[j]);
+            }
+            System.out.println();
+        }
+    }
 
     public static List<double[]> generateRandomVectors(int dimension, int vectorCount) {
         Random rand = new Random();
@@ -33,7 +46,7 @@ public class OutlierDetectionTop {
     }
 
     public static void main(String[] args) throws Exception {
-        Config conf = ConfigUtil.readConfig(new File(args[1]));
+        Config conf = ConfigUtil.readConfig(new File(args[0]));
         if (conf == null) {
             throw new RuntimeException("cannot find conf file " + args[0]);
         }
@@ -91,8 +104,9 @@ public class OutlierDetectionTop {
 //            resaConfig.registerMetricsConsumer(RedisMetricsCollector.class);
 //            System.out.println("RedisMetricsCollector is registered");
 //        }
-
-        StormSubmitter.submitTopology(args[1], resaConfig, builder.createTopology());
+        LocalCluster localCluster  = new LocalCluster();
+        localCluster.submitTopology("111", resaConfig, builder.createTopology());
+        //StormSubmitter.submitTopology("111", resaConfig, builder.createTopology());
     }
 
 }

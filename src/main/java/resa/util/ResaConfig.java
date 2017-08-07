@@ -41,6 +41,7 @@ public class ResaConfig extends Config {
     public static final String DECISION_MAKER_CLASS = "resa.scheduler.decision.class";
 
     //load shedding
+    public static final String TRIM_INTERVAL = "resa.active.shedding.trim.interval.secs";
     public static final String PASSIVE_SHEDDING_ENABLE = "resa.passive.shedding.enable";
     public static final String ACTIVE_SHEDDING_ENABLE = "resa.active.shedding.enable";
     public static final String TUPLE_QUEUE_CAPACITY = "resa.shedding.tuple.queue.capacity";
@@ -50,6 +51,7 @@ public class ResaConfig extends Config {
     public static final String SHEDDING_THRESHOLD = "resa.shedding.thresdhold";
     public static final String ACTIVE_SHEDDING_MAP = "resa.shedding.active.stream.map";
     public static final String SHEDDING_ALLOC_CALC_CLASS = "resa.shedding.alloc.class";
+    public static final String ACTIVE_SHEDDING_TRIM_CLASS = "resa.active.shedding.trim.class";
     public static final String SHEDDING_DECISION_MAKER_CLASS = "resa.shedding.decision.class";
     public static final String SHEDDING_SERVICE_MODEL_CLASS = "resa.shedding.service.model.class";
     public static final String SPOUT_MAX_PENDING = "resa.spout.max.pending";
@@ -57,10 +59,13 @@ public class ResaConfig extends Config {
    // public static final String SHEDDING_ACTIVE_RATE_UNIT = "resa.active.shedding.rate.unit";
     public static final String ACTIVE_SHEDDING_ADJUSTRATIO_BIAS_THRESHOLD = "resa.active.shedding.adjustRatio.bias.threshold";
     public static final String ADJRATIO_CALC_CLASS = "resa.shedding.adjustratio.calc.class";
+    public static final String ACTIVE_SHEDDINGRATE_TRIM_INCREMENT = "resa.active.sheddingrate.trim.increment";
     //RED
     public static final String HIGH_SHEDDING_THRESHOLD = "resa.shedding.high.thresdhold";
     public static final String LOW_SHEDDING_THRESHOLD = "resa.shedding.low.thresdhold";
     public static final String MAX_SHED_RATE = "resa.max.shed.rate";
+    public static final String LATENCY_DIFFERENCE_THRESHOLD_UNDER_ACTIVE_SHEDDING_STATUS = "resa.latency.difference.threshold";
+
 
     private ResaConfig(boolean loadDefault) {
         if (loadDefault) {
