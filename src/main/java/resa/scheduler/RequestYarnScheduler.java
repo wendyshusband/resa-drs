@@ -36,7 +36,7 @@ public class RequestYarnScheduler implements IScheduler {
         System.out.println("topologiesTotalUsedSlots: "+topologiesTotalUsedSlots);
         System.out.println("topologiesTotalUsedSlots2: "+topologiesTotalUsedSlots2);
         System.out.println("all slots: "+totalSlots);
-        if(totalSlots < topologiesTotalUsedSlots2){
+        if (totalSlots < topologiesTotalUsedSlots2) {
 
         }
         System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");

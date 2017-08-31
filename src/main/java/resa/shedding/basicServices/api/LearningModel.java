@@ -1,4 +1,4 @@
-package resa.shedding.basicServices;
+package resa.shedding.basicServices.api;
 
 
 /**

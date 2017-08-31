@@ -22,6 +22,7 @@ public class ObjectSpout extends RedisQueueSpout {
     public ObjectSpout(String host, int port, String queue, int objectCount) {
         super(host, port, queue);
         this.objectCount = objectCount;
+        System.out.println("objcOunt "+objectCount);
     }
 
     @Override

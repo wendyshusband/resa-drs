@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.AggResult;
 import resa.optimize.SpoutAggResult;
+import resa.shedding.basicServices.api.ActiveSheddingRateTrimer;
 import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;

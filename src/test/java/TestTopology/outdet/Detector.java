@@ -53,6 +53,7 @@ public class Detector implements IRichBolt {
 
     @Override
     public void execute(Tuple input) {
+        //Utils.sleep(8);
         Integer projId = input.getIntegerByField(Projection.PROJECTION_ID_FIELD);
         Context context = objectContext.get(projId);
         if (context == null) {
@@ -93,9 +94,12 @@ public class Detector implements IRichBolt {
 
         //Modified by tom, at the initial stat, we force this bolt to emit tuples (although fake) to Updater
         //if any objects missing, wait for it. This is used when system startup
-        ///if (!anyObjectMissing) {
-        collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
-        ///}
+        //if (!anyObjectMissing) {
+            collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
+        //} else {
+           // collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
+         //   TestRedis.insertList("miss",new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)).toString());
+        //}
         collector.ack(input);
     }
 

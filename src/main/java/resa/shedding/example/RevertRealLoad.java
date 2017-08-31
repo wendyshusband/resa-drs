@@ -5,7 +5,7 @@ import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.AggResult;
-import resa.shedding.basicServices.LearningModel;
+import resa.shedding.basicServices.api.LearningModel;
 import resa.shedding.basicServices.RevertRealLoadData;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;

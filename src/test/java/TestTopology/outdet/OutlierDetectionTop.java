@@ -1,11 +1,12 @@
 package TestTopology.outdet;
 
+import TestTopology.testforls.TestRedis;
 import org.apache.storm.Config;
-import org.apache.storm.LocalCluster;
+import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 import org.junit.Test;
-import resa.topology.ResaTopologyBuilder;
+import redis.clients.jedis.Jedis;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
@@ -27,15 +28,52 @@ public class OutlierDetectionTop {
 
     @Test
     public void a() {
-        List<double[]> v = OutlierDetectionTop.generateRandomVectors(2,1);
+        Jedis jedis = TestRedis.getJedis();
+        List<double[]> v = OutlierDetectionTop.generateRandomVectors(34,10);
         for (int i=0; i<v.size(); i++) {
             for (int j=0; j<v.get(i).length; j++) {
-                System.out.println("~"+v.get(i)[j]);
+                jedis.lpush("vector", String.valueOf(v.get(i)[j]));
             }
-            System.out.println();
         }
+//        List<double[]> v = getDefineVectors();
+//        System.out.println(v.size());
+//        List<double[]> v = new ArrayList<>();
+//        for (int k=0; k<=2; k++) {
+//            for (int i = 0; i < 5; i++) {
+//                double[] temp = new double[34];
+//                for (int j = 0; j < 34; j++) {
+//                    double t = Double.valueOf(jedis.lpop("vector"));
+//                    temp[j] = t;
+//                    jedis.rpush("vector", String.valueOf(t));
+//                }
+//                v.add(temp);
+//            }
+//
+//            //jedis.rpush("vector", jedis.lpop("vector"));
+//            for (int i = 0; i < 5; i++) {
+//                for (int j = 0; j < 34; j++) {
+//                    System.out.print(v.get(i)[j] + ' ');
+//                }
+//                System.out.println();
+//            }
+//            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+//        }
     }
 
+    public static List<double[]> getDefineVectors(){
+        Jedis jedis = TestRedis.getJedis();
+        List<double[]> v = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            double[] temp = new double[34];
+            for (int j = 0; j < 34; j++) {
+                double t = Double.valueOf(jedis.lpop("vector"));
+                temp[j] = t;
+                jedis.rpush("vector", String.valueOf(t));
+            }
+            v.add(temp);
+        }
+        return v;
+    }
     public static List<double[]> generateRandomVectors(int dimension, int vectorCount) {
         Random rand = new Random();
         return Stream.generate(() -> {
@@ -46,15 +84,15 @@ public class OutlierDetectionTop {
     }
 
     public static void main(String[] args) throws Exception {
-        Config conf = ConfigUtil.readConfig(new File(args[0]));
+        Config conf = ConfigUtil.readConfig(new File(args[1]));
         if (conf == null) {
-            throw new RuntimeException("cannot find conf file " + args[0]);
+            throw new RuntimeException("cannot find conf file " + args[1]);
         }
 
         ResaConfig resaConfig = ResaConfig.create();
         resaConfig.putAll(conf);
 
-        TopologyBuilder builder = new ResaTopologyBuilder();
+        TopologyBuilder builder = new TopologyBuilder();//new ResaTopologyBuilder();
 
         int numWorkers = ConfigUtil.getInt(conf, "a-worker.count", 1);
         int numAckers = ConfigUtil.getInt(conf, "a-acker.count", 1);
@@ -66,15 +104,15 @@ public class OutlierDetectionTop {
         int port = ConfigUtil.getInt(conf, "redis.port", 6379);
         String queue = (String) conf.get("redis.queue");
 
-        int defaultTaskNum = ConfigUtil.getInt(conf, "a-task.default", 10);
+        int defaultTaskNum = ConfigUtil.getInt(conf, "a-task.default", 1);
         //set spout
         int objectCount = ConfigUtil.getIntThrow(conf, "a-spout.object.size");
         builder.setSpout("objectSpout",
                 new ObjectSpout(host, port, queue, objectCount),
                 ConfigUtil.getInt(conf, "a-spout.parallelism", 1));
 
-        List<double[]> randVectors = generateRandomVectors(ConfigUtil.getIntThrow(conf, "a-projection.dimension"),
-                ConfigUtil.getIntThrow(conf, "a-projection.size"));
+        List<double[]> randVectors = getDefineVectors();//generateRandomVectors(ConfigUtil.getIntThrow(conf, "a-projection.dimension"),
+                //ConfigUtil.getIntThrow(conf, "a-projection.size"));
 
         builder.setBolt("projection",
                 new Projection(new ArrayList<>(randVectors)), ConfigUtil.getInt(conf, "a-projection.parallelism", 1))
@@ -94,19 +132,21 @@ public class OutlierDetectionTop {
                 .setNumTasks(defaultTaskNum)
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
 
-        if (ConfigUtil.getBoolean(conf, "a-metric.resa", false)) {
-            resaConfig.addDrsSupport();
-            resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
-            System.out.println("ResaMetricsCollector is registered");
-        }
+//        if (ConfigUtil.getBoolean(conf, "a-metric.resa", false)) {
+//            resaConfig.addDrsSupport();
+//            resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
+//            System.out.println("ResaMetricsCollector is registered");
+//        }
 
 //        if (ConfigUtil.getBoolean(conf, "a-metric.redis", true)) {
 //            resaConfig.registerMetricsConsumer(RedisMetricsCollector.class);
 //            System.out.println("RedisMetricsCollector is registered");
 //        }
-        LocalCluster localCluster  = new LocalCluster();
-        localCluster.submitTopology("111", resaConfig, builder.createTopology());
-        //StormSubmitter.submitTopology("111", resaConfig, builder.createTopology());
+        //resaConfig.setDebug(true);
+       //LocalCluster localCluster  = new LocalCluster();
+        //localCluster.submitTopology("111", resaConfig, builder.createTopology());
+        //Utils.sleep(1000000000);
+        StormSubmitter.submitTopology(args[0], resaConfig, builder.createTopology());
     }
 
 }

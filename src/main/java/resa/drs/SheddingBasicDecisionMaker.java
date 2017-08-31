@@ -2,17 +2,16 @@ package resa.drs;
 
 import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
-import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.AllocResult;
-import resa.shedding.basicServices.ISheddingDecisionMaker;
 import resa.shedding.basicServices.ShedRateAndAllocResult;
+import resa.shedding.basicServices.api.ISheddingDecisionMaker;
 import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
@@ -23,8 +22,9 @@ import static resa.util.ResaConfig.OPTIMIZE_INTERVAL;
 public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
 
     private static final Logger LOG = LoggerFactory.getLogger(SheddingBasicDecisionMaker.class);
-    private transient CuratorFramework client;
+    //private transient CuratorFramework client;
     private String topologyName;
+    private Double testRatio;
 
     /**
      * In future, if RebalanceType has more general usage, we will consider to move it to the ResaConfig class
@@ -59,9 +59,9 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         }
     }
 
-    long startTimeMillis;
-    long minExpectedIntervalMillis;
-    int rbTypeValue;
+    private long startTimeMillis;
+    private long minExpectedIntervalMillis;
+    private int rbTypeValue;
 
     @Override
     public void init(Map<String, Object> conf, StormTopology rawTopology) {
@@ -73,11 +73,11 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcIntervalSec * 2) * 1000 - 50;
         rbTypeValue = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_REBALANCE_TYPE, RebalanceType.CurrentOpt.getValue());
 
-        List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-        int port = Math.toIntExact((long) conf.get(Config.STORM_ZOOKEEPER_PORT));
-        client = DRSzkHandler.newClient(zkServer.get(0).toString(), port, 6000, 6000, 1000, 3);
+        //List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+        //int port = Math.toIntExact((long) conf.get(Config.STORM_ZOOKEEPER_PORT));
+        //client = DRSzkHandler.newClient(zkServer.get(0).toString(), port, 6000, 6000, 1000, 3);
         topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
-
+        testRatio = (double) conf.get("test.shedding.rate");
         LOG.info("SheddingBasicDecisionMaker.init(), stTime: " + startTimeMillis + ", minExpInteval: " + minExpectedIntervalMillis);
     }
 
@@ -100,7 +100,8 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         }
 
         try {
-            DRSzkHandler.sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
+            //DRSzkHandler.sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
+            DRSzkHandler.sentActiveSheddingRate(testBuildShedRatio(), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -136,6 +137,17 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
                 throw new IllegalArgumentException("Illegal status: " + newAllocResult.status);
             }
         }
+    }
+
+    private Map<String,Double> testBuildShedRatio() {
+        HashMap<String,Double> t = new HashMap();
+        t.put("projection",0.0);
+        t.put("detector",Double.valueOf(String.format("%.2f", testRatio)));
+        //testRatio += 0.1;
+        t.put("updater",0.0);
+        t.put("objectSpout",0.0);
+        System.out.println("cvteweipinhui: "+t);
+        return t;
     }
 
 }

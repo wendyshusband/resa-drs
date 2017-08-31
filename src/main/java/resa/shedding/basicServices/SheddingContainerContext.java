@@ -3,7 +3,6 @@ package resa.shedding.basicServices;
 import org.apache.storm.generated.StormTopology;
 import org.apache.storm.scheduler.ExecutorDetails;
 import resa.metrics.MeasuredData;
-import resa.topology.ContainerContext;
 
 import java.util.List;
 import java.util.Map;

@@ -1,7 +1,8 @@
-package resa.shedding.basicServices;
+package resa.shedding.basicServices.api;
 
 import org.apache.storm.generated.StormTopology;
 import resa.optimize.AggResult;
+import resa.shedding.basicServices.ShedRateAndAllocResult;
 
 import java.util.Map;
 
@@ -40,6 +41,6 @@ public abstract class SheddingAllocCalculator {
     }
 
     public abstract ShedRateAndAllocResult calc(Map<String, AggResult[]> executorAggResults, int maxAvailableExecutors,
-                                     StormTopology topology, Map<String, Object> targets);
+                                                StormTopology topology, Map<String, Object> targets);
 
 }

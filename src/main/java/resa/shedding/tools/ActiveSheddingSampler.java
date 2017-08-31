@@ -7,8 +7,8 @@ import java.util.Random;
 /**
  * Created by kailin on 2017/7/6.
  */
-public class ActiveSheddingSampler implements ISampler {
-    private double sampleValue;
+public class ActiveSheddingSampler extends AbstractSampler {
+
     private long counter = 0;
     private DecimalFormat df = new DecimalFormat(".##");
     private DecimalFormat df2 = new DecimalFormat(".#");

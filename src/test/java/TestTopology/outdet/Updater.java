@@ -1,5 +1,6 @@
 package TestTopology.outdet;
 
+import TestTopology.testforls.TestRedis;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
@@ -29,6 +30,7 @@ public class Updater implements IRichBolt {
 
     @Override
     public void execute(Tuple input) {
+        //Utils.sleep(8);
         String key = input.getValueByField(ObjectSpout.TIME_FILED) + "-" + input.getValueByField(ObjectSpout.ID_FILED);
         List<BitSet> ret = padding.get(key);
         if (ret == null) {
@@ -45,13 +47,16 @@ public class Updater implements IRichBolt {
                 }
             });
             // output
-            //System.out.println(result);
-//            result.stream().forEach((status) -> {
-//                if (status == 0) {
-//                    // output
-//                    collector.emit(new Values());
-//                }
-//            });
+           //System.out.println("result~"+result.size());
+            TestRedis.insertList("full",result.toString());
+            result.stream().forEach((status) -> {
+                if (status == 0) {
+                    // output
+                    //System.out.println("re"+result);
+                    TestRedis.insertList("status0",result.toString());
+                    //collector.emit(new Values());
+                }
+            });
         }
         collector.ack(input);
     }

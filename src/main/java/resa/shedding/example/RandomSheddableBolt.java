@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.metrics.CMVMetric;
 import resa.metrics.MetricNames;
-import resa.shedding.basicServices.AbstractRandomShedding;
+import resa.shedding.basicServices.api.AbstractRandomShedding;
 import resa.topology.DelegatedBolt;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;

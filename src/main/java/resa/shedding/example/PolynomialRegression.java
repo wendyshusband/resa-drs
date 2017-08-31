@@ -3,7 +3,7 @@ package resa.shedding.example;
 import org.apache.commons.math3.fitting.PolynomialCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.javatuples.Pair;
-import resa.shedding.basicServices.LearningModel;
+import resa.shedding.basicServices.api.LearningModel;
 
 import java.util.List;
 

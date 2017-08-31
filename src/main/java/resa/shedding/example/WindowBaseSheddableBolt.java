@@ -6,7 +6,7 @@ import org.apache.storm.topology.base.BaseWindowedBolt;
 import org.apache.storm.tuple.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.shedding.basicServices.IShedding;
+import resa.shedding.basicServices.api.IShedding;
 import resa.topology.DelegatedBolt;
 import resa.util.TestPrint;
 

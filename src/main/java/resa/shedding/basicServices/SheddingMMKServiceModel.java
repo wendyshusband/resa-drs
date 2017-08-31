@@ -5,9 +5,15 @@ import org.slf4j.LoggerFactory;
 import resa.optimize.AllocResult;
 import resa.optimize.ServiceNode;
 import resa.optimize.SourceNode;
+import resa.shedding.basicServices.api.AbstractTotalCost;
+import resa.shedding.basicServices.api.AllocationAndActiveShedRates;
+import resa.shedding.basicServices.api.ICostFunction;
+import resa.shedding.basicServices.api.LearningModel;
 import resa.shedding.tools.HistoricalAdjustRatioMMK;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.DoublePredicate;
 import java.util.stream.Collectors;
@@ -21,44 +27,9 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
     private static final int HISTORY_SIZE = 100;
     private static final int ADJUST_RATIO_FUNCTION_ORDER = 1;
     private static final int LEARNLING_THRESHOLD = 5;
-    private static final int DEVIATION_RATIO = 3;
-    //private LearningSelectivity calcAdjRatioFunction;
+    private static final int DEVIATION_RATIO = 2;
+    private static final double SHED_RATE_UNIT = 0.01;
     private HistoricalAdjustRatioMMK paramPairForCalcAdjRatio = new HistoricalAdjustRatioMMK(HISTORY_SIZE);
-
-    /**
-     * Class for active shedding including suggestAllocation and activeShedRate.
-     * */
-    private static class AllocationAndActiveShedRates {
-        public Map<String, Integer> fixedAllocation;
-        public Map<String, Double> activeShedRates;
-
-        public AllocationAndActiveShedRates(Map<String, Integer> fixedAllocation,
-                Map<String, Double> activeShedRates){
-            this.activeShedRates = activeShedRates;
-            this.fixedAllocation = fixedAllocation;
-        }
-
-        public void setActiveShedRates(Map<String, Double> activeShedRates) {
-            this.activeShedRates = activeShedRates;
-        }
-
-        public Map<String, Integer> getFixedAllocation() {
-            return fixedAllocation;
-        }
-
-        public void setFixedAllocation(Map<String, Integer> fixedAllocation) {
-            this.fixedAllocation = fixedAllocation;
-        }
-
-        public Map<String, Double> getActiveShedRates() {
-            return activeShedRates;
-        }
-
-        @Override
-        public String toString() {
-            return "allocation: "+((HashMap)fixedAllocation).toString()+" shedding rate:"+((HashMap)activeShedRates).toString();
-        }
-    }
 
     /**
      * We assume the stability check for each node is done beforehand!
@@ -78,7 +49,6 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
             int serverCount = allocation.get(cid).intValue();
 
             double avgSojournTime = sojournTime_MMK(serviceNode.getLambda(), serviceNode.getMu(), serverCount);
-            System.out.println(serviceNode.getComponentID()+"/"+serverCount+"mingyi"+avgSojournTime+" lambda:"+serviceNode.getLambda()+" mu: "+serviceNode.getMu());
             retVal += (avgSojournTime * serviceNode.getRatio());
         }
         System.out.println("retvalheheda: "+retVal);
@@ -94,21 +64,19 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         return activeShedRateMap;
     }
     
-    static AllocationAndActiveShedRates binarySearchAllocationAndShedRate(boolean flag, SourceNode sourceNode, Map<String, ServiceNode> serviceNodes, int totalResourceCount,
-                                                                          double completeTimeMilliSecUpper, double tolerant, double[] adjRatioArr) {
-        System.out.println("flag = "+ flag);
+    static AllocationAndActiveShedRates binarySearchMinimizedShedRate(boolean flag,SourceNode sourceNode, Map<String, ServiceNode> serviceNodes, int totalResourceCount,
+                                                             double completeTimeMilliSecUpper, double tolerant, double[] adjRatioArr) {
         Map<String, Integer> tempAllocation = new HashMap<>();
         double originLambda0 = sourceNode.getTupleEmitRateOnSQ();
         Map<String, Double> activeShedRateMap = initActiveRateMap(sourceNode, serviceNodes);
         double estimateTSecs;// = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes,currBoltAllocation);
-        double highMark = sourceNode.getTupleEmitRateOnSQ();
+        double highMark = originLambda0;
         double lowMark = 0.0;
         double lambda0 = (lowMark + highMark) / 2.0;
-
-        //while (lambda0 >= 1 && (highMark > lowMark)) {
-        while (lambda0 >= 1 && lambda0 > lowMark && (highMark > lambda0)) {
+        System.out.println(flag+"~"+sourceNode.getTupleEmitRateOnSQ()+"INIThigh:"+highMark+" low:"+lowMark);
+        while (lambda0>=1 && lambda0>lowMark && highMark>lambda0) {
             for (ServiceNode serviceNode:serviceNodes.values()) {
-                serviceNode.changeLambdaAndOtherRelateParam(lambda0 * serviceNode.getRatio(),lambda0);
+                serviceNode.changeLambdaAndOtherRelateParam(lambda0 * serviceNode.getRatio(), lambda0);
             }
 
             tempAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes,totalResourceCount);
@@ -116,47 +84,42 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
             if (tempAllocation != null) {
 
                 estimateTSecs = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes,tempAllocation);
-                System.out.println("lambda0: "+lambda0+" estimateT: "+estimateTSecs+" tempallocation: "+tempAllocation);
-
                 double adjEstimateTMilliSec = 0.0;
                 for (int j=0; j<adjRatioArr.length; j++) {
                     adjEstimateTMilliSec += Math.pow(estimateTSecs * 1000.0, j) * adjRatioArr[j];
                 }
                 System.out.println(estimateTSecs+" old adjEstimateTMilliSec = "+adjEstimateTMilliSec);
-                //adjEstimateTMilliSec = Math.log(estimateTSecs* 1000.0)/Math.log(1.001378542);
-                System.out.println(" timeout: "+completeTimeMilliSecUpper+"adjestmateT: "+adjEstimateTMilliSec);
-
                 if (Math.abs(adjEstimateTMilliSec - completeTimeMilliSecUpper) <= (1.0-tolerant) * completeTimeMilliSecUpper) {
 //                    if ((adjEstimateTMilliSec <= completeTimeMilliSecUpper)
 //                            && ((adjEstimateTMilliSec / completeTimeMilliSecUpper) >= tolerant)) {
-//                        //sourceNode.revertLambda(lambda0);
+                    //sourceNode.revertLambda(lambda0);
                     //sourceNode.revertCompleteLatency(adjEstimateTMilliSec);
-                    System.out.println(lowMark + "method1 chenggong" + highMark);
                     break;
                 } else {
                     if (adjEstimateTMilliSec > completeTimeMilliSecUpper || adjEstimateTMilliSec < 0) {
-                        System.out.println(lowMark + "method2 dale" + highMark);
                         highMark = lambda0;
 
                     } else {
-                        System.out.println(lowMark + "method3 xiaole" + highMark);
                         lowMark = lambda0;
                     }
                 }
             } else {
-                System.out.println(lowMark+"method4 dale "+lambda0+" high: "+highMark);
                 highMark = lambda0;
             }
             lambda0 = (lowMark + highMark) / 2.0;
         }
-        System.out.println("high:"+highMark+" low:"+lowMark+" now lambda0: "+lambda0+" timeout: "+completeTimeMilliSecUpper+" rate: "+(1 - ( lambda0 / originLambda0)));
+        System.out.println(sourceNode.getTupleEmitRateOnSQ()+"high:"+highMark+" low:"+lowMark+" now lambda0: "+lambda0+" timeout: "+completeTimeMilliSecUpper+" rate: "+(1 - ( lambda0 / originLambda0)));
         double tempShedRate = Double.valueOf(String.format("%.2f",(1.0 - ( lambda0 / originLambda0))));
-        activeShedRateMap.put(sourceNode.getComponentID(), tempShedRate);
-        if (flag) {
-            for (ServiceNode serviceNode : serviceNodes.values()) {
-                serviceNode.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode.getRatio(), lambda0);
-            }
+        if (tempShedRate >= SHED_RATE_UNIT) {
+            activeShedRateMap.put(sourceNode.getComponentID(), tempShedRate);
+        } else {
+            LOG.info("too small active shedding rate and DRS will no trigger active shedding!");
         }
+        for (ServiceNode serviceNode : serviceNodes.values()) {
+            serviceNode.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode.getRatio(), originLambda0);
+        }
+
+        System.out.println("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
         return new AllocationAndActiveShedRates(tempAllocation,activeShedRateMap);
     }
     /**
@@ -253,7 +216,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 //                serviceNode.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode.getRatio(),lambda0);
 //            }
 //            return new AllocationAndActiveShedRates(tempAllocation,activeShedRateMap);
-            return binarySearchAllocationAndShedRate(true,sourceNode,serviceNodes,totalResourceCount,completeTimeMilliSecUpper,tolerant,adjRatioArr);
+            return binarySearchMinimizedShedRate(true,sourceNode,serviceNodes,totalResourceCount,completeTimeMilliSecUpper,tolerant,adjRatioArr);
         } else {
             System.out.println("no need shedding gaogemao!");
             return new AllocationAndActiveShedRates(tempAllocation,activeShedRateMap);
@@ -321,6 +284,49 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
     }
 
     /**
+     * return a HashMap of allocation and active shedding rate.
+     * */
+    static List<AllocationAndActiveShedRates> calcAllocationAndActiveShedRate(SourceNode sourceNode, Map<String, ServiceNode> serviceNodes, int maxAvailable4Bolt, int currentUsedThreadByBolts, int minResource, double completeTimeMilliSecUpper, int reUnit, double tolerant, double[] adjRatioArr) {
+        List<AllocationAndActiveShedRates> allocationAndActiveShedRatesList = new ArrayList<>();
+        int i = minResource;
+        AllocationAndActiveShedRates decision;
+        for (; i<=maxAvailable4Bolt; i += reUnit) {
+            Map<String, Integer> tempAlloResult = suggestAllocationGeneralTopApplyMMK(serviceNodes, i);
+            if (tempAlloResult == null) {
+                System.out.println("wanlilai need shedding"+i);
+                decision = binarySearchMinimizedShedRate(false, sourceNode, serviceNodes, i, completeTimeMilliSecUpper, tolerant, adjRatioArr);
+            } else {
+                System.out.println(i+"wanlilai buyao shedding"+tempAlloResult);
+                decision = new AllocationAndActiveShedRates(tempAlloResult, initActiveRateMap(sourceNode, serviceNodes));
+            }
+            allocationAndActiveShedRatesList.add(decision);
+        }
+        return allocationAndActiveShedRatesList;
+    }
+
+
+    static AllocationAndActiveShedRates chooseBefittingDecision(List<AllocationAndActiveShedRates> allocationAndActiveShedRatesList, ICostFunction costFunction, String costClassName) {
+        AbstractTotalCost minCost = null;
+        AllocationAndActiveShedRates result = null;
+        for (AllocationAndActiveShedRates decision : allocationAndActiveShedRatesList) {
+            AbstractTotalCost tempCost = costFunction.calcCost(decision);
+            System.out.println(tempCost+"drs calc result!!!!!!!nibeizhewoaibieren: "+decision);
+            if (result == null) {
+                System.out.println(" daxiao ");
+                minCost = tempCost;
+                result = decision;
+            } else if (minCost.compareTo(tempCost) > 0) {
+                System.out.println(" wodeshenghuo ");
+                minCost = tempCost;
+                result = decision;
+            }
+        }
+        System.out.println("worenwei best result is: "+result);
+        return result;
+    }
+
+
+    /**
      * Like Module A', input required QoS, output #threads required
      * Here we separate to two modules: first output allocation, then calculate total #threads included.
      * Caution all the computation involved is in second unit.
@@ -335,8 +341,8 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
      * @return null when status is INFEASIBLE; or FEASIBLE reallocation (with resource added)
      * @return null when status is INFEASIBLE; or FEASIBLE reallocation (with resource added)
      */
-    static AllocationAndActiveShedRates getMinReqServerAllocationAndShedRateGeneralTopApplyMMK(SourceNode sourceNode, double estTotalSojournTimeMilliSec_MMK, Map<String, ServiceNode> serviceNodes,
-            double completeTimeMilliSecUpper, double completeTimeMilliSecLower, int currentUsedThreadByBolts, int maxAvailableExec, double tolerant, Map<String, Integer> currAllocation, double[] adjRatioArr) {
+    static AllocationAndActiveShedRates getMinReqServerAllocationAndShedRateGeneralTopApplyMMK(SourceNode sourceNode, double estTotalSojournTimeMilliSec_MMK, Map<String, ServiceNode> serviceNodes, int reUnit,
+            double completeTimeMilliSecUpper, double completeTimeMilliSecLower, int currentUsedThreadByBolts, int maxAvailableExec, double tolerant, Map<String, Integer> currAllocation, double[] adjRatioArr, ICostFunction costFunction, String costClassName) {
 
         double lowerBoundServiceTimeSeconds = 0.0;  //in seconds
         int totalMinReq = 0;
@@ -347,6 +353,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
             lowerBoundServiceTimeSeconds += (1.0 / mu);
             totalMinReq += getMinReqServerCount(lambda, mu);
         }
+
         double adjLowerBoundServiceTimeMilliSeconds = 0.0;
         for (int j=0; j<adjRatioArr.length; j++) {
             adjLowerBoundServiceTimeMilliSeconds += Math.pow(lowerBoundServiceTimeSeconds * 1000.0, j) * adjRatioArr[j];
@@ -423,8 +430,9 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 //            double tempShedRate = Double.valueOf(String.format("%.2f", (1.0 - ( lambda0 / originLambda0))));
 //            activeShedRateMap.put(sourceNode.getComponentID(), tempShedRate);
 //            return new AllocationAndActiveShedRates(tempAllocation, activeShedRateMap);
-
-            return binarySearchAllocationAndShedRate(false,sourceNode,serviceNodes,currentUsedThreadByBolts,completeTimeMilliSecUpper,tolerant,adjRatioArr);
+            List<AllocationAndActiveShedRates> allocationAndActiveShedRatesList = calcAllocationAndActiveShedRate(sourceNode,serviceNodes, maxAvailableExec, currentUsedThreadByBolts, totalMinReq, completeTimeMilliSecUpper, reUnit, tolerant, adjRatioArr);
+            return chooseBefittingDecision(allocationAndActiveShedRatesList, costFunction, costClassName);
+            //return binarySearchShedRate(false,sourceNode,serviceNodes,currentUsedThreadByBolts,completeTimeMilliSecUpper,tolerant,adjRatioArr);
         }
         return null;
         /**
@@ -478,7 +486,6 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 //            System.out.println("shibai"+(lowerBoundServiceTimeSeconds * adjRatio * 1000.0)+"~"+completeTimeMilliSecUpper+"~"+totalMinReq+"~"+maxAvailableExec);
 //            return null;
 //        }
-
     }
 
     public static AllocationAndActiveShedRates getRemovedAllocationAndShedRateGeneralTopApplyMMK(
@@ -528,6 +535,47 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         return new AllocationAndActiveShedRates(minPossibleAllocation,activeShedRateMap);
     }
 
+    private AllocationAndActiveShedRates getAllocationAndShedRateGeneralTopApplyMMK(SourceNode sourceNode, Map<String, ServiceNode> serviceNodes, double estTotalSojournTimeMilliSec_MMK, int resourceUnit,
+                                                                                    double completeTimeMilliSecUpper, double completeTimeMilliSecLower, int currentUsedThreadByBolts, int maxAvailable4Bolt,
+                                                                                    double tolerant, Map<String, Integer> currOptAllocation, double[] adjRatioArr, ICostFunction costFunction, String costClassName) {
+
+        double lowerBoundServiceTimeSeconds = 0.0;  //in seconds
+        int totalMinReq = 0;
+        int minResource = 0;
+        for (Map.Entry<String, ServiceNode> e : serviceNodes.entrySet()) {
+            double lambda = e.getValue().getLambda();
+            double mu = e.getValue().getMu();
+            totalMinReq += getMinReqServerCount(lambda, mu);
+            lowerBoundServiceTimeSeconds += (1.0 / mu);
+            minResource++;
+        }
+
+        Map<String, Integer>  minPossibleAllocation = serviceNodes.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+                e -> getMinReqServerCount(e.getValue().getLambda(), e.getValue().getMu())));
+        int totalMinReq2 = minPossibleAllocation.values().stream().mapToInt(Integer::intValue).sum();
+
+        if (totalMinReq != totalMinReq2){
+            LOG.warn(" getAllocationAndShedRateGeneralTopApplyMMK(), totalMinReq (" + totalMinReq + ") != totalMinReq2 (" + totalMinReq2 + ").");
+        }
+
+        double adjLowerBoundServiceTimeMilliSeconds = 0.0;
+        for (int j=0; j<adjRatioArr.length; j++) {
+            adjLowerBoundServiceTimeMilliSeconds += Math.pow(lowerBoundServiceTimeSeconds * 1000.0, j) * adjRatioArr[j];
+        }
+        System.out.println(adjLowerBoundServiceTimeMilliSeconds+" lowerBoundServiceTimeSeconds: "+lowerBoundServiceTimeSeconds+" totalMinReq"+totalMinReq+" minResource"+minResource);
+        System.out.println(estTotalSojournTimeMilliSec_MMK+"laibuliao: "+sourceNode.getRealLatencyMilliSeconds());
+
+        //Map<String, Double> activeShedRateMap = initActiveRateMap(sourceNode, serviceNodes);
+        //Map<String, Integer> currAllocation = null;
+
+        //if (adjLowerBoundServiceTimeMilliSeconds < completeTimeMilliSecUpper) {
+            LOG.debug(" getAllocationAndShedRateGeneralTopApplyMMK(), " +
+                    "lowerBoundServiceTimeSeconds * adjRatio * 1000.0 < completeTimeMilliSecUpper");
+            List<AllocationAndActiveShedRates> allocationAndActiveShedRatesList = calcAllocationAndActiveShedRate(sourceNode,serviceNodes, maxAvailable4Bolt, currentUsedThreadByBolts, minResource, completeTimeMilliSecUpper, resourceUnit, tolerant,adjRatioArr);
+            return chooseBefittingDecision(allocationAndActiveShedRatesList, costFunction, costClassName);
+        //}
+       // return null;
+    }
 
     /**
      * Like Module A', input required QoS, output #threads required
@@ -778,7 +826,8 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
                                                  double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
                                                  Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
                                                  int currentUsedThreadByBolts, int resourceUnit, double tolerant,
-                                                 double messageTimeOut, Map<String, double[]> selectivityFunctions, LearningModel calcAdjRatioFunction, Map<String,Object> targets) {
+                                                 double messageTimeOut, Map<String, double[]> selectivityFunctions, LearningModel calcAdjRatioFunction,
+                                                 Map<String,Object> targets, ICostFunction costFunction, String costClassName) {
         double activeShedRate;
         Map<String, Map<String,Double>> activeSheddingRateMap = new HashMap<>();
         double[] adjRatioArr = learningAdjRatio(calcAdjRatioFunction);
@@ -792,11 +841,11 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         activeShedRate = KmaxOptAllocationAndActiveShedRates.getActiveShedRates().get(sourceNode.getComponentID());
         activeSheddingRateMap.put("KmaxActiveShedRate",KmaxOptAllocationAndActiveShedRates.getActiveShedRates());
 
-        System.out.println("11111dkmax activeShedRate: "+activeShedRate);
+        //System.out.println("11111dkmax activeShedRate: "+activeShedRate);
 
         AllocationAndActiveShedRates currOptAllocationAndActiveShedRates = suggestAllocationWithShedRate(sourceNode,queueingNetwork,currentUsedThreadByBolts,completeTimeMilliSecUpper,tolerant,selectivityFunctions, targets, currBoltAllocation, adjRatioArr);
 
-        System.out.println("11111dcurr activeShedRate: "+currOptAllocationAndActiveShedRates.getActiveShedRates().get(sourceNode.getComponentID()));
+        //System.out.println("11111dcurr activeShedRate: "+currOptAllocationAndActiveShedRates.getActiveShedRates().get(sourceNode.getComponentID()));
         //Map<String, Integer> temp = AllocationAndActiveShedRates.getFixedAllocation();
         //System.out.println(sourceNode.getRealLatencySeconds()+"simafu: "+sourceNode.getTupleEmitRateOnSQ());
         //System.out.println("simalang: "+((HashMap)queueingNetwork).toString());
@@ -811,9 +860,6 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         Map<String, Integer> currOptAllocation = currOptAllocationAndActiveShedRates.getFixedAllocation();
         Map<String, Integer> kMaxOptAllocation = KmaxOptAllocationAndActiveShedRates.getFixedAllocation();
 
-        //Map<String, Integer> kMaxOptAllocation = suggestAllocationGeneralTopApplyMMK(queueingNetwork, maxAvailable4Bolt);
-        //Map<String, Integer> currOptAllocation = suggestAllocationGeneralTopApplyMMK(queueingNetwork, currentUsedThreadByBolts);
-
         System.out.println(currOptAllocation+"currOptAllocation : simafang : kMaxOptAllocation "+kMaxOptAllocation);
 
         double estTotalSojournTimeMilliSec_MMKOpt = 1000.0 * getExpectedTotalSojournTimeForJacksonOQN(queueingNetwork, currOptAllocation);
@@ -824,65 +870,69 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         ///for better estimation, we remain (learn) this ratio, and assume that the estimated is always smaller than real.
         double underEstimateRatio = Math.max(1.0, realLatencyMilliSeconds / estTotalSojournTimeMilliSec_MMK);
 
-//        if (estTotalSojournTimeMilliSec_MMK < 0.0) {
-//            System.out.println("yohoho"+(realLatencyMilliSeconds / 1000.0));
-//            //paramPairForCalcAdjRatio.putResult(realLatencyMilliSeconds / 1000.0, realLatencyMilliSeconds / 1000.0);
-//        } else {
-            if (activeShedRate <= 0 && estTotalSojournTimeMilliSec_MMK >= 0.0 && estTotalSojournTimeMilliSec_MMK/realLatencyMilliSeconds < DEVIATION_RATIO
-                    && realLatencyMilliSeconds/estTotalSojournTimeMilliSec_MMK < DEVIATION_RATIO) {
-                System.out.println((estTotalSojournTimeMilliSec_MMK ) + "yoheihei" + (realLatencyMilliSeconds)+" shedding rate:"+activeShedRate);
-                paramPairForCalcAdjRatio.putResult(realLatencyMilliSeconds , estTotalSojournTimeMilliSec_MMK );
-            } else {
-                System.out.println(estTotalSojournTimeMilliSec_MMK+"activeshedrate budengyu 0 : "+activeShedRate);
-            }
-        //}
-        ///relativeError (rE)
+        if (activeShedRate <= 0 && estTotalSojournTimeMilliSec_MMK >= 0.0 && estTotalSojournTimeMilliSec_MMK/realLatencyMilliSeconds < DEVIATION_RATIO
+                && realLatencyMilliSeconds/estTotalSojournTimeMilliSec_MMK < DEVIATION_RATIO) {
+            System.out.println((estTotalSojournTimeMilliSec_MMK ) + "yoheihei" + (realLatencyMilliSeconds)+" shedding rate:"+activeShedRate);
+            paramPairForCalcAdjRatio.putResult(realLatencyMilliSeconds , estTotalSojournTimeMilliSec_MMK );
+        } else {
+            System.out.println(estTotalSojournTimeMilliSec_MMK+"activeshedrate budengyu 0 : "+activeShedRate);
+        }
+        //relativeError (rE)
         double relativeError = Math.abs(realLatencyMilliSeconds - estTotalSojournTimeMilliSec_MMK) * 100.0 / realLatencyMilliSeconds;
 
         AllocResult.Status status = activeShedRate >= 0.1 ? AllocResult.Status.SHORTAGE : getStatusMMKWithAdjRatio(realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, estTotalSojournTimeMilliSec_MMKOpt,
                 queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, adjRatioArr);
-        System.out.println("wenmingniwota "+status);
+        System.out.println("wenmingniwotatata "+status);
+
         AllocationAndActiveShedRates adjustedAllocationAndShedRate;
-        Map<String, Integer> adjustedAllocation = null;
+        Map<String, Integer> adjustedAllocation;
+
+        adjustedAllocationAndShedRate = getAllocationAndShedRateGeneralTopApplyMMK(sourceNode, queueingNetwork, estTotalSojournTimeMilliSec_MMK, resourceUnit,
+                completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, tolerant, currOptAllocation, adjRatioArr, costFunction, costClassName);
+        if (adjustedAllocationAndShedRate != null) {
+            System.out.println("good!");
+            adjustedAllocation = adjustedAllocationAndShedRate.getFixedAllocation();
+            activeSheddingRateMap.put("adjustedActiveShedRate",adjustedAllocationAndShedRate.getActiveShedRates());
+        } else {
+            System.out.println("bad!");
+            adjustedAllocation = null;
+            activeSheddingRateMap.put("adjustedActiveShedRate",null);
+        }
+
+        if (adjustedAllocation == null) {
+            LOG.debug("Status is resource shortage and no feasible re-allocation solution");
+            status = AllocResult.Status.INFEASIBLE;
+        }
+
 //        if (status.equals(AllocResult.Status.SHORTAGE)) {
 //            LOG.debug("Status is resource shortage, calling resource adjustment ");
-//            adjustedAllocation = getMinReqServerAllocationGeneralTopApplyMMK(
-//                    realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, queueingNetwork,
-//                    completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, resourceUnit);
+//            //suggestAllocationWithShedRate(sourceNode,queueingNetwork,currentUsedThreadByBolts,completeTimeMilliSecUpper,relativeE,selectivityFunctions, targets);
+//            adjustedAllocationAndShedRate = getMinReqServerAllocationAndShedRateGeneralTopApplyMMK(sourceNode, estTotalSojournTimeMilliSec_MMK, queueingNetwork, resourceUnit,
+//                    completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, tolerant, currOptAllocation, adjRatioArr, costFunction);
+//        //    System.out.println("simalanglanglang: "+((HashMap)queueingNetwork).toString());
+//            if (adjustedAllocationAndShedRate != null) {
+//                adjustedAllocation = adjustedAllocationAndShedRate.getFixedAllocation();
+//                //activeShedRate = 1 - ((1 - activeShedRate) * (1 - adjustedAllocationAndShedRate.getActiveShedRates().get(sourceNode.getComponentID())));
+//                //adjustedAllocationAndShedRate.getActiveShedRates().put(sourceNode.getComponentID(),activeShedRate);
+//                activeSheddingRateMap.put("adjustedActiveShedRate",adjustedAllocationAndShedRate.getActiveShedRates());
+//            } else {
+//                adjustedAllocation = null;
+//                activeSheddingRateMap.put("adjustedActiveShedRate",null);
+//            }
+//            //activeShedRate = adjustedAllocationAndShedRate.getActiveShedRates().get(sourceNode.getComponentID());
 //            if (adjustedAllocation == null) {
 //                LOG.debug("Status is resource shortage and no feasible re-allocation solution");
 //                status = AllocResult.Status.INFEASIBLE;
 //            }
-
-        if (status.equals(AllocResult.Status.SHORTAGE)) {
-            LOG.debug("Status is resource shortage, calling resource adjustment ");
-            //suggestAllocationWithShedRate(sourceNode,queueingNetwork,currentUsedThreadByBolts,completeTimeMilliSecUpper,relativeE,selectivityFunctions, targets);
-            adjustedAllocationAndShedRate = getMinReqServerAllocationAndShedRateGeneralTopApplyMMK(sourceNode, estTotalSojournTimeMilliSec_MMK, queueingNetwork,
-                    completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, tolerant, currOptAllocation, adjRatioArr);
-            if (adjustedAllocationAndShedRate != null) {
-                adjustedAllocation = adjustedAllocationAndShedRate.getFixedAllocation();
-                //activeShedRate = 1 - ((1 - activeShedRate) * (1 - adjustedAllocationAndShedRate.getActiveShedRates().get(sourceNode.getComponentID())));
-                //adjustedAllocationAndShedRate.getActiveShedRates().put(sourceNode.getComponentID(),activeShedRate);
-                activeSheddingRateMap.put("adjustedActiveShedRate",adjustedAllocationAndShedRate.getActiveShedRates());
-            } else {
-                adjustedAllocation = null;
-                activeSheddingRateMap.put("adjustedActiveShedRate",null);
-            }
-            //activeShedRate = adjustedAllocationAndShedRate.getActiveShedRates().get(sourceNode.getComponentID());
-            if (adjustedAllocation == null) {
-                LOG.debug("Status is resource shortage and no feasible re-allocation solution");
-                status = AllocResult.Status.INFEASIBLE;
-            }
-
-        } else if (status.equals(AllocResult.Status.OVERPROVISIONING)) {
-            LOG.debug("Status is resource over-provisioning");
-            adjustedAllocationAndShedRate = getRemovedAllocationAndShedRateGeneralTopApplyMMK(
-                    realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, sourceNode, queueingNetwork,
-                    completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, resourceUnit, adjRatioArr);
-            adjustedAllocation = adjustedAllocationAndShedRate.getFixedAllocation();
-            activeSheddingRateMap.put("adjustedActiveShedRate",adjustedAllocationAndShedRate.getActiveShedRates());
-        }
-
+//
+//        } else if (status.equals(AllocResult.Status.OVERPROVISIONING)) {
+//            LOG.debug("Status is resource over-provisioning");
+//            adjustedAllocationAndShedRate = getRemovedAllocationAndShedRateGeneralTopApplyMMK(
+//                    realLatencyMilliSeconds, estTotalSojournTimeMilliSec_MMK, sourceNode, queueingNetwork,
+//                    completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, resourceUnit, adjRatioArr);
+//            adjustedAllocation = adjustedAllocationAndShedRate.getFixedAllocation();
+//            activeSheddingRateMap.put("adjustedActiveShedRate",adjustedAllocationAndShedRate.getActiveShedRates());
+//        }
         if (!activeSheddingRateMap.containsKey("adjustedActiveShedRate")) { //feasible or infeasible
             activeSheddingRateMap.put("adjustedActiveShedRate", initActiveRateMap(sourceNode, queueingNetwork));
         }
@@ -898,7 +948,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 
         //Map<String,Double> activeSheddingRateMap = calcActiveSheddingRate();//active shedding
 
-        ShedRateAndAllocResult shedRateAndAllocResult = new ShedRateAndAllocResult(status, adjustedAllocation, currOptAllocation, kMaxOptAllocation,activeSheddingRateMap,context);
+        ShedRateAndAllocResult shedRateAndAllocResult = new ShedRateAndAllocResult(status, adjustedAllocation, currOptAllocation, kMaxOptAllocation, activeSheddingRateMap, context);
         AllocResult retVal = shedRateAndAllocResult.getAllocResult();
 
         LOG.info("MMK, reUnit: " + resourceUnit  +  ", alloStat: " + retVal.status);

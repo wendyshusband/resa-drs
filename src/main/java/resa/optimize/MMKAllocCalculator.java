@@ -81,7 +81,7 @@ public class MMKAllocCalculator extends AllocCalculator {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> {
                     SpoutAggResult hisCar = AggResult.getHorizontalCombinedResult(new SpoutAggResult(), e.getValue());
                     int numberExecutor = currAllocation.get(e.getKey());
-                    return new SourceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar);
+                    return new SourceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar, false);
                 }));
 
         SourceNode spInfo = spInfos.entrySet().stream().findFirst().get().getValue();

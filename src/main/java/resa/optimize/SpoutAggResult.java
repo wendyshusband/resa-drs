@@ -15,10 +15,10 @@ public class SpoutAggResult extends AggResult {
 
     private Map<String, CntMeanVar> completedLatency = new HashMap<>();
 
-    private int failureCount = 0;
-    private int spoutDropCount = 0;
-    private int failLatencyMs = 0;
-    private int activeSpoutDropCount = 0;
+
+
+    private Map<String, Long> shedRelateCount = new HashMap<>();
+
     public Map<String, CntMeanVar> getCompletedLatency() {
         return completedLatency;
     }
@@ -34,10 +34,17 @@ public class SpoutAggResult extends AggResult {
         super.add(r);
         ((SpoutAggResult) r).completedLatency.forEach((s, cntMeanVar) ->
                 this.completedLatency.computeIfAbsent(s, (k) -> new CntMeanVar()).addCMV(cntMeanVar));
-        this.failureCount += ((SpoutAggResult) r).failureCount;
-        this.spoutDropCount += ((SpoutAggResult) r).spoutDropCount;
-        this.failLatencyMs += ((SpoutAggResult) r).failLatencyMs;
-        this.activeSpoutDropCount += ((SpoutAggResult) r).activeSpoutDropCount;
+        System.out.println(this.getShedRelateCount()+"pgone1"+((SpoutAggResult) r).getShedRelateCount());
+        ((SpoutAggResult) r).getShedRelateCount().forEach((stream, number) -> {
+            if(this.getShedRelateCount().containsKey(stream)) {
+                long temp = this.getShedRelateCount().get(stream);
+                temp +=  ((SpoutAggResult) r).getShedRelateCount().get(stream);
+                this.getShedRelateCount().put(stream, temp);
+            } else {
+                this.getShedRelateCount().put(stream, ((SpoutAggResult) r).getShedRelateCount().get(stream));
+            }
+        });
+        System.out.println(this.getShedRelateCount()+"pgone2");
     }
 
     public double getAvgTupleCompleteLatency(){
@@ -52,36 +59,23 @@ public class SpoutAggResult extends AggResult {
         return this.getCombinedCompletedLatency().getCount();
     }
 
-    public int getFailureCount() {
-        return failureCount;
+    public Map<String, Long> getShedRelateCount() {
+        return shedRelateCount;
     }
 
-    public void setFailureCount(int failureCount) {
-        this.failureCount = failureCount;
-    }
-
-    public int getSpoutDropCount() {
-        return spoutDropCount;
-    }
-
-    public void setSpoutDropCount(int spoutDropCount) {
-        this.spoutDropCount = spoutDropCount;
-    }
-
-    public int getFailLatencyMs() {
-        return failLatencyMs;
-    }
-
-    public void setFailLatencyMs(int failLatencyMs) {
-        this.failLatencyMs = failLatencyMs;
-    }
-
-    public int getActiveSpoutDropCount() {
-        return activeSpoutDropCount;
-    }
-
-    public void setActiveSpoutDropCount(int activeSpoutDropCount) {
-        this.activeSpoutDropCount = activeSpoutDropCount;
-    }
-
+//    public int getFailureCount() {
+//        return failureCount;
+//    }
+//
+//    public int getSpoutDropCount() {
+//        return spoutDropCount;
+//    }
+//
+//    public int getFailLatencyMs() {
+//        return failLatencyMs;
+//    }
+//
+//    public int getActiveSpoutDropCount() {
+//        return activeSpoutDropCount;
+//    }
 }

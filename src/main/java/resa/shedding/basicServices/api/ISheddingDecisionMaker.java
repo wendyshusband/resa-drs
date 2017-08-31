@@ -1,6 +1,7 @@
-package resa.shedding.basicServices;
+package resa.shedding.basicServices.api;
 
 import org.apache.storm.generated.StormTopology;
+import resa.shedding.basicServices.ShedRateAndAllocResult;
 
 import java.util.Map;
 

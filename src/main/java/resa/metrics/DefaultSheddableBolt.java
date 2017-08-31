@@ -2,6 +2,9 @@ package resa.metrics;
 
 import org.apache.storm.Config;
 import org.apache.storm.metric.api.MultiCountMetric;
+import org.apache.storm.shade.org.apache.curator.framework.CuratorFramework;
+import org.apache.storm.shade.org.apache.curator.framework.recipes.cache.NodeCache;
+import org.apache.storm.shade.org.apache.curator.framework.recipes.cache.NodeCacheListener;
 import org.apache.storm.shade.org.json.simple.JSONObject;
 import org.apache.storm.shade.org.json.simple.parser.JSONParser;
 import org.apache.storm.shade.org.json.simple.parser.ParseException;
@@ -13,7 +16,10 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.shedding.basicServices.IShedding;
+import resa.shedding.basicServices.api.IShedding;
+import resa.shedding.tools.AbstractSampler;
+import resa.shedding.tools.ActiveSheddingSampler;
+import resa.shedding.tools.DRSzkHandler;
 import resa.topology.DelegatedBolt;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -40,7 +46,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private double activeSheddingRate;
     private String compID;
     private String topologyName;
-    private Sampler activeSheddingSampler;
+    private AbstractSampler activeSheddingSampler;
     //private boolean ackFlag;
     private boolean enablePassiveShedding;
     private boolean enableActiveShedding;
@@ -81,7 +87,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private transient MultiCountMetric emitMetric;
     private transient DefaultSheddableBolt.SheddindMeasurableOutputCollector sheddindMeasurableCollector;
     private long lastMetricsSent;
-    //private transient CuratorFramework client;
+    private transient CuratorFramework client;
     private int interval;
 
     public DefaultSheddableBolt() {
@@ -94,16 +100,16 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     public void prepare(Map conf, TopologyContext context, OutputCollector outputCollector) {
         enablePassiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.PASSIVE_SHEDDING_ENABLE, true);
         enableActiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.ACTIVE_SHEDDING_ENABLE, true);
-        if (enablePassiveShedding == false && enableActiveShedding == false) {
+        if (!enablePassiveShedding && !enableActiveShedding) {
             sheddingCase = 0;
             LOG.info("application running under no shedding status: "+sheddingCase);
-        } else if (enablePassiveShedding == true && enableActiveShedding == true) {
+        } else if (enablePassiveShedding && enableActiveShedding) {
             sheddingCase = 1;
             LOG.info("application running under active shedding and passive shedding status: "+sheddingCase);
-        } else if (enablePassiveShedding == true && enableActiveShedding == false) {
+        } else if (enablePassiveShedding && !enableActiveShedding) {
             sheddingCase = 2;
             LOG.info("application running under passive shedding status: "+sheddingCase);
-        } else if (enablePassiveShedding == false && enableActiveShedding == true) {
+        } else if (!enablePassiveShedding && enableActiveShedding) {
             sheddingCase = 3;
             LOG.info("application running under active shedding status: "+sheddingCase);
         }
@@ -125,16 +131,22 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         if (enableActiveShedding) {
             compID = context.getThisComponentId();
             topologyName = (String) conf.get(Config.TOPOLOGY_NAME);
-            activeSheddingRate = 0.0;
-            activeSheddingSampler = new Sampler(activeSheddingRate);
             //ackFlag = Utils.getBoolean(conf.get("resa.ack.flag"),true);
-            //List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
-            //int port = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT));
-            //client= DRSzkHandler.newClient(zkServer.get(0).toString(),port,6000,6000,1000,3);
+            List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
+            int port = Utils.getInt(conf.get(Config.STORM_ZOOKEEPER_PORT));
+            client= DRSzkHandler.newClient(zkServer.get(0).toString(),port,6000,6000,1000,3);
             JSONParser parser = new JSONParser();
             try {
+                if (!DRSzkHandler.clientIsStart()) {
+                    DRSzkHandler.start();
+                }
+                activeSheddingRate = 0.0;
+                activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
                 activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf, ResaConfig.ACTIVE_SHEDDING_MAP, "{}"));
+                watchActiveShedRate();
             } catch (ParseException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             //checkActiveSheddingRateThread();
@@ -265,9 +277,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         sheddingRateMetric.scope("allTuple").incr();
         boolean flag = true;
         switch (sheddingCase) {
-            case 0: {
-                break;
-            }
+            case 0: break;
             case 1: {
                 if (trigger(null)){// need passive shedding
                     int sheddTupleNum =passiveDrop(null);
@@ -325,6 +335,25 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         }
     }
 
+    public void watchActiveShedRate() throws Exception {
+        NodeCache nodeCache = DRSzkHandler.createNodeCache("/drs/"+topologyName);
+        LOG.info(compID+" watch active shedding ratio!");
+        //if (DRSzkHandler.clientIsStart()) {
+
+            nodeCache.getListenable().addListener(new NodeCacheListener() {
+
+                public void nodeChanged() throws Exception {
+                    double shedRate = DRSzkHandler.parseActiveShedRateMap(nodeCache.getCurrentData().getData(), compID);
+                    System.out.println(shedRate+"weipinhuihuihuihuihui "+compID);
+                    if (shedRate != Double.MAX_VALUE && shedRate != activeSheddingRate) {
+                        System.out.println(activeSheddingRate + "womabi" + compID + ":" + "haha" + shedRate);
+                        activeSheddingRate = shedRate;
+                        activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
+                    }
+                }
+            }, DRSzkHandler.EXECUTOR_SERVICE);
+        //}
+    }
 
     @Override
     public int passiveDrop(Object[] arg) {

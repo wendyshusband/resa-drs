@@ -186,3 +186,6 @@ topology.max.spout.pending: null
 resa.passive.shedding.enable: true
 resa.active.shedding.enable: true
 resa.active.shedding.adjustRatio.bias.threshold: 0.95
+
+resa.calc.cost.func.class: "resa.shedding.example.ExamCostFunc"
+resa.cost.class: "resa.shedding.example.ExamCost"

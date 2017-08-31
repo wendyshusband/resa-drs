@@ -47,14 +47,14 @@ public class SheddingLoadRevert {
     }
 
     private void revertCompleteLatency() {
-        long tempFailCount = sourceNode.getFailureCount();//serviceNodeMap.values().stream().mapToLong(ServiceNode::getDropCount).sum();
-        long tempDropCount = sourceNode.getSpoutDropCount();
+        long tempFailCount = sourceNode.getShedRelateCount().get("failure");//serviceNodeMap.values().stream().mapToLong(ServiceNode::getDropCount).sum();
+        long tempDropCount = sourceNode.getShedRelateCount().get("spoutDrop");
         long tempAllCount = sourceNode.getEmitCount().values().stream().mapToLong(Number::longValue).sum();//serviceNodeMap.values().stream().mapToLong(ServiceNode::getAllCount).sum();
         double completeLatency = sourceNode.getRealLatencyMilliSeconds();
         double realCL = (((tempAllCount - tempFailCount) * completeLatency)
                 + ((tempDropCount + tempFailCount) * processTimeout * 1000)) / (tempAllCount + tempDropCount);
         sourceNode.revertCompleteLatency(realCL);
-        LOG.info("all:"+tempAllCount+"fail:"+tempFailCount+"drop:"+tempDropCount+"processdrop"+realCL);
+        LOG.info("all:"+tempAllCount+"fail:"+tempFailCount+"drop:"+tempDropCount+"activeDrop"+sourceNode.getShedRelateCount().get("activeSpoutDrop")+"processdrop"+realCL);
     }
 
     private void calcProportion() {
@@ -93,8 +93,8 @@ public class SheddingLoadRevert {
         Map<String,Long> emitCountMap = sourceNode.getEmitCount();
         long denominator = emitCountMap.values().stream().mapToLong(Number::longValue).sum();
         LOG.info("sourceNode : "+sourceNode.getComponentID()+" whole emit tuple number ="+ denominator);
-        sourceNode.revertLambda((sourceNode.getSpoutDropCount()+denominator) / sourceNode.getSumDurationSeconds());
-        LOG.info("Reverted Lambda 0: "+(sourceNode.getSpoutDropCount()+denominator) / sourceNode.getSumDurationSeconds());
+        sourceNode.revertLambda((sourceNode.getShedRelateCount().get("spoutDrop")+denominator) / sourceNode.getSumDurationSeconds());
+        LOG.info("Reverted Lambda 0: "+(sourceNode.getShedRelateCount().get("spoutDrop")+denominator) / sourceNode.getSumDurationSeconds());
         Map<String,ArrayList<String>> stream2CompLists =
                 (Map<String, ArrayList<String>>) topologyTargets.get(sourceNode.getComponentID());
         if (!stream2CompLists.isEmpty()) {

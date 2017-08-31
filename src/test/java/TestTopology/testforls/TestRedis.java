@@ -22,7 +22,7 @@ public class TestRedis {
         config.setMaxWaitMillis(maxWait);
         config.setTestOnBorrow(testOnBorrow);
         config.setTestOnReturn(onreturn);
-        jedisPool = new JedisPool(config, "10.21.50.20", 6379);
+        jedisPool = new JedisPool(config, "10.21.50.20", 6379,100000000);
     }
 
     public synchronized static Jedis getJedis() {
@@ -120,6 +120,18 @@ public class TestRedis {
         }
     }
 
+    public static void insertList(String key, String value) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            jedis.lpush(key,value);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally{
+            jedisPool.returnResource(jedis);
+        }
+    }
+    
     public static void main(String[] args) {
         TestRedis rea = new TestRedis();
         Jedis jedis = rea.getJedis();
@@ -139,10 +151,10 @@ public class TestRedis {
         int i = 0;
         while(i<200000){
             i++;
-            //jedis.lpop("outputMetric");
+            System.out.println(jedis.lpop("fsource"));
             if(null == jedis.lpop("fsource")){
-                System.out.println("null");
-                break;
+                //System.out.println("null");
+                //break;
             }
         }
         System.out.println("ok!");

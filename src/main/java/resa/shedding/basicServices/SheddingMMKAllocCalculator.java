@@ -8,6 +8,11 @@ import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import resa.optimize.*;
+import resa.shedding.basicServices.api.ICostFunction;
+import resa.shedding.basicServices.api.LearningModel;
+import resa.shedding.basicServices.api.SheddingAllocCalculator;
+import resa.shedding.example.ExamCost;
+import resa.shedding.example.ExamCostFunc;
 import resa.shedding.example.PolynomialRegression;
 import resa.shedding.tools.DRSzkHandler;
 import resa.util.ConfigUtil;
@@ -98,6 +103,10 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         double tolerant = ConfigUtil.getDouble(conf, ResaConfig.ACTIVE_SHEDDING_ADJUSTRATIO_BIAS_THRESHOLD,0.9);
         LearningModel calcAdjRatioFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.ADJRATIO_CALC_CLASS,
                 PolynomialRegression.class.getName()),LearningModel.class);
+        ICostFunction costFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.CALC_COST_FUNC_CLASS,
+                ExamCostFunc.class.getName()),ICostFunction.class);
+        String costClassName =  ConfigUtil.getString(conf, ResaConfig.COST_CLASS, ExamCost.class.getName());
+
         ShedRateAndAllocResult shedRateAndAllocResult;
 
         ///TODO: check how metrics are sampled in the current implementation.
@@ -108,7 +117,8 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> {
                     SpoutAggResult hisCar = AggResult.getHorizontalCombinedResult(new SpoutAggResult(), e.getValue());
                     int numberExecutor = currAllocation.get(e.getKey());
-                    return new SourceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar);
+                    System.out.println("spoutaggresultguibian: "+hisCar.getShedRelateCount());
+                    return new SourceNode(e.getKey(), numberExecutor, componentSampelRate, hisCar, true);
                 }));
 
         SourceNode spInfo = spInfos.entrySet().stream().findFirst().get().getValue();
@@ -147,7 +157,8 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
             //shedRateAndAllocResult = serviceModel.checkOptimizedWithActiveShedding(spInfo, queueingNetwork,
             //        completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions, targets);
             shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork,
-                   completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions, calcAdjRatioFunction, targets);
+                    completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions,
+                    calcAdjRatioFunction, targets, costFunction, costClassName);
         } else {
             shedRateAndAllocResult = serviceModel.checkOptimized(
                     spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);

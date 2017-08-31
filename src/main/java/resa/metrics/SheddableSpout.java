@@ -1,8 +1,8 @@
 package resa.metrics;
 
 import org.apache.storm.topology.IRichSpout;
-import resa.shedding.basicServices.IShedding;
-import resa.shedding.tools.ISampler;
+import resa.shedding.basicServices.api.IShedding;
+import resa.shedding.tools.AbstractSampler;
 import resa.topology.DelegatedSpout;
 
 /**
@@ -11,9 +11,9 @@ import resa.topology.DelegatedSpout;
 public class SheddableSpout extends DelegatedSpout {
 
     private IShedding _shedder;
-    private ISampler _sampler;
+    private AbstractSampler _sampler;
 
-    public SheddableSpout(IRichSpout spout, IShedding shedder, ISampler sampler){
+    public SheddableSpout(IRichSpout spout, IShedding shedder, AbstractSampler sampler){
         super(spout);
         this._shedder = shedder;
         this._sampler = sampler;

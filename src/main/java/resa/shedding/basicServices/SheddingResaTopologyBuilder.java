@@ -3,7 +3,8 @@ package resa.shedding.basicServices;
 import org.apache.storm.topology.*;
 import resa.metrics.SheddableBolt;
 import resa.metrics.SheddableSpout;
-import resa.shedding.tools.ISampler;
+import resa.shedding.basicServices.api.IShedding;
+import resa.shedding.tools.AbstractSampler;
 
 /**
  * Created by kailin on 28/3/17.
@@ -11,9 +12,9 @@ import resa.shedding.tools.ISampler;
 public class SheddingResaTopologyBuilder extends TopologyBuilder {
 
     IShedding _shedder;
-    ISampler _sampler;
+    AbstractSampler _sampler;
 
-    public SheddingResaTopologyBuilder (IShedding shedder, ISampler sampler) {
+    public SheddingResaTopologyBuilder (IShedding shedder, AbstractSampler sampler) {
         _sampler = sampler;
         _shedder = shedder;
     }

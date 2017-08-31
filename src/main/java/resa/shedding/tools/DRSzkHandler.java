@@ -49,7 +49,7 @@ public class DRSzkHandler {
     public final static ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
     public static final char PATH_SEPARATOR_CHAR = '/';
     private static Map<String, NodeCache> nodeCaches = new HashMap<>();
-
+    private static Map<String, Integer> nodeCacheIsStarted = new HashMap<>();
     private DRSzkHandler(String zkServer, int port, int sessionTimeoutMs,
                          int connectionTimeoutMs, int baseSleepTimeMsint, int maxRetries) {
         RetryPolicy retryPolicy = new ExponentialBackoffRetry(baseSleepTimeMsint, maxRetries);
@@ -84,7 +84,7 @@ public class DRSzkHandler {
             }
         });
         EXECUTOR_SERVICE.shutdownNow();
-        deletePath(path,true);
+        //deletePath(path,true);
         client.close();
     }
 
@@ -131,30 +131,35 @@ public class DRSzkHandler {
         }else{
             client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
         }
-        //System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
+        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
     }
 
     public static double parseActiveShedRateMap(byte[] activeShedRateMapBytes, String compID) {
         String tempMap = new String(activeShedRateMapBytes);
+        System.out.println(tempMap+"paris3"+compID);
         Pattern pattern1 = Pattern.compile("[\\s{]"+compID + "=(\\d+)\\.(\\d+)");
         Matcher matcher1 = pattern1.matcher(tempMap);
         if (matcher1.find()) {
+            System.out.println(matcher1.toString()+"paris4"+compID);
             Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
             Matcher matcher2 = pattern2.matcher(matcher1.group());
             if (matcher2.find()) {
+                System.out.println(matcher1.toString()+"paris5"+compID);
                 return Double.valueOf(matcher2.group());
             }
         }
         return Double.MAX_VALUE;
     }
 
-    public static NodeCache createNodeCache (String path) {
+    public static NodeCache createNodeCache (String path) throws Exception {
         if (nodeCaches.containsKey(path)) {
+            System.out.println(nodeCaches.get(path).getListenable().size()+"youle"+nodeCaches.get(path).getListenable().toString());
             return nodeCaches.get(path);
         } else {
             NodeCache nodeCache = new NodeCache(client, path);
             nodeCaches.put(path, nodeCache);
             nodeCaches.put(path, nodeCache);
+            nodeCache.start();
             return nodeCache;
         }
     }
@@ -171,4 +176,31 @@ public class DRSzkHandler {
     public static void setDecision (lastDecision mkDecision) {
         decision = mkDecision;
     }
+
+//    public static void main(String[] args) {
+//        DRSzkHandler.newClient("10.21.50.20",2181, 6000, 6000, 1000, 3).start();
+//        NodeCache nodeCache = null;
+//        try {
+//            nodeCache = DRSzkHandler.createNodeCache("/storm");
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+////        System.out.println(s.getCurrentData().toString());
+//        System.out.println(nodeCache.getClass());
+//        System.out.println(nodeCache.getListenable().size());
+//        nodeCache.getListenable().addListener(new NodeCacheListener() {
+//
+//            public void nodeChanged() throws Exception {
+//                System.out.println(1);
+//            }
+//        }, DRSzkHandler.EXECUTOR_SERVICE);
+//        nodeCache.getListenable().addListener(new NodeCacheListener() {
+//
+//            public void nodeChanged() throws Exception {
+//                System.out.println(2);
+//            }
+//        }, DRSzkHandler.EXECUTOR_SERVICE);
+//        System.out.println(nodeCache.getListenable().size());
+//        System.out.println(DRSzkHandler.EXECUTOR_SERVICE.isShutdown());
+//    }
 }

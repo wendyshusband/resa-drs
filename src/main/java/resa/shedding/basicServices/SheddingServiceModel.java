@@ -2,6 +2,8 @@ package resa.shedding.basicServices;
 
 import resa.optimize.ServiceNode;
 import resa.optimize.SourceNode;
+import resa.shedding.basicServices.api.ICostFunction;
+import resa.shedding.basicServices.api.LearningModel;
 
 import java.util.Map;
 
@@ -34,7 +36,8 @@ public interface SheddingServiceModel {
             double completeTimeMilliSecUpper, double completeTimeMilliSecLower,
             Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
             int currentUsedThreadByBolts, int resourceUnit, double tolerant,
-            double messageTimeOut, Map<String, double[]> selectivityFunctions, LearningModel calcAdjRatioFunction, Map<String,Object> targets);
+            double messageTimeOut, Map<String, double[]> selectivityFunctions, LearningModel calcAdjRatioFunction,
+            Map<String,Object> targets, ICostFunction costFunction, String costClassName);
 
     ShedRateAndAllocResult checkOptimizedWithActiveShedding(
             SourceNode sourceNode, Map<String, ServiceNode> queueingNetwork,

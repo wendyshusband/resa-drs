@@ -15,7 +15,7 @@ import org.apache.storm.topology.IRichSpout;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import resa.shedding.tools.ISampler;
+import resa.shedding.tools.AbstractSampler;
 import resa.shedding.tools.ActiveSheddingSampler;
 import resa.shedding.tools.DRSzkHandler;
 import resa.topology.DelegatedSpout;
@@ -45,7 +45,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
     private double activeSheddingRate;
     private String compID;
     private String topologyName;
-    private ISampler activeSheddingSampler;
+    private AbstractSampler activeSheddingSampler;
     private int pendingMax;
     private double pendingThreshold;
     private transient CuratorFramework client;
@@ -54,7 +54,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
     private int dropCase = 0;
     private int interval;
     //private NodeCache nodeCache;
-    private int taskId;
+    private int taskId = 0;
 
     public DefaultSheddableSpout(){
 
@@ -107,7 +107,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
         public void spoutFail(SpoutFailInfo info) {
             DefaultSheddableSpout.SheddingMeasurableMsgId streamMsgId = (DefaultSheddableSpout.SheddingMeasurableMsgId) info.messageId;
             failureCountMetric.scope("failure").incr();
-            failureCountMetric.scope("failLatencyMs").incrBy(info.failLatencyMs);
+            //failureCountMetric.scope("failLatencyMs").incrBy(info.failLatencyMs);
             if (streamMsgId != null && streamMsgId.isSampled()) {
                 if (completeStatMetric != null) {
                     completeStatMetric.fail(streamMsgId.stream);
@@ -127,20 +127,22 @@ public class DefaultSheddableSpout extends DelegatedSpout {
         taskId = context.getThisTaskId();
         enablePassiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.PASSIVE_SHEDDING_ENABLE, true);
         enableActiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.ACTIVE_SHEDDING_ENABLE, true);
-        if (enablePassiveShedding == false && enableActiveShedding == false) {
+        if (!enablePassiveShedding && !enableActiveShedding) {
             dropCase = 0;
             LOG.info("application running under no spout drop status: "+dropCase);
-        } else if (enablePassiveShedding == true && enableActiveShedding == true) {
+        } else if (enablePassiveShedding && enableActiveShedding) {
             dropCase = 1;
             LOG.info("application running under active spout drop and passive spout drop status: "+dropCase);
-        } else if (enablePassiveShedding == true && enableActiveShedding == false) {
+        } else if (enablePassiveShedding && !enableActiveShedding) {
             dropCase = 2;
             LOG.info("application running under passive spout drop status: "+dropCase);
-        } else if (enablePassiveShedding == false && enableActiveShedding == true) {
+        } else if (!enablePassiveShedding && enableActiveShedding) {
             dropCase = 3;
             LOG.info("application running under active spout drop status: "+dropCase);
         }
-
+//        dropCase = (!enablePassiveShedding && !enableActiveShedding) ? 0
+//                : ((enablePassiveShedding && enableActiveShedding) ? 1
+//                : ((enablePassiveShedding && !enableActiveShedding) ? 2 : 3));
         interval = Utils.getInt(conf.get(Config.TOPOLOGY_BUILTIN_METRICS_BUCKET_SIZE_SECS));
         failureCountMetric = context.registerMetric(MetricNames.FAILURE_COUNT,new MultiCountMetric(),interval);
         completeMetric = context.registerMetric(MetricNames.COMPLETE_LATENCY, new CMVMetric(), interval);
@@ -165,11 +167,12 @@ public class DefaultSheddableSpout extends DelegatedSpout {
             client = DRSzkHandler.newClient(zkServer.get(0).toString(), 2181, 6000, 6000, 1000, 3);
             try {
                 if (!DRSzkHandler.clientIsStart()) {
-                    client.start();
+                    DRSzkHandler.start();
                 }
-                activeSheddingRate = 0.0;//0.0;
+                activeSheddingRate = 0.0;//(double) conf.get("test.shedding.rate");
+                System.out.println("haitianshengyan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
-                watchActiveShedRate();
+                //watchActiveShedRate();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -198,7 +201,10 @@ public class DefaultSheddableSpout extends DelegatedSpout {
                         if(pendingCount <= (pendingThreshold * pendingMax)){
                             if(activeSheddingRate != 0.0 && activeSheddingSampler.shoudSample()){
                                 failureCountMetric.scope("spoutDrop").incr();
-                                //System.out.println(activeSheddingSampler.getSampleValue()+"luoda"+activeSheddingRate);
+                                taskId++;
+                                if (taskId == 1) System.out.println("renew a taskIDD!");
+                                //if (taskId > 1000)
+                                    //System.out.println(activeSheddingSampler.getSampleValue()+"~~!~~"+activeSheddingRate+"number of active shedding:"+taskId+"~"+pendingCount);
                                 failureCountMetric.scope("activeSpoutDrop").incr();
                                 return null;
                             }
@@ -328,20 +334,23 @@ public class DefaultSheddableSpout extends DelegatedSpout {
     }
 
     public void watchActiveShedRate() throws Exception {
+        //if (DRSzkHandler.clientIsStart()) {
         NodeCache nodeCache = DRSzkHandler.createNodeCache("/drs/"+topologyName);
-        if (DRSzkHandler.clientIsStart()) {
+        LOG.info(compID+" watch active shedding ratio!");
+
             nodeCache.getListenable().addListener(new NodeCacheListener() {
 
                 public void nodeChanged() throws Exception {
                     double shedRate = DRSzkHandler.parseActiveShedRateMap(nodeCache.getCurrentData().getData(), compID);
+                    System.out.println(shedRate+"weipinhuihuihuihuihui "+compID);
                     if (shedRate != Double.MAX_VALUE && shedRate != activeSheddingRate) {
                         System.out.println(activeSheddingRate + "nimabi" + compID + ":" + "hehe" + shedRate);
                         activeSheddingRate = shedRate;
                         activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
+                        taskId = 0;
                     }
                 }
             }, DRSzkHandler.EXECUTOR_SERVICE);
-            nodeCache.start();
-        }
+     //   }
     }
 }

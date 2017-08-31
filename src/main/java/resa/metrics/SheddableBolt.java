@@ -1,8 +1,8 @@
 package resa.metrics;
 
 import org.apache.storm.topology.IRichBolt;
-import resa.shedding.basicServices.IShedding;
-import resa.shedding.tools.ISampler;
+import resa.shedding.basicServices.api.IShedding;
+import resa.shedding.tools.AbstractSampler;
 import resa.topology.DelegatedBolt;
 
 /**
@@ -11,9 +11,9 @@ import resa.topology.DelegatedBolt;
 public class SheddableBolt extends DelegatedBolt {
 
     private IShedding _shedder;
-    private ISampler _sampler;
+    private AbstractSampler _sampler;
 
-    public SheddableBolt(IRichBolt bolt, IShedding shedder, ISampler sampler){
+    public SheddableBolt(IRichBolt bolt, IShedding shedder, AbstractSampler sampler){
         super(bolt);
         this._shedder = shedder;
         this._sampler = sampler;

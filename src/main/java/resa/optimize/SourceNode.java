@@ -3,6 +3,7 @@ package resa.optimize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -38,14 +39,11 @@ public class SourceNode {
     private double exArrivalScvByInterArrival;
 
     /*load shedding*/
-    protected Map<String,Long> emitCount;
-    protected int spoutDropCount;
-    protected int failureCount;
-    protected int failureLatencyMs;
-    protected int activeDropCount;
-    protected double dropRatio;
+    protected Map<String, Long> emitCount = new HashMap<>();
+    protected Map<String, Long> shedRelateCount = new HashMap<>();
+    protected double dropRatio = 0.0;
 
-    public SourceNode(String componentID, int executorNumber, double compSampleRate, SpoutAggResult ar){
+    public SourceNode(String componentID, int executorNumber, double compSampleRate, SpoutAggResult ar, boolean enableLoadShedding){
         this.componentID = componentID;
         this.executorNumber = executorNumber;
         this.compSampleRate = compSampleRate;
@@ -70,19 +68,13 @@ public class SourceNode {
         double arrivalRateHis = ar.getArrivalRatePerSec();
         this.exArrivalRate = arrivalRateHis * executorNumber;
         this.exArrivalScvByInterArrival = ar.getInterArrivalTimeScv();
-
-        this.emitCount = ar.getemitCount();//load shedding
-        this.failureCount =ar.getFailureCount();
-        this.spoutDropCount = ar.getSpoutDropCount();
-        this.failureLatencyMs = ar.getFailLatencyMs();
-        this.activeDropCount = ar.getActiveSpoutDropCount();
-        this.dropRatio = (this.spoutDropCount*1.0)/(this.emitCount.values().stream().mapToLong(Number::longValue).sum()+this.spoutDropCount);
+        if (enableLoadShedding) {
+            this.emitCount = ar.getemitCount();//load shedding
+            this.shedRelateCount = ar.getShedRelateCount();
+            this.dropRatio = (this.shedRelateCount.get("spoutDrop")*1.0) / (this.emitCount.values().stream().mapToLong(Number::longValue).sum()+this.shedRelateCount.get("spoutDrop"));
+        }
 
         LOG.info((ar.getDepartureRatePerSec()/2)+":"+executorNumber+"SourceNode is created: " + toString());
-    }
-
-    public int getActiveDropCount() {
-        return activeDropCount;
     }
 
     public double getDropRatio() {
@@ -157,17 +149,10 @@ public class SourceNode {
         return emitCount;
     }
 
-    public int getSpoutDropCount() {
-        return spoutDropCount;
+    public Map<String, Long> getShedRelateCount() {
+        return shedRelateCount;
     }
 
-
-    public int getFailureCount() {
-        return failureCount;
-    }
-    public int getFailureLatencyMs() {
-        return failureLatencyMs;
-    }
     /**
      * revert complete latency for load shedding.
      * */
@@ -183,8 +168,7 @@ public class SourceNode {
                 componentID, executorNumber, tupleCompleteRate, realLatencyMilliSeconds, scvRealLatency, numCompleteTuples,
                 sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
                 tupleEmitRateOnSQ, tupleEmitScvByInterArrival, exArrivalRate, exArrivalScvByInterArrival, dropRatio)
-                +" emitcount: "+emitCount+" spoutDropCount: "+spoutDropCount+" fail:"+failureCount
-                +" failureLatencyMs: "+failureLatencyMs+" activeDrop: "+activeDropCount;
+                +" emitcount: "+emitCount+" | "+this.shedRelateCount;
     }
 
     public void revertLambda(double lambda) {
