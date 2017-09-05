@@ -37,7 +37,7 @@ public interface SheddingServiceModel {
             Map<String, Integer> currBoltAllocation, int maxAvailable4Bolt,
             int currentUsedThreadByBolts, int resourceUnit, double tolerant,
             double messageTimeOut, Map<String, double[]> selectivityFunctions, LearningModel calcAdjRatioFunction,
-            Map<String,Object> targets, ICostFunction costFunction, String costClassName);
+            Map<String,Object> targets, Map<String, RevertRealLoadData> revertRealLoadDatas, ICostFunction costFunction, String costClassName);
 
     ShedRateAndAllocResult checkOptimizedWithActiveShedding(
             SourceNode sourceNode, Map<String, ServiceNode> queueingNetwork,

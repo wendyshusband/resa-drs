@@ -66,14 +66,17 @@ public class DataSender {
         try (BufferedReader reader = Files.newBufferedReader(inputFile)) {
             String line;
             int batchCnt = 0;
-            while ((line = reader.readLine()) != null) {
-                dataQueue.put(processData(line));
+            while (!queue.isEmpty()) {//(line = reader.readLine()) != null
+                line = queue.poll();
+                //dataQueue.put(processData(line));
+                String insert = fixAndProcessData((count % 700),line);
+                dataQueue.put(insert);
                 count++;
                 if (++batchCnt == batchSize) {
                     batchCnt = 0;
                     long ms = sleep.getAsLong();
                     if (ms > 0) {
-                        System.out.println(count+"always ms"+ms);
+                        System.out.println("always:"+insert);
                         Utils.sleep(ms);
                     }
                 }
@@ -93,14 +96,17 @@ public class DataSender {
             String line;
             int batchCnt = 0;
             long time = System.currentTimeMillis();
-            while ((line = reader.readLine()) != null && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
-                dataQueue.put(processData(line));
+            while ((System.currentTimeMillis() - time) <= (120 * 1000)) {//tkl (line = reader.readLine()) != null &&
+                line = queue.poll();
+                //dataQueue.put(processData(line));
+                String insert = fixAndProcessData((count % 700),line);
+                dataQueue.put(insert);
                 count++;
                 if (++batchCnt == batchSize) {
                     batchCnt = 0;
                     long ms = sleep.getAsLong();
                     if (ms > 0) {
-                        System.out.println("ms"+ms);
+                        System.out.println("data: "+insert);
                         Utils.sleep(ms);
                     }
                 }
@@ -120,7 +126,7 @@ public class DataSender {
         try {
             String line;
             int batchCnt = 0;
-            while (count < 12000) {//7000 && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
+            while (count < 500) {//7000 && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
                 line = queue.poll();
                 if (line != null) {
                     String insert = fixAndProcessData(count, line);
@@ -182,12 +188,12 @@ public class DataSender {
             case "poison":
                 double lambda = Float.parseFloat(args[4]);
                 System.out.println("case poison "+lambda);
-                sender.send2QueueForOutLier(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
-//                if (lambda >=12) {
-//                    sender.send2Queue(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
-//                } else {
-//                    sender.send2QueueControlTime(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
-//                }
+                //sender.send2QueueForOutLier(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
+                if (lambda >=10) {
+                    sender.send2Queue(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
+                } else {
+                    sender.send2QueueControlTime(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
+                }
                 break;
             case "uniform":
                 System.out.println("case uniform");
@@ -216,12 +222,12 @@ public class DataSender {
         arg[1] = "E:/outlierdetection/kddcup.data.11000.head";
         arg[2] = String.valueOf(1);
         arg[3] = " poison";
-        int load = 50;
+        int load = 10;
         int count = 0;
         long startTime = System.currentTimeMillis();
-//        while (load <= 12 && load >= 4) {
+        while (load <= 12 && load >= 2) {
 //            if (count < 4) {
-//                load += 2;
+                  load += 2;
 //                count++;
 //            } else if (count < 7) {
 //                load -=2;
@@ -230,15 +236,18 @@ public class DataSender {
         arg[4] = String.valueOf(load);
         DataSender sender = new DataSender(ConfigUtil.readConfig(new File(args[0])));
         runWithInstance(sender, arg);
-        //}
+        }
     }
+
+    static void stableSend() {}
+    static void loadChangeSend() {}
 
     public static void sendToQ () {
         long start = System.currentTimeMillis();
         Path path = Paths.get("E:/outlierdetection/kddcup.data.11000.head");
         try (BufferedReader reader = Files.newBufferedReader(path)) {
             String line;
-            int a = 12000;//7000;
+            int a = 20000;//7000;
             while ((line = reader.readLine()) != null && a>=1) {// && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
                 queue.put(line);
                 a--;

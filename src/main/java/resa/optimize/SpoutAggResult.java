@@ -34,7 +34,6 @@ public class SpoutAggResult extends AggResult {
         super.add(r);
         ((SpoutAggResult) r).completedLatency.forEach((s, cntMeanVar) ->
                 this.completedLatency.computeIfAbsent(s, (k) -> new CntMeanVar()).addCMV(cntMeanVar));
-        System.out.println(this.getShedRelateCount()+"pgone1"+((SpoutAggResult) r).getShedRelateCount());
         ((SpoutAggResult) r).getShedRelateCount().forEach((stream, number) -> {
             if(this.getShedRelateCount().containsKey(stream)) {
                 long temp = this.getShedRelateCount().get(stream);
@@ -44,7 +43,6 @@ public class SpoutAggResult extends AggResult {
                 this.getShedRelateCount().put(stream, ((SpoutAggResult) r).getShedRelateCount().get(stream));
             }
         });
-        System.out.println(this.getShedRelateCount()+"pgone2");
     }
 
     public double getAvgTupleCompleteLatency(){

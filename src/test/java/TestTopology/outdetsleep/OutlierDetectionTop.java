@@ -1,4 +1,4 @@
-package TestTopology.outdet;
+package TestTopology.outdetsleep;
 
 import TestTopology.testforls.TestRedis;
 import org.apache.storm.Config;
@@ -114,21 +114,25 @@ public class OutlierDetectionTop {
         List<double[]> randVectors = getDefineVectors();//generateRandomVectors(ConfigUtil.getIntThrow(conf, "a-projection.dimension"),
                 //ConfigUtil.getIntThrow(conf, "a-projection.size"));
 
+        double projection_mu = ConfigUtil.getDouble(conf, "test.projection.mu", 1.0);
+        double detector_mu = ConfigUtil.getDouble(conf, "test.detector.mu", 1.0);
+        double updater_mu = ConfigUtil.getDouble(conf, "test.updater.mu", 1.0);
+
         builder.setBolt("projection",
-                new Projection(new ArrayList<>(randVectors)), ConfigUtil.getInt(conf, "a-projection.parallelism", 1))
+                new Projection(new ArrayList<>(randVectors), () -> (long) (-Math.log(Math.random()) * 1000.0 / projection_mu)), ConfigUtil.getInt(conf, "a-projection.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("objectSpout");
 
         int minNeighborCount = ConfigUtil.getIntThrow(conf, "a-detector.neighbor.count.min");
         double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "a-detector.neighbor.distance.max");
         builder.setBolt("detector",
-                new Detector(objectCount, minNeighborCount, maxNeighborDistance),
+                new Detector(objectCount, minNeighborCount, maxNeighborDistance, () -> (long) (-Math.log(Math.random()) * 1000.0 / detector_mu)),
                 ConfigUtil.getInt(conf, "a-detector.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .fieldsGrouping("projection", new Fields(Projection.PROJECTION_ID_FIELD));
 
         builder.setBolt("updater",
-                new Updater(randVectors.size()), ConfigUtil.getInt(conf, "a-updater.parallelism", 1))
+                new Updater(randVectors.size(),() -> (long) (-Math.log(Math.random()) * 1000.0 / updater_mu)), ConfigUtil.getInt(conf, "a-updater.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
 

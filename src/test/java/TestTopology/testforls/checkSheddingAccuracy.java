@@ -17,7 +17,7 @@ public class checkSheddingAccuracy {
     private static int fullBeginLine = 0;//4288;
     private static int fullEndLine = 12000;//4298;
     private static int shedBeginLine = 0;//2656;
-    private static int shedEndLine = 354;//2666;
+    private static int shedEndLine = 4800;//2666;
     @Test
     public void t() {
         //String s = "{0, 1, 2, 3, 8, 35, 36, 37, 38, 175, 176, 177, 178, 229, 230, 233, 234, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262}";
@@ -46,11 +46,11 @@ public class checkSheddingAccuracy {
     }
     private static void check() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/10test30001/detector/0.0/full.txt", 100000)
+                .readFileByLine("E:/outlierdetection/3test30001/detector/0.0/full.txt", 100000)
                 .subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/10test30001/detector/0.6/full.txt", 100000)
-                .subList(shedBeginLine,shedEndLine);
+                .readFileByLine("E:/outlierdetection/3test30001/spout/0.9/full.txt", 100000);
+                //.subList(shedBeginLine,shedEndLine);
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
         Map<Double,Integer> f1Result = new HashMap<>();
@@ -114,9 +114,17 @@ public class checkSheddingAccuracy {
         System.out.println(f1Result);
         System.out.println(f1Result.values());
         System.out.println(f1Result.keySet());
-        f1Result.keySet().stream().forEach(e -> System.out.println(e));
-        System.out.println();
-        f1Result.values().stream().forEach(e -> System.out.println(e));
+        int total = f1Result.values().stream().mapToInt(Number::intValue).sum();
+        System.out.println("total: "+total);
+        //f1Result.keySet().stream().forEach(e -> System.out.println(e));
+        //System.out.println();
+        //f1Result.values().stream().forEach(e -> System.out.println(e));
+        double finalResult = 0.0;
+        for (Map.Entry entry : f1Result.entrySet()) {
+            double t = (1.0 * ((Integer) entry.getValue()));
+            finalResult += ((Double) entry.getKey() * t) / total;
+        }
+        System.out.println(finalResult);
         //System.out.println(precisionResult);
         //System.out.println(recallResult);
     }

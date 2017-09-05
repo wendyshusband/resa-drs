@@ -8,8 +8,8 @@ import java.util.Map;
  */
 public class AllocationAndActiveShedRates {
 
-    public Map<String, Integer> fixedAllocation;
-    public Map<String, Double> activeShedRates;
+    private Map<String, Integer> fixedAllocation;
+    private Map<String, Double> activeShedRates;
 
     public AllocationAndActiveShedRates(Map<String, Integer> fixedAllocation,
                                         Map<String, Double> activeShedRates){

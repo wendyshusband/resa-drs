@@ -147,7 +147,7 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         int maxThreadAvailable4Bolt = maxAvailableExecutors - currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_spouts().containsKey(e.getKey()))
                 .mapToInt(Map.Entry::getValue).sum();
-
+        System.out.println(maxThreadAvailable4Bolt+"woyaobengkuile:"+maxAvailableExecutors);
         int currentUsedThreadByBolts = currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey())).mapToInt(Map.Entry::getValue).sum();
 
@@ -156,9 +156,9 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         if (enableActiveShedding) {
             //shedRateAndAllocResult = serviceModel.checkOptimizedWithActiveShedding(spInfo, queueingNetwork,
             //        completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions, targets);
-            shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork,
-                    completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions,
-                    calcAdjRatioFunction, targets, costFunction, costClassName);
+            shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower,
+                    boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions,
+                    calcAdjRatioFunction, targets, sheddingLoadRevert.getRevertRealLoadDatas(), costFunction, costClassName);
         } else {
             shedRateAndAllocResult = serviceModel.checkOptimized(
                     spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);

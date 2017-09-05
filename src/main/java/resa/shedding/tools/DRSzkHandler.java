@@ -136,15 +136,12 @@ public class DRSzkHandler {
 
     public static double parseActiveShedRateMap(byte[] activeShedRateMapBytes, String compID) {
         String tempMap = new String(activeShedRateMapBytes);
-        System.out.println(tempMap+"paris3"+compID);
         Pattern pattern1 = Pattern.compile("[\\s{]"+compID + "=(\\d+)\\.(\\d+)");
         Matcher matcher1 = pattern1.matcher(tempMap);
         if (matcher1.find()) {
-            System.out.println(matcher1.toString()+"paris4"+compID);
             Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
             Matcher matcher2 = pattern2.matcher(matcher1.group());
             if (matcher2.find()) {
-                System.out.println(matcher1.toString()+"paris5"+compID);
                 return Double.valueOf(matcher2.group());
             }
         }

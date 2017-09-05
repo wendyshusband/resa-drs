@@ -9,7 +9,6 @@ public abstract class AbstractTotalCost implements Comparable {
 
     private double resourceCost;
     private double shedCost;
-
     private double totalCost;
 
     public void setCost(double resourceCost, double shedCost) {

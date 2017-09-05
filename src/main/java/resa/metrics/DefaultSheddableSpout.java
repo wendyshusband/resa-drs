@@ -172,7 +172,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
                 activeSheddingRate = 0.0;//(double) conf.get("test.shedding.rate");
                 System.out.println("haitianshengyan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
-                //watchActiveShedRate();
+                watchActiveShedRate();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -342,7 +342,6 @@ public class DefaultSheddableSpout extends DelegatedSpout {
 
                 public void nodeChanged() throws Exception {
                     double shedRate = DRSzkHandler.parseActiveShedRateMap(nodeCache.getCurrentData().getData(), compID);
-                    System.out.println(shedRate+"weipinhuihuihuihuihui "+compID);
                     if (shedRate != Double.MAX_VALUE && shedRate != activeSheddingRate) {
                         System.out.println(activeSheddingRate + "nimabi" + compID + ":" + "hehe" + shedRate);
                         activeSheddingRate = shedRate;

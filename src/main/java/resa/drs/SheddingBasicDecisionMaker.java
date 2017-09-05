@@ -100,8 +100,8 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         }
 
         try {
-            //DRSzkHandler.sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
-            DRSzkHandler.sentActiveSheddingRate(testBuildShedRatio(), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
+            DRSzkHandler.sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
+            //DRSzkHandler.sentActiveSheddingRate(testBuildShedRatio(), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -142,10 +142,10 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
     private Map<String,Double> testBuildShedRatio() {
         HashMap<String,Double> t = new HashMap();
         t.put("projection",0.0);
-        t.put("detector",Double.valueOf(String.format("%.2f", testRatio)));
+        t.put("objectSpout",Double.valueOf(String.format("%.2f", testRatio)));
         //testRatio += 0.1;
         t.put("updater",0.0);
-        t.put("objectSpout",0.0);
+        t.put("detector",0.0);
         System.out.println("cvteweipinhui: "+t);
         return t;
     }

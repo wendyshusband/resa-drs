@@ -201,25 +201,27 @@ public class TestWRInputFileForRedis {
         //byte[] message = {'f','u','c','k',' ','c','o','m','e','\r','\n'};
         Jedis jedis=TestRedis.getJedis();
         long start = System.currentTimeMillis();
+        int count = 0;
         while (true) {
+            count++;
             String a = jedis.lpop("full");
             //System.out.println(a);
             if (a != null) {
                 byte[] message = (a+"\r\n").getBytes();//shedstorm1 originstorm1
                 TestWRInputFileForRedis
-                        .appendFile("E:/outlierdetection/10test30001/detector/0.9/full.txt",message,1);
+                        .appendFile("E:/outlierdetection/3test30001/spout/0.9/full.txt",message,1);
             } else {
                 break;
             }
         }
-        System.out.println("finish full");
+        System.out.println("finish full "+count);
         while (true) {
             String b = jedis.lpop("status0");
             //System.out.println(b);
             if (b != null) {
                 byte[] message = (b+"\r\n").getBytes();
                 TestWRInputFileForRedis
-                        .appendFile("E:/outlierdetection/10test30001/detector/0.9/status0.txt", message,1);
+                        .appendFile("E:/outlierdetection/3test30001/spout/0.9/status0.txt", message,1);
             } else {
                 break;
             }
@@ -230,7 +232,7 @@ public class TestWRInputFileForRedis {
             System.out.println("projection size is "+c);
             byte[] message = (c + "\r\n").getBytes();
             TestWRInputFileForRedis
-                    .appendFile("E:/outlierdetection/10test30001/detector/0.9/projection.txt", message, 1);
+                    .appendFile("E:/outlierdetection/3test30001/spout/0.9/projection.txt", message, 1);
         } finally {
             jedis.del("projection");
         }

@@ -110,7 +110,6 @@ public class AggResultCalculator {
 
             //tkl
             Map<String, Object> failure = (Map<String, Object>) measuredData.data.get(MetricNames.FAILURE_COUNT);
-            System.out.println(failure+"mohalie2");
             if (failure != null) {
                  failure.forEach((stream, number) -> {
                      //((SpoutAggResult) dest).getShedRelateCount().computeIfAbsent(stream, (k) -> Long.getLong(String.valueOf(number)))
@@ -120,15 +119,6 @@ public class AggResultCalculator {
                      }
                      ((SpoutAggResult)dest).getShedRelateCount().put(stream, temp);
                  });
-                 //int tempFailureCount = Integer.valueOf(String.valueOf(failure.get("failure")));
-//                int tempDropCount = Integer.valueOf(String.valueOf(failure.get("spoutDrop")));
-//                int failLatencyMs = Integer.valueOf(String.valueOf(failure.get("failLatencyMs")));
-//                int tempActiveDropCount = Integer.valueOf(String.valueOf(failure.get("activeSpoutDrop")));
-//                ((SpoutAggResult) dest).setFailureCount(tempFailureCount);
-//                ((SpoutAggResult) dest).setSpoutDropCount(tempDropCount);
-//                ((SpoutAggResult) dest).setFailLatencyMs(failLatencyMs);
-//                ((SpoutAggResult) dest).setActiveSpoutDropCount(tempActiveDropCount);
-                 System.out.println(((SpoutAggResult) dest).getShedRelateCount()+"mohalie1");
             }
         } else {
             Map<String, Object> data = (Map<String, Object>) measuredData.data.get(MetricNames.TASK_EXECUTE);

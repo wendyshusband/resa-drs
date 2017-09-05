@@ -140,7 +140,13 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                 if (!DRSzkHandler.clientIsStart()) {
                     DRSzkHandler.start();
                 }
-                activeSheddingRate = 0.0;
+//                if (compID.equals(conf.get("test.shedding.bolt"))) {
+//                    System.out.println(compID+" zhadan"+activeSheddingRate);
+//                    activeSheddingRate = (double) conf.get("test.shedding.rate");
+//                } else {
+//                    activeSheddingRate = 0.0;
+//                }
+                System.out.println(compID+" shenshuizhadan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
                 activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf, ResaConfig.ACTIVE_SHEDDING_MAP, "{}"));
                 watchActiveShedRate();
@@ -344,7 +350,6 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
 
                 public void nodeChanged() throws Exception {
                     double shedRate = DRSzkHandler.parseActiveShedRateMap(nodeCache.getCurrentData().getData(), compID);
-                    System.out.println(shedRate+"weipinhuihuihuihuihui "+compID);
                     if (shedRate != Double.MAX_VALUE && shedRate != activeSheddingRate) {
                         System.out.println(activeSheddingRate + "womabi" + compID + ":" + "haha" + shedRate);
                         activeSheddingRate = shedRate;

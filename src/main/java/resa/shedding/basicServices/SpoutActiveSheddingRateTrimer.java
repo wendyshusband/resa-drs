@@ -78,7 +78,7 @@ public class SpoutActiveSheddingRateTrimer extends ActiveSheddingRateTrimer {
                     newActiveShedRateMap.put(bolt, DRSzkHandler.parseActiveShedRateMap(oldActiveShedRateMap, bolt));
                     //newActiveShedRateMap.put(bolt, anInt);
                 }
-                System.out.println(newActiveShedRateMap.toString() + "paris1");
+                //System.out.println(newActiveShedRateMap.toString() + "paris1");
                 boolean changeFlag = false;
                 for (Map.Entry entry : spoutLatencyDifference.entrySet()) {
                     double originRate = DRSzkHandler.parseActiveShedRateMap(oldActiveShedRateMap, (String) entry.getKey());
@@ -99,7 +99,7 @@ public class SpoutActiveSheddingRateTrimer extends ActiveSheddingRateTrimer {
                         System.out.println("new rate: " + newRate);
                     }
                 }
-                System.out.println(newActiveShedRateMap.toString() + "paris2");
+                //System.out.println(newActiveShedRateMap.toString() + "paris2");
                 if (changeFlag) {
                     DRSzkHandler.sentActiveSheddingRate(newActiveShedRateMap, topologyName, DRSzkHandler.lastDecision.TRIM);
                     LOG.info("finish trim active shedding rate!");

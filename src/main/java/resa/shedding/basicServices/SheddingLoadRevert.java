@@ -17,6 +17,8 @@ public class SheddingLoadRevert {
 
     private static final Logger LOG = LoggerFactory.getLogger(SheddingLoadRevert.class);
 
+
+
     private Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
     private Map<String,Object> topologyTargets = new HashMap<>();
     private StormTopology topology;
@@ -227,11 +229,17 @@ public class SheddingLoadRevert {
             return result;
         }
 
+
+
 //        public void outputResult(){
 //            System.out.println("_________________result_______________");
 //            for(int i=0 ;i<result.size(); i++)
 //                System.out.println(result.get(i));
 //            System.out.println("_______________________________________");
 //        }
+    }
+
+    public Map<String, RevertRealLoadData> getRevertRealLoadDatas() {
+        return revertRealLoadDatas;
     }
 }
