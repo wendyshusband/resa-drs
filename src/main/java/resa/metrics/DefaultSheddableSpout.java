@@ -169,7 +169,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
                 if (!DRSzkHandler.clientIsStart()) {
                     DRSzkHandler.start();
                 }
-                activeSheddingRate = 0.0;//(double) conf.get("test.shedding.rate");
+                activeSheddingRate = (double) conf.get("test.shedding.rate");
                 System.out.println("haitianshengyan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
                 watchActiveShedRate();

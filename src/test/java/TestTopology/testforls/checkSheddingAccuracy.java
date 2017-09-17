@@ -1,7 +1,5 @@
 package TestTopology.testforls;
 
-import org.junit.Test;
-
 import java.util.*;
 
 /**
@@ -11,37 +9,22 @@ public class checkSheddingAccuracy {
 
     public static void main(String[] args) {
         checkSheddingAccuracy.check();
-        checkSheddingAccuracy s = new checkSheddingAccuracy();
     }
     private static int sizeOfBitSet = 3000;
     private static int fullBeginLine = 0;//4288;
     private static int fullEndLine = 12000;//4298;
     private static int shedBeginLine = 0;//2656;
     private static int shedEndLine = 4800;//2666;
-    @Test
-    public void t() {
-        //String s = "{0, 1, 2, 3, 8, 35, 36, 37, 38, 175, 176, 177, 178, 229, 230, 233, 234, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262}";
-        String v = "{0,1,2\r}";
-        //s = s.replaceAll(" ", "");
-        //s = s.replaceAll("\\{", "");
-        //s = s.replaceAll("}", "");
-        v = v.replaceAll(" ", "");
-        v = v.replaceAll("\\{", "");
-        v = v.replaceAll("}", "");
-        System.out.println(v);
-        String[] ss = v.split(",");
-        System.out.println(ss.length);
-        //int[] intfulls= Arrays.asList(ss).stream().mapToInt(Integer::valueOf).toArray();
-        //System.out.println(intfulls[2]);
-        System.out.println(ss[ss.length-1]+"@@@"+ss[ss.length-1]+"++++++"+ss[ss.length-1]);
-        System.out.println("1234567890"+"\r"+"abc");
-        List<String> a = new ArrayList<>();
-        a.add("111");
-        a.add("222");
-        a.add("333");
-        a.add("444");
-        a.add("555");
-        a.subList(1,3).stream().forEach(e -> System.out.println(e));
+
+
+    private static void checkFP() {
+        List fulldata = TestWRInputFileForRedis
+                .readFileByLine("E:/outlierdetection/3test30001/detector/0.0/full.txt", 100000)
+                .subList(fullBeginLine,fullEndLine);
+        List sheddata = TestWRInputFileForRedis
+                .readFileByLine("E:/outlierdetection/3test30001/spout/0.9/full.txt", 100000);
+        Iterator iteratorShed = sheddata.iterator();
+        Iterator iteratorFull = fulldata.iterator();
 
     }
     private static void check() {

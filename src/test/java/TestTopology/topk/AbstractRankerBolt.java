@@ -89,9 +89,9 @@ public abstract class AbstractRankerBolt extends BaseBasicBolt {
   abstract void updateRankingsWithTuple(Tuple tuple);
 
   private void emitRankings(BasicOutputCollector collector) {
-    System.out.println("cpdrankings:"+rankings.toString());
     collector.emit(new Values(rankings.copy()));
     getLogger().debug("Rankings: " + rankings);
+    storage(rankings);
   }
 
   @Override
@@ -107,4 +107,6 @@ public abstract class AbstractRankerBolt extends BaseBasicBolt {
   }
 
   abstract Logger getLogger();
+
+  abstract void storage(Rankings rankings);
 }

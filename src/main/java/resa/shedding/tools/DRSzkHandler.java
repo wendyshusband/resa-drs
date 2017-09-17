@@ -126,12 +126,16 @@ public class DRSzkHandler {
         if (!clientIsStart()) {
             DRSzkHandler.start();
         }
-        if(client.checkExists().forPath("/drs/"+topologyName) == null){
-            client.create().creatingParentsIfNeeded().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
-        }else{
-            client.setData().forPath("/drs/"+topologyName,activeSheddingRateMap.toString().getBytes());
+        if (activeSheddingRateMap != null) {
+            if (client.checkExists().forPath("/drs/" + topologyName) == null) {
+                client.create().creatingParentsIfNeeded().forPath("/drs/" + topologyName, activeSheddingRateMap.toString().getBytes());
+            } else {
+                client.setData().forPath("/drs/" + topologyName, activeSheddingRateMap.toString().getBytes());
+            }
+            System.out.println("teng: " + new String(client.getData().forPath("/drs/" + topologyName)));
+        } else {
+            LOG.warn("active Shedding Ratio is null!");
         }
-        System.out.println("teng: "+new String(client.getData().forPath("/drs/"+topologyName)));
     }
 
     public static double parseActiveShedRateMap(byte[] activeShedRateMapBytes, String compID) {

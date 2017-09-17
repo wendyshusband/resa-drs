@@ -31,6 +31,7 @@ public class TestWRInputFileForRedis {
                 fc.write(bb);
                 bb.rewind();
             }
+            randomFile.close();
             return true;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -202,6 +203,35 @@ public class TestWRInputFileForRedis {
         Jedis jedis=TestRedis.getJedis();
         long start = System.currentTimeMillis();
         int count = 0;
+//        while (true) {
+//            count++;
+//            String a = jedis.lpop("fpres");
+//            //System.out.println(a);
+//            if (a != null) {
+//                byte[] message = (a+"\r\n").getBytes();//shedstorm1 originstorm1
+//                TestWRInputFileForRedis
+//                        .appendFile("E:/outlierdetection/fp/result/benchmark100002.txt",message,1);
+//            } else {
+//                break;
+//            }
+//        }
+//        System.out.println("finish fpres "+count);
+
+//        count = 0;
+//        while (true) {
+//            count++;
+//            String a = jedis.lpop("build");
+//            //System.out.println(a);
+//            if (a != null) {
+//                byte[] message = (a+"\r\n").getBytes();//shedstorm1 originstorm1
+//                TestWRInputFileForRedis
+//                        .appendFile("E:/outlierdetection/fp/result/ershiwan.txt",message,1);
+//            } else {
+//                break;
+//            }
+//        }
+//        System.out.println("finish build "+count);
+
         while (true) {
             count++;
             String a = jedis.lpop("full");
@@ -209,7 +239,7 @@ public class TestWRInputFileForRedis {
             if (a != null) {
                 byte[] message = (a+"\r\n").getBytes();//shedstorm1 originstorm1
                 TestWRInputFileForRedis
-                        .appendFile("E:/outlierdetection/3test30001/spout/0.9/full.txt",message,1);
+                        .appendFile("E:/outlierdetection/choiceboltshedding/minmizeNumberfull2.txt",message,1);
             } else {
                 break;
             }
@@ -221,7 +251,7 @@ public class TestWRInputFileForRedis {
             if (b != null) {
                 byte[] message = (b+"\r\n").getBytes();
                 TestWRInputFileForRedis
-                        .appendFile("E:/outlierdetection/3test30001/spout/0.9/status0.txt", message,1);
+                        .appendFile("E:/outlierdetection/choiceboltshedding/minmizeNumberstatus02.txt", message,1);
             } else {
                 break;
             }
@@ -232,11 +262,11 @@ public class TestWRInputFileForRedis {
             System.out.println("projection size is "+c);
             byte[] message = (c + "\r\n").getBytes();
             TestWRInputFileForRedis
-                    .appendFile("E:/outlierdetection/3test30001/spout/0.9/projection.txt", message, 1);
+                    .appendFile("E:/outlierdetection/choiceboltshedding/minmizeNumberprojection2.txt", message, 1);
         } finally {
             jedis.del("projection");
         }
-        System.out.println("time:"+(System.currentTimeMillis()-start));
+//        System.out.println("time:"+(System.currentTimeMillis()-start));
         //System.out.println(TestWRInputFileForRedis.writeFile("E:/testData/testRedis.txt", message, size));
         //System.out.println(TestWRInputFileForRedis.appendFile("E:/testData/testRedis.txt", message, size));
         //TestWRInputFileForRedis.readFile("E:/testData/testRedis.txt", 0);

@@ -13,6 +13,16 @@ public class OutdetCostFunc implements ICostFunction {
 
     private static double powerFunc(double shedCost) {
         double res = 0.93298262 * Math.exp(-1 * 4.91578576 * shedCost) + 0.06391202;
+        System.out.println("accuracytianshichibang:"+res);
+        if (res < threshold) {
+            return Double.MAX_VALUE;
+        }
+        return 0;
+    }
+
+    private static double linerFunc(double shedCost) {
+        double res = 0.93298262 * Math.exp(-1 * 4.91578576 * shedCost) + 0.06391202;
+        System.out.println("accuracytianshichibang:"+res);
         if (res < threshold) {
             return Double.MAX_VALUE;
         }
@@ -23,6 +33,7 @@ public class OutdetCostFunc implements ICostFunction {
     public AbstractTotalCost calcCost(AllocationAndActiveShedRates args) {
         double alloCost = args.getFixedAllocation().values().stream().mapToDouble(Number::doubleValue).sum();
         double shedCost = args.getActiveShedRates().values().stream().mapToDouble(Number::doubleValue).sum();
+        //return new OutdetCost(alloCost, powerFunc(shedCost));
         return new OutdetCost(alloCost, powerFunc(shedCost));
     }
 }

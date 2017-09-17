@@ -16,9 +16,6 @@ import java.util.*;
 public class SheddingLoadRevert {
 
     private static final Logger LOG = LoggerFactory.getLogger(SheddingLoadRevert.class);
-
-
-
     private Map<String,RevertRealLoadData> revertRealLoadDatas = new HashMap<>();
     private Map<String,Object> topologyTargets = new HashMap<>();
     private StormTopology topology;
@@ -46,6 +43,7 @@ public class SheddingLoadRevert {
         //revertCompleteLatency();
         calcProportion();
         calcAndSetRealLoad();
+        //calcAndSetRealLoadForFP();
     }
 
     private void revertCompleteLatency() {
@@ -120,7 +118,6 @@ public class SheddingLoadRevert {
     private void calcAndSetRealLoad() {
         LOG.info("calculate and set real load !");
         double sourceLoad = sourceNode.getTupleEmitRateOnSQ();
-        LOG.debug(sourceLoad+ "  result.isEmpty()="+topoSortResult.isEmpty());
         if (topoSortResult.isEmpty()) {
             TopoSort topoSort = new TopoSort();
             topoSort.createGraph(topology, topologyTargets, revertRealLoadDatas);
@@ -131,16 +128,10 @@ public class SheddingLoadRevert {
         for (int i=0; i<topoSortResult.size(); i++) {
             double readLoadOUT = 0.0;
             double appLoadIn = 0.0;
-            //System.out.println(topoSortResult.get(i)+":*****:"+revertRealLoadDatas.get(topoSortResult.get(i)).getProportion());
             for (Map.Entry entry : revertRealLoadDatas.get(topoSortResult.get(i)).getProportion().entrySet()) {
-                //System.out.println(entry.getKey()+"load shedding :: apploadIN and loadOUT!!!!!!!"+entry.getValue());
                 if (topology.get_bolts().containsKey(entry.getKey())) {
-                   // System.out.println("OUT: "+revertRealLoadDatas.get(entry.getKey()).getRealLoadOUT());
-                   // System.out.println("PROPORTION: "+entry.getValue());
                     appLoadIn += (revertRealLoadDatas.get(entry.getKey()).getRealLoadOUT() * (double) entry.getValue());
                 } else {
-                   // System.out.println(entry.getKey()+"#~~~ sourceLoad ~~~#"+sourceLoad);
-                  //  System.out.println("PROPORTION: "+entry.getValue());
                     appLoadIn += (sourceLoad * (double)entry.getValue());
                 }
             }
@@ -152,12 +143,43 @@ public class SheddingLoadRevert {
             revertRealLoadDatas.get(topoSortResult.get(i)).setRealLoadIN(appLoadIn);
         }
         revertRealLoadDatas.entrySet().stream().forEach(e->{
-            //System.out.println("before: "+serviceNodeMap.get(e.getKey()).toString());
             serviceNodeMap.get(e.getKey()).revertLambda(e.getValue().getRealLoadIN(),sourceNode.getExArrivalRate());
-            //System.out.println("after: "+serviceNodeMap.get(e.getKey()).toString());
         });
-        //System.out.println("after SourceNode: "+sourceNode.toString());
-
+    }
+    private void calcAndSetRealLoadForFP() {
+        LOG.info("calculate and set real load fot FP(frequent patten)!");
+        double sourceLoad = sourceNode.getTupleEmitRateOnSQ();
+        topoSortResult.add("generator");
+        topoSortResult.add("detector");
+        topoSortResult.add("reporter");
+        double generatorLoadOut = 0;
+        double[] coeff =selectivityFunctions.get("generator");
+        for (int j=0; j<coeff.length;j++) {
+            generatorLoadOut += (Math.pow(sourceLoad,j) * coeff[j]);
+        }
+        double temp1 = serviceNodeMap.get("reporter").getLambda();
+        double temp2 = temp1 / revertRealLoadDatas.get("reporter").getProportion().get("detector")
+                * (1 - revertRealLoadDatas.get("reporter").getProportion().get("detector"));
+        double detectorSelect = (temp1 + temp2) / serviceNodeMap.get("detector").getLambda();
+        double detectorLoad = generatorLoadOut + (generatorLoadOut * detectorSelect
+                * (1 - revertRealLoadDatas.get("reporter").getProportion().get("detector")));
+        double reporterLoad = generatorLoadOut + (generatorLoadOut * detectorSelect
+                * (revertRealLoadDatas.get("reporter").getProportion().get("detector")));
+        double detectorLoadOut = reporterLoad + (generatorLoadOut * detectorSelect
+                * (1 - revertRealLoadDatas.get("reporter").getProportion().get("detector")));
+        double[] coeff2 =selectivityFunctions.get("reporter");
+        double reporterLoadOut = 0;
+        for (int j=0; j<coeff2.length;j++) {
+            reporterLoadOut += (Math.pow(reporterLoad,j) * coeff[j]);
+        }
+        revertRealLoadDatas.get("generator").setRealLoadOUT(generatorLoadOut);
+        revertRealLoadDatas.get("generator").setRealLoadIN(sourceLoad);
+        revertRealLoadDatas.get("detector").setRealLoadOUT(detectorLoadOut);
+        revertRealLoadDatas.get("detector").setRealLoadIN(detectorLoad);
+        revertRealLoadDatas.get("reporter").setRealLoadOUT(reporterLoadOut);
+        revertRealLoadDatas.get("reporter").setRealLoadIN(reporterLoad);
+        revertRealLoadDatas.entrySet().stream().forEach(e->
+            serviceNodeMap.get(e.getKey()).revertLambda(e.getValue().getRealLoadIN(),sourceNode.getExArrivalRate()));
     }
 
     private class TopoSort {
@@ -167,7 +189,7 @@ public class SheddingLoadRevert {
         private List<String> result = new ArrayList<>();
         private void createGraph(StormTopology topology,
                                  Map<String,Object> topologyTargets,
-                                 Map<String,RevertRealLoadData> revertRealLoadDatas){
+                                 Map<String,RevertRealLoadData> revertRealLoadDatas) {
             revertRealLoadDatas.entrySet().stream().forEach(e->{
                 int pathIn = 0;
                 for(String compId : e.getValue().getProportion().keySet()) {

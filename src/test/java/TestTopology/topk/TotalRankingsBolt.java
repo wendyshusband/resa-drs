@@ -17,8 +17,11 @@
  */
 package TestTopology.topk;
 
+import TestTopology.testforls.TestRedis;
 import org.apache.log4j.Logger;
 import org.apache.storm.tuple.Tuple;
+
+import java.util.List;
 
 /**
  * This bolt merges incoming {@link Rankings}.
@@ -53,6 +56,21 @@ public final class TotalRankingsBolt extends AbstractRankerBolt {
   @Override
   Logger getLogger() {
     return LOG;
+  }
+
+  @Override
+  void storage(Rankings rankings) {
+    StringBuffer stringBuffer = new StringBuffer("{");
+    List<Rankable> rankableList = rankings.getRankings();
+    for (int i=0; i<rankableList.size(); i++) {
+      stringBuffer.append(((RankableObjectWithFields)rankableList.get(i)).toStorageString());
+      stringBuffer.append(",");
+    }
+    stringBuffer.append("}");
+    String s = String.valueOf(stringBuffer);
+    if (!s.equals("{}") && !s.isEmpty()) {
+      TestRedis.insertList("topk", s);
+    }
   }
 
 

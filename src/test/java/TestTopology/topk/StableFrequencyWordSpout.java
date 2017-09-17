@@ -1,37 +1,39 @@
 package TestTopology.topk;
 
+import TestTopology.helper.RedisQueueSpout2;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
-import resa.topology.RedisQueueSpout;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * Created by kailin on 23/5/17.
+ * Created by 44931 on 2017/9/13.
  */
-public class TopWordSpout extends RedisQueueSpout {
+public class StableFrequencyWordSpout extends RedisQueueSpout2 {
     boolean _isDistributed;
+    private static final long start = System.currentTimeMillis();
 
-
-    public TopWordSpout(String host, int port, String queue, boolean isDistributed) {
+    public StableFrequencyWordSpout(String host, int port, String queue, boolean isDistributed) {
         super(host, port, queue);
         this._isDistributed = isDistributed;
     }
 
     @Override
     protected void emitData(Object data) {
-        String[] sentenceSplit = ((String) data).split(" ");
-        for (int i=0; i<sentenceSplit.length; i++){
-            collector.emit(new Values(sentenceSplit[i]), UUID.randomUUID().toString());
-        }
+        System.out.println(data+"~~~~~~~~~~~~~~~~~~~~~~~~~");
+        collector.emit(new Values(data), UUID.randomUUID().toString());
+//        String[] sentenceSplit = ((String) data).split(" ");
+//        for (int i=0; i<sentenceSplit.length; i++){
+//            collector.emit(new Values(sentenceSplit[i]));
+//        }
     }
 
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        //declarer.declare(new Fields(new String[]{"word"}));
-        declarer.declare(new Fields("word"));
+        declarer.declare(new Fields(new String[]{"word"}));
+        //declarer.declare(new Fields("word"));
     }
 
     public Map<String, Object> getComponentConfiguration() {

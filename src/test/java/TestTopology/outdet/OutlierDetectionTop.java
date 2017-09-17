@@ -7,6 +7,7 @@ import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
+import resa.shedding.basicServices.SheddingResaTopologyBuilder;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
@@ -92,7 +93,11 @@ public class OutlierDetectionTop {
         ResaConfig resaConfig = ResaConfig.create();
         resaConfig.putAll(conf);
 
-        TopologyBuilder builder = new TopologyBuilder();//new ResaTopologyBuilder();
+        resaConfig.putAll(conf);
+        //TopologyBuilder builder = new TopologyBuilder();
+        //TopologyBuilder builder = new WritableTopologyBuilder();
+        //TopologyBuilder builder = new ResaTopologyBuilder();
+        TopologyBuilder builder = new SheddingResaTopologyBuilder();
 
         int numWorkers = ConfigUtil.getInt(conf, "a-worker.count", 1);
         int numAckers = ConfigUtil.getInt(conf, "a-acker.count", 1);
@@ -134,6 +139,7 @@ public class OutlierDetectionTop {
 
 //        if (ConfigUtil.getBoolean(conf, "a-metric.resa", false)) {
 //            resaConfig.addDrsSupport();
+        resaConfig.addSheddingSupport();
 //            resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
 //            System.out.println("ResaMetricsCollector is registered");
 //        }

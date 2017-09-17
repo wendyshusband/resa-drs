@@ -7,6 +7,10 @@ import org.junit.Test;
  */
 public class SheddingMMKServiceModelTest {
     @Test
+    public void findAllocationGeneralTopApplyMMK() throws Exception {
+    }
+
+    @Test
     public void suggestAllocationWithShedRate() throws Exception {
 
     }

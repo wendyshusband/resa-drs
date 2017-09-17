@@ -133,6 +133,12 @@ public class RankableObjectWithFields implements Rankable, Serializable {
     return buf.toString();
   }
 
+  public String toStorageString() {
+    StringBuffer buf = new StringBuffer();
+    buf.append(obj);
+    return buf.toString();
+  }
+
   /**
    * Note: We do not defensively copy the wrapped object and any accompanying fields.  We do guarantee, however,
    * do return a defensive (shallow) copy of the List object that is wrapping any accompanying fields.

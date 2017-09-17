@@ -53,4 +53,9 @@ public final class IntermediateRankingsBolt extends AbstractRankerBolt {
   Logger getLogger() {
     return LOG;
   }
+
+  @Override
+  void storage(Rankings rankings) {
+
+  }
 }

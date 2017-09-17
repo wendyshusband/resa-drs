@@ -40,10 +40,10 @@ public class WordReader extends BaseRichSpout {
         windowsPerSecond = ConfigUtil.getInt(conf, "windowsPerSecond", 500);
         frequencyRestrictor = new FrequencyRestrictor(maxFrequencyPerSecond, windowsPerSecond);
         number = ConfigUtil.getInt(conf, "wc-number", 10000);
-        SENTENCES = ConfigUtil.getString(conf,"wc_sentence","over the moon");
-        timeSpan = ConfigUtil.getInt(conf,"wc_timespan",300) * 1000;
+        SENTENCES = ConfigUtil.getString(conf, "wc_sentence", "over the moon");
+        timeSpan = ConfigUtil.getInt(conf, "wc_timespan", 300) * 1000;
         times = ConfigUtil.getInt(conf, "wc_times", 2);
-        LOG.info("heigezhiai word reader is created "+maxFrequencyPerSecond+"~"+windowsPerSecond+'~'+times+"~"+timeSpan);
+        LOG.info("heigezhiai word reader is created " + maxFrequencyPerSecond + "~" + windowsPerSecond + '~' + times + "~" + timeSpan);
     }
 
     @Override
@@ -52,15 +52,15 @@ public class WordReader extends BaseRichSpout {
             //System.out.println(maxFrequencyPerSecond+"~~heihei~~"+times);
             maxFrequencyPerSecond += 100;
             windowsPerSecond += 100;
-            frequencyRestrictor = new FrequencyRestrictor(maxFrequencyPerSecond,windowsPerSecond);
-            LOG.info(System.currentTimeMillis()+"heigezhiai test time enough, we will change the frequency restrictor: "+ maxFrequencyPerSecond);
+            frequencyRestrictor = new FrequencyRestrictor(maxFrequencyPerSecond, windowsPerSecond);
+            LOG.info(System.currentTimeMillis() + "heigezhiai test time enough, we will change the frequency restrictor: " + maxFrequencyPerSecond);
 
             count++;
             if (count >= 3) {
                 startTime = Long.MAX_VALUE;
-                LOG.info(System.currentTimeMillis()+"heigezhiai"+count+" starttime"+startTime);
+                LOG.info(System.currentTimeMillis() + "heigezhiai" + count + " starttime" + startTime);
             } else {
-                LOG.info(System.currentTimeMillis()+"heigezhiai"+count+" starttime"+startTime);
+                LOG.info(System.currentTimeMillis() + "heigezhiai" + count + " starttime" + startTime);
                 startTime = System.currentTimeMillis();
             }
         }
@@ -75,9 +75,5 @@ public class WordReader extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
         outputFieldsDeclarer.declare(new Fields("sentence"));
-    }
-
-    public void abc() {
-        System.out.println("nihao");
     }
 }

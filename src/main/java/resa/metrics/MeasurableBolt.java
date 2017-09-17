@@ -38,6 +38,7 @@ public class MeasurableBolt extends DelegatedBolt {
 
         @Override
         public List<Integer> emit(String streamId, Collection<Tuple> anchors, List<Object> tuple) {
+            //System.out.println("emit: "+streamId+"~"+sample+":"+tuple);
             if (sample) {
                 emitMetric.scope(streamId).incr();
             }
@@ -46,6 +47,7 @@ public class MeasurableBolt extends DelegatedBolt {
 
         @Override
         public void emitDirect(int taskId, String streamId, Collection<Tuple> anchors, List<Object> tuple) {
+            //System.out.println("emitDirect: "+streamId+"~"+sample+":"+tuple);
             if (sample) {
                 emitMetric.scope(streamId).incr();
             }

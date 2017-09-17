@@ -11,9 +11,10 @@ import resa.util.ConfigUtil;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Created by ding on 14-1-16.
+ * Created by kailin.
  */
 public class RedisQueueSpout2 extends BaseRichSpout {
 
@@ -26,7 +27,7 @@ public class RedisQueueSpout2 extends BaseRichSpout {
     private int port;
     private transient Jedis jedis = null;
     private FrequencyRestrictor frequencyRestrictor;
-    private static int co = 0;
+    private static AtomicInteger co = new AtomicInteger(0);
     private int number;
 
     public RedisQueueSpout2(String host, int port, String queue) {
@@ -60,7 +61,7 @@ public class RedisQueueSpout2 extends BaseRichSpout {
         this.collector = spoutOutputCollector;
         frequencyRestrictor = new FrequencyRestrictor(ConfigUtil.getInt(map, "maxFrequencyPerSecond", 500),
                 ConfigUtil.getInt(map, "windowsPerSecond", 500));
-        number = ConfigUtil.getInt(map, "wc-number", 10000);
+        number = ConfigUtil.getInt(map, "word-number", 10000);
     }
 
     @Override
@@ -70,8 +71,8 @@ public class RedisQueueSpout2 extends BaseRichSpout {
 
     @Override
     public void nextTuple() {
-        if (frequencyRestrictor.tryPermission() && co < number) {
-            co++;
+        if (frequencyRestrictor.tryPermission() && co.get() < number) {
+            co.getAndIncrement();
             Jedis jedis = getConnectedJedis();
             if (jedis == null) {
                 System.out.println("FrameSourceFox.Prepare, jedis == null");

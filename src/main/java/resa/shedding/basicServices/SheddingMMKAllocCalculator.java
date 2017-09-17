@@ -138,7 +138,11 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
 
         SheddingLoadRevert sheddingLoadRevert = new SheddingLoadRevert(conf,spInfo,queueingNetwork,rawTopology,targets,selectivityFunctions);//load shedding
         sheddingLoadRevert.revertLoad();
-
+        System.out.println("****************************test*************************************");
+        for  (RevertRealLoadData data : sheddingLoadRevert.getRevertRealLoadDatas().values()) {
+            System.out.println(data);
+        }
+        System.out.println("*********************************************************************");
         Map<String, Integer> boltAllocation = currAllocation.entrySet().stream()
                 .filter(e -> rawTopology.get_bolts().containsKey(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

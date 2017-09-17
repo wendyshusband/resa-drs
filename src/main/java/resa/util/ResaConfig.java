@@ -3,6 +3,7 @@ package resa.util;
 import org.apache.storm.Config;
 import org.apache.storm.utils.Utils;
 import resa.shedding.basicServices.SheddingResaContainer;
+import resa.topology.ResaContainer;
 
 import java.util.Map;
 
@@ -103,7 +104,11 @@ public class ResaConfig extends Config {
     }
 
     public void addDrsSupport() {
-        //registerMetricsConsumer(ResaContainer.class, 1);
+        registerMetricsConsumer(ResaContainer.class, 1);
+        //registerMetricsConsumer(SheddingResaContainer.class, 1);//tkl
+    }
+
+    public void addSheddingSupport() {
         registerMetricsConsumer(SheddingResaContainer.class, 1);//tkl
     }
 }
