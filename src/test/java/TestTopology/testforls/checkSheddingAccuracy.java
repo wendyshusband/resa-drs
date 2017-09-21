@@ -11,42 +11,65 @@ public class checkSheddingAccuracy {
         checkSheddingAccuracy.check();
     }
     private static int sizeOfBitSet = 3000;
-    private static int fullBeginLine = 0;//4288;
-    private static int fullEndLine = 12000;//4298;
+    private static int fullBeginLine = 700;//4288;
+    private static int fullEndLine = 7000;//4298;
     private static int shedBeginLine = 0;//2656;
-    private static int shedEndLine = 4800;//2666;
+    private static int shedEndLine = 6300;//2666;
 
 
     private static void checkFP() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/3test30001/detector/0.0/full.txt", 100000)
-                .subList(fullBeginLine,fullEndLine);
+                .readFileByLine("E:/outlierdetection/comparebolt/benchmarkandupdater/benchmark.txt", 100000);
+                //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/3test30001/spout/0.9/full.txt", 100000);
+                .readFileByLine("E:/outlierdetection/comparebolt/benchmarkandupdater/compareboltdetector01.txt", 100000);
+                //.subList(shedBeginLine,shedEndLine);
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
+        HashMap<String, Integer> map = new HashMap<>();
+        while (iteratorFull.hasNext()) {
+            String line = (String) iteratorFull.next();
+            int temp = 1;
+            if (map.containsKey(line)) {
+                temp += map.get(line);
+            }
+            map.put(line, temp);
+        }
+        int same = 0;
+        int diff = 0;
+        int fullTotal = fulldata.size();
+        int shedTotal = sheddata.size();
+
+        while (iteratorShed.hasNext()) {
+            String line = (String) iteratorShed.next();
+            if (map.containsKey(line)) {
+                same++;
+            } else {
+                diff++;
+            }
+        }
+        double precision = same * 1.0 / shedTotal;
+        double recall = same * 1.0 / fullTotal;
+        double f1 = (2.0 * recall * precision) / (recall + precision);
+        System.out.println("precision:"+precision);
+        System.out.println("recall:"+recall);
+        System.out.println("f1:"+f1);
 
     }
     private static void check() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/3test30001/detector/0.0/full.txt", 100000)
-                .subList(fullBeginLine,fullEndLine);
+                .readFileByLine("E:/outlierdetection/comparebolt/10000.txt", 100000);
+                //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/3test30001/spout/0.9/full.txt", 100000);
+                .readFileByLine("E:/outlierdetection/comparebolt/10000spout.txt", 100000);
                 //.subList(shedBeginLine,shedEndLine);
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
         Map<Double,Integer> f1Result = new HashMap<>();
         Map<Double,Integer> precisionResult = new HashMap<>();
         Map<Double,Integer> recallResult = new HashMap<>();
-        int miss;
-        int failure;
-        int right;
-        String[] result;
-        double precision;
-        double recall;
-        double f1;
-        int temp;
+        int miss;   int failure;    int right;String[] result;  double precision;
+        double recall;  double f1;  int temp;
         int count = 0;
         while (iteratorFull.hasNext() && iteratorShed.hasNext()) {
             count++;
@@ -83,33 +106,38 @@ public class checkSheddingAccuracy {
             } else {
                 f1 = Double.valueOf(String.format("%.2f", ((2.0 * recall * precision) / (recall + precision))));
             }
-            //System.out.println(f1+"~~~"+precision+"~"+recall+"~"+right);
             temp = f1Result.containsKey(f1) ? (f1Result.get(f1) + 1) : 1;
             f1Result.put(f1,temp);
             temp = precisionResult.containsKey(precision) ? (precisionResult.get(precision) + 1) : 1;
             precisionResult.put(precision,temp);
             temp = recallResult.containsKey(recall) ? (recallResult.get(recall) + 1) : 1;
             recallResult.put(recall,temp);
-            //System.out.println(f1);
-            //System.out.println("result " + result.length + " fullsize:"+fullChars.length+" shedsize:"+shedChars.length);
-            //System.out.println("fail:"+failure+" miss:"+miss+" precision:" + precision + " recall:" + recall + " f1:" + f1);
         }
-        System.out.println(f1Result);
+
+        //System.out.println(f1Result);
         System.out.println(f1Result.values());
         System.out.println(f1Result.keySet());
         int total = f1Result.values().stream().mapToInt(Number::intValue).sum();
         System.out.println("total: "+total);
-        //f1Result.keySet().stream().forEach(e -> System.out.println(e));
-        //System.out.println();
-        //f1Result.values().stream().forEach(e -> System.out.println(e));
+
         double finalResult = 0.0;
         for (Map.Entry entry : f1Result.entrySet()) {
             double t = (1.0 * ((Integer) entry.getValue()));
             finalResult += ((Double) entry.getKey() * t) / total;
         }
-        System.out.println(finalResult);
-        //System.out.println(precisionResult);
-        //System.out.println(recallResult);
+        System.out.println("f1 = "+finalResult);
+        double pr = 0.0;
+        for (Map.Entry entry : precisionResult.entrySet()) {
+            double t = (1.0 * ((Integer) entry.getValue()));
+            pr += ((Double) entry.getKey() * t) / total;
+        }
+        System.out.println("precision = "+pr);
+        double r = 0.0;
+        for (Map.Entry entry : precisionResult.entrySet()) {
+            double t = (1.0 * ((Integer) entry.getValue()));
+            r += ((Double) entry.getKey() * t) / total;
+        }
+        System.out.println("recall = "+r);
     }
 
     private static String[] fix(String t1) {

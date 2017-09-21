@@ -1,6 +1,5 @@
 package TestTopology.outdet;
 
-import TestTopology.testforls.TestRedis;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
@@ -35,14 +34,12 @@ public class Projection implements IRichBolt {
 
     @Override
     public void execute(Tuple input) {
-        //Utils.sleep(100);
+
         Object objId = input.getValueByField(ObjectSpout.ID_FILED);
         Object time = input.getValueByField(ObjectSpout.TIME_FILED);
 
         double[] v = (double[]) input.getValueByField(ObjectSpout.VECTOR_FILED);
-
         IntStream.range(0, randomVectors.size()).forEach((i) -> {
-            TestRedis.insertList("projection", "time:"+time+" objid="+objId+" i="+i);
             collector.emit(input, new Values(objId, i, innerProduct(randomVectors.get(i), v), time));
         });
 

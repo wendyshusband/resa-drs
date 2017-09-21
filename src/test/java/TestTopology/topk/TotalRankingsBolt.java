@@ -17,7 +17,7 @@
  */
 package TestTopology.topk;
 
-import TestTopology.testforls.TestRedis;
+import resa.shedding.tools.TestRedis;
 import org.apache.log4j.Logger;
 import org.apache.storm.tuple.Tuple;
 

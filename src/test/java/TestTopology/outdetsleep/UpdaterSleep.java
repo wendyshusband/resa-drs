@@ -2,7 +2,7 @@ package TestTopology.outdetsleep;
 
 import TestTopology.helper.IntervalSupplier;
 import TestTopology.simulated.TASleepBolt;
-import TestTopology.testforls.TestRedis;
+import resa.shedding.tools.TestRedis;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -11,15 +11,15 @@ import org.apache.storm.tuple.Tuple;
 import java.util.*;
 
 /**
- * Created by ding on 14-3-14.
+ * Created by kailin on 14-3-14.
  */
-public class Updater extends TASleepBolt {
+public class UpdaterSleep extends TASleepBolt {
 
     private OutputCollector collector;
     private Map<String, List<BitSet>> padding;
     private int projectionSize;
 
-    public Updater(int projectionSize, IntervalSupplier sleep) {
+    public UpdaterSleep(int projectionSize, IntervalSupplier sleep) {
         super(sleep);
         this.projectionSize = projectionSize;
     }
@@ -33,13 +33,13 @@ public class Updater extends TASleepBolt {
     @Override
     public void execute(Tuple input) {
         super.execute(input);
-        String key = input.getValueByField(ObjectSpout.TIME_FILED) + "-" + input.getValueByField(ObjectSpout.ID_FILED);
+        String key = input.getValueByField(ObjectSpoutSleep.TIME_FILED) + "-" + input.getValueByField(ObjectSpoutSleep.ID_FILED);
         List<BitSet> ret = padding.get(key);
         if (ret == null) {
             ret = new ArrayList<>();
             padding.put(key, ret);
         }
-        ret.add((BitSet) input.getValueByField(Detector.OUTLIER_FIELD));
+        ret.add((BitSet) input.getValueByField(DetectorSleep.OUTLIER_FIELD));
         if (ret.size() == projectionSize) {
             padding.remove(key);
             BitSet result = ret.get(0);
@@ -55,7 +55,7 @@ public class Updater extends TASleepBolt {
                 if (status == 0) {
                     // output
                     //System.out.println("re"+result);
-                    TestRedis.insertList("status0",result.toString());
+                    //TestRedis.insertList("status0",result.toString());
                     //collector.emit(new Values());
                 }
             });

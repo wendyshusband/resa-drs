@@ -42,6 +42,7 @@ public class ResaConfig extends Config {
     public static final String DECISION_MAKER_CLASS = "resa.scheduler.decision.class";
 
     //load shedding
+    public static final String SHED_SYSTEM_MODEL = "resa.shedding.system.model";
     public static final String TRIM_INTERVAL = "resa.active.shedding.trim.interval.secs";
     public static final String PASSIVE_SHEDDING_ENABLE = "resa.passive.shedding.enable";
     public static final String ACTIVE_SHEDDING_ENABLE = "resa.active.shedding.enable";

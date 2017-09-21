@@ -9,7 +9,7 @@ import resa.shedding.basicServices.api.ICostFunction;
  */
 public class OutdetCostFunc implements ICostFunction {
 
-    private static final double threshold =  0.6;
+    private static final double threshold =  0.5;
 
     private static double powerFunc(double shedCost) {
         double res = 0.93298262 * Math.exp(-1 * 4.91578576 * shedCost) + 0.06391202;

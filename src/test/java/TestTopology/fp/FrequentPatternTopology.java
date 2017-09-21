@@ -4,7 +4,7 @@ import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
-import resa.shedding.basicServices.SheddingResaTopologyBuilder;
+import resa.topology.ResaTopologyBuilder;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
@@ -26,8 +26,8 @@ public class FrequentPatternTopology implements Constant {
         resaConfig.putAll(conf);
         //TopologyBuilder builder = new TopologyBuilder();
         //TopologyBuilder builder = new WritableTopologyBuilder();
-        //TopologyBuilder builder = new ResaTopologyBuilder();
-        TopologyBuilder builder = new SheddingResaTopologyBuilder();
+        TopologyBuilder builder = new ResaTopologyBuilder();
+        //TopologyBuilder builder = new SheddingResaTopologyBuilder();
         int numWorkers = ConfigUtil.getInt(conf, "fp-worker.count", 1);
         resaConfig.setNumWorkers(numWorkers);
 
@@ -40,12 +40,9 @@ public class FrequentPatternTopology implements Constant {
         builder.setBolt("generator", new PatternGenerator(), ConfigUtil.getInt(conf, "fp.generator.parallelism", 1))
                 .shuffleGrouping("input")
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.generator.tasks", 1));
-        builder.setBolt("detector", new Detector(), ConfigUtil.getInt(conf, "fp.detector.parallelism", 1))
-                //doneTODO:
-                //.fieldsGrouping("generator", new Fields(PATTERN_FIELD))
-                //.fieldsGrouping("detector", FEEDBACK_STREAM, new Fields(PATTERN_FIELD))
+        builder.setBolt("detector", new DetectorNoFeedBack(), ConfigUtil.getInt(conf, "fp.detector.parallelism", 1))
                 .directGrouping("generator")
-                .directGrouping("detector", FEEDBACK_STREAM)
+                //.directGrouping("detector", FEEDBACK_STREAM)
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.detector.tasks", 1));
 
         builder.setBolt("reporter", new PatternReporter(), ConfigUtil.getInt(conf, "fp.reporter.parallelism", 1))
@@ -53,7 +50,8 @@ public class FrequentPatternTopology implements Constant {
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.reporter.tasks", 1));
 
         if (ConfigUtil.getBoolean(conf, "fp.metric.resa", false)) {
-            resaConfig.addSheddingSupport();//.addOptimizeSupport();
+            //resaConfig.addSheddingSupport();//.addOptimizeSupport();
+            resaConfig.addDrsSupport();
             resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
             System.out.println("ResaMetricsCollector is registered");
         }

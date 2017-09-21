@@ -1,9 +1,6 @@
 package TestTopology;
 
 import TestTopology.fp.WordList;
-import TestTopology.testforls.TestRedis;
-import TestTopology.testforls.TestWRInputFileForRedis;
-import redis.clients.jedis.Jedis;
 
 import java.io.*;
 import java.util.*;
@@ -124,27 +121,27 @@ public class DataCleaning {
 //        //buildDict(dictFile);
 //        //clean(readFile, writeFile);
 //        //macthData(writeFile, vectorFile, averageFile);
-//        //copyToNewFile(writeFile,newFile,number);
+        copyToNewFile("E:/outlierdetection/kddcup.data.11000.head","E:/outlierdetection/outlier10000.txt",10000);
 //        dictFile = dictFile.replaceAll("\\p{P}|\\p{S}", " ");
 //        System.out.println(dictFile);
         //getWord();
-        Jedis jedis = TestRedis.getJedis();
-        int count = 0;
-        while (true) {
-            count++;
-            String a = jedis.lpop("topk");
-            //System.out.println(a);
-            if (a != null) {
-                byte[] message = (a+"\n").getBytes();//shedstorm1 originstorm1
-                TestWRInputFileForRedis
-                        .appendFile("E:/outlierdetection/topk/benchmark/topk11479.txt",message,1);
+//        Jedis jedis = TestRedis.getJedis();
+//        int count = 0;
+//        while (true) {
+//            count++;
+//            String a = jedis.lpop("topk");
+//            //System.out.println(a);
+//            if (a != null) {
+//                byte[] message = (a+"\n").getBytes();//shedstorm1 originstorm1
 //                TestWRInputFileForRedis
-//                        .appendFile("/home/tkl/cleantweet",message,1);
-            } else {
-                break;
-            }
-        }
-        System.out.println(count);
+//                        .appendFile("E:/outlierdetection/topk/benchmark/topk11479.txt",message,1);
+////                TestWRInputFileForRedis
+////                        .appendFile("/home/tkl/cleantweet",message,1);
+//            } else {
+//                break;
+//            }
+//        }
+//        System.out.println(count);
     }
 
     private static void copyToNewFile(String readFile, String writeFile, int number) throws IOException {
@@ -155,8 +152,12 @@ public class DataCleaning {
         String s ;
         int i = 0;
         while ((s = reader.readLine()) != null && i < number) {
-            System.out.println(s);
-            writer.append(s+"\n");
+
+            long time = System.currentTimeMillis();
+           // String result = (i % 700)+"|"+time+"|"+s+"\n";
+            String result = s+"\n";
+            System.out.println(result);
+            writer.append(result);
             i++;
         }
         writer.flush();

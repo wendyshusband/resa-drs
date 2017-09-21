@@ -1,6 +1,6 @@
 package TestTopology.fp;
 
-import TestTopology.testforls.TestRedis;
+import resa.shedding.tools.TestRedis;
 import org.apache.log4j.Logger;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;

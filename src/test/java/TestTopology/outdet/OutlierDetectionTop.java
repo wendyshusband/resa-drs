@@ -1,6 +1,6 @@
 package TestTopology.outdet;
 
-import TestTopology.testforls.TestRedis;
+import resa.shedding.tools.TestRedis;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
@@ -140,7 +140,7 @@ public class OutlierDetectionTop {
 //        if (ConfigUtil.getBoolean(conf, "a-metric.resa", false)) {
 //            resaConfig.addDrsSupport();
         resaConfig.addSheddingSupport();
-//            resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
+            resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
 //            System.out.println("ResaMetricsCollector is registered");
 //        }
 

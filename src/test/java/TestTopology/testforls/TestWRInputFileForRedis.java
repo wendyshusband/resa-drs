@@ -1,7 +1,9 @@
 package TestTopology.testforls;
 
+import org.apache.storm.utils.Utils;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
+import resa.shedding.tools.TestRedis;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -200,7 +202,7 @@ public class TestWRInputFileForRedis {
         int size = 1000000;
         //byte[] message = {'f','u','c','k','\n','c','o','m','e','\n'};
         //byte[] message = {'f','u','c','k',' ','c','o','m','e','\r','\n'};
-        Jedis jedis=TestRedis.getJedis();
+        Jedis jedis= TestRedis.getJedis();
         long start = System.currentTimeMillis();
         int count = 0;
 //        while (true) {
@@ -233,39 +235,20 @@ public class TestWRInputFileForRedis {
 //        System.out.println("finish build "+count);
 
         while (true) {
+            Utils.sleep(5);
             count++;
-            String a = jedis.lpop("full");
+            String a = jedis.lpop(args[1]);
             //System.out.println(a);
             if (a != null) {
                 byte[] message = (a+"\r\n").getBytes();//shedstorm1 originstorm1
                 TestWRInputFileForRedis
-                        .appendFile("E:/outlierdetection/choiceboltshedding/minmizeNumberfull2.txt",message,1);
+                        .appendFile(args[0],message,1);
             } else {
                 break;
             }
         }
         System.out.println("finish full "+count);
-        while (true) {
-            String b = jedis.lpop("status0");
-            //System.out.println(b);
-            if (b != null) {
-                byte[] message = (b+"\r\n").getBytes();
-                TestWRInputFileForRedis
-                        .appendFile("E:/outlierdetection/choiceboltshedding/minmizeNumberstatus02.txt", message,1);
-            } else {
-                break;
-            }
-        }
 
-        try {
-            int c = Math.toIntExact(jedis.llen("projection"));
-            System.out.println("projection size is "+c);
-            byte[] message = (c + "\r\n").getBytes();
-            TestWRInputFileForRedis
-                    .appendFile("E:/outlierdetection/choiceboltshedding/minmizeNumberprojection2.txt", message, 1);
-        } finally {
-            jedis.del("projection");
-        }
 //        System.out.println("time:"+(System.currentTimeMillis()-start));
         //System.out.println(TestWRInputFileForRedis.writeFile("E:/testData/testRedis.txt", message, size));
         //System.out.println(TestWRInputFileForRedis.appendFile("E:/testData/testRedis.txt", message, size));

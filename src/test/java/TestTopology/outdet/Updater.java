@@ -1,6 +1,6 @@
 package TestTopology.outdet;
 
-import TestTopology.testforls.TestRedis;
+import resa.shedding.tools.TestRedis;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
@@ -53,7 +53,7 @@ public class Updater implements IRichBolt {
                 if (status == 0) {
                     // output
                     //System.out.println("re"+result);
-                    TestRedis.insertList("status0",result.toString());
+                    //TestRedis.insertList("status0",result.toString());
                     //collector.emit(new Values());
                 }
             });

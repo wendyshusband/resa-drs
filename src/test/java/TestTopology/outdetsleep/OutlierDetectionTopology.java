@@ -1,6 +1,6 @@
 package TestTopology.outdetsleep;
 
-import TestTopology.testforls.TestRedis;
+import resa.shedding.tools.TestRedis;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
@@ -23,14 +23,14 @@ import java.util.stream.Stream;
 //import resa.metrics.RedisMetricsCollector;
 
 /**
- * Created by ding on 14-3-17.
+ * Created by kailin on 14-3-17.
  */
-public class OutlierDetectionTop {
+public class OutlierDetectionTopology {
 
     @Test
     public void a() {
         Jedis jedis = TestRedis.getJedis();
-        List<double[]> v = OutlierDetectionTop.generateRandomVectors(34,3);
+        List<double[]> v = OutlierDetectionTopology.generateRandomVectors(34,3);
         for (int i=0; i<v.size(); i++) {
             for (int j=0; j<v.get(i).length; j++) {
                 jedis.lpush("vector", String.valueOf(v.get(i)[j]));
@@ -109,7 +109,7 @@ public class OutlierDetectionTop {
         //set spout
         int objectCount = ConfigUtil.getIntThrow(conf, "a-spout.object.size");
         builder.setSpout("objectSpout",
-                new ObjectSpout(host, port, queue, objectCount),
+                new ObjectSpoutSleep(host, port, queue, objectCount),
                 ConfigUtil.getInt(conf, "a-spout.parallelism", 1));
 
         List<double[]> randVectors = getDefineVectors();//generateRandomVectors(ConfigUtil.getIntThrow(conf, "a-projection.dimension"),
@@ -120,22 +120,22 @@ public class OutlierDetectionTop {
         double updater_mu = ConfigUtil.getDouble(conf, "test.updater.mu", 1.0);
 
         builder.setBolt("projection",
-                new Projection(new ArrayList<>(randVectors), () -> (long) (-Math.log(Math.random()) * 1000.0 / projection_mu)), ConfigUtil.getInt(conf, "a-projection.parallelism", 1))
+                new ProjectionSleep(new ArrayList<>(randVectors), () -> (long) (-Math.log(Math.random()) * 1000.0 / projection_mu)), ConfigUtil.getInt(conf, "a-projection.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
                 .shuffleGrouping("objectSpout");
 
         int minNeighborCount = ConfigUtil.getIntThrow(conf, "a-detector.neighbor.count.min");
         double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "a-detector.neighbor.distance.max");
         builder.setBolt("detector",
-                new Detector(objectCount, minNeighborCount, maxNeighborDistance, () -> (long) (-Math.log(Math.random()) * 1000.0 / detector_mu)),
+                new DetectorSleep(objectCount, minNeighborCount, maxNeighborDistance, () -> (long) (-Math.log(Math.random()) * 1000.0 / detector_mu)),
                 ConfigUtil.getInt(conf, "a-detector.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
-                .fieldsGrouping("projection", new Fields(Projection.PROJECTION_ID_FIELD));
+                .fieldsGrouping("projection", new Fields(ProjectionSleep.PROJECTION_ID_FIELD));
 
         builder.setBolt("updater",
-                new Updater(randVectors.size(),() -> (long) (-Math.log(Math.random()) * 1000.0 / updater_mu)), ConfigUtil.getInt(conf, "a-updater.parallelism", 1))
+                new UpdaterSleep(randVectors.size(),() -> (long) (-Math.log(Math.random()) * 1000.0 / updater_mu)), ConfigUtil.getInt(conf, "a-updater.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
-                .fieldsGrouping("detector", new Fields(ObjectSpout.TIME_FILED, ObjectSpout.ID_FILED));
+                .fieldsGrouping("detector", new Fields(ObjectSpoutSleep.TIME_FILED, ObjectSpoutSleep.ID_FILED));
 
         if (ConfigUtil.getBoolean(conf, "a-metric.resa", true)) {
             //resaConfig.addDrsSupport();

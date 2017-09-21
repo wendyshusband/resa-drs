@@ -56,16 +56,26 @@ public class DataSender {
         }
     }
 
+    private String fixAndProcessData(int count, String line) {
+        long time = System.currentTimeMillis();
+        String result = count+"|"+time+"|"+line;
+        //System.out.println(result);
+        return result;
+    }
+
     public void send2Queue(Path inputFile, int batchSize, LongSupplier sleep) throws IOException, InterruptedException {
         BlockingQueue<String> dataQueue = new ArrayBlockingQueue<>(10000);
         for (int i = 0; i < 3; i++) {
             new PushThread(dataQueue).start();
         }
+        int count = 0;
         try (BufferedReader reader = Files.newBufferedReader(inputFile)) {
             String line;
             int batchCnt = 0;
             while ((line = reader.readLine()) != null) {
-                dataQueue.put(processData(line));
+                //dataQueue.put(processData(line));
+                dataQueue.put(fixAndProcessData((count % 2500),line));
+                count++;
                 if (++batchCnt == batchSize) {
                     batchCnt = 0;
                     long ms = sleep.getAsLong();

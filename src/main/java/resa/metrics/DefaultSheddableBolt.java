@@ -149,13 +149,12 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                 System.out.println(compID+" shenshuizhadan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
                 activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf, ResaConfig.ACTIVE_SHEDDING_MAP, "{}"));
-                watchActiveShedRate();
+                //watchActiveShedRate();
             } catch (ParseException e) {
                 e.printStackTrace();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            //checkActiveSheddingRateThread();
         }
 
         //if(ackFlag) {
@@ -198,45 +197,6 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         thread.start();
         LOG.info("handlePassiveLoadSheddingFailTupleThread thread start!");
     }
-
-//    private void checkActiveSheddingRateThread() {
-//        final Thread thread = new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                while(true){
-//                    if(!DRSzkHandler.clientIsStart())
-//                        DRSzkHandler.start();
-//                    try {
-//                        if(null != client.checkExists().forPath("/drs/"+topologyName)){
-//                            String tempMap = new String(client.getData().forPath("/drs/"+topologyName));
-//                            //Double rate = tempMap
-//                            Pattern pattern1 = Pattern.compile(compID+"=(\\d+)\\.(\\d+)");
-//                            Matcher matcher1 = pattern1.matcher(tempMap);
-//                            if(matcher1.find()) {
-//                                Pattern pattern2 = Pattern.compile("(\\d+)\\.(\\d+)");
-//                                Matcher matcher2 = pattern2.matcher(matcher1.group());
-//                                if(matcher2.find()) {
-//                                    double shedRate = Double.valueOf(matcher2.group());
-//                                    if (shedRate != activeSheddingRate) {
-//                                        //LOG.info(activeSheddingRate+"woshenzhiyouyi"+compID+":"+"hehe"+shedRate);
-//                                        activeSheddingRate = shedRate;
-//                                        activeSheddingSampler = new Sampler(activeSheddingRate);
-//                                        //LOG.info(activeSheddingSampler.toString() + "tabu");
-//                                    }
-//                                }
-//                            }
-//                        }
-//                        Thread.sleep(interval);
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                }
-//            }
-//        });
-//        thread.start();
-//        LOG.info("checkActiveSheddingRateThread thread start!");
-//    }
 
     private void handleTupleThread() {
         final Thread thread = new Thread(new Runnable() {

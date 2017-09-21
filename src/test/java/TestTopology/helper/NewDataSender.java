@@ -121,7 +121,7 @@ public class NewDataSender {
     }
 
     public void send2QueueForOutLier(Path inputFile, int batchSize, LongSupplier sleep) throws IOException, InterruptedException {
-        BlockingQueue<String> dataQueue = new ArrayBlockingQueue<>(12000);
+        BlockingQueue<String> dataQueue = new ArrayBlockingQueue<>(7000);
         for (int i = 0; i < 1; i++) {
             new PushThread(dataQueue).start();
         }
@@ -129,7 +129,7 @@ public class NewDataSender {
         try {
             String line;
             int batchCnt = 0;
-            while (count < 12000) {//7000 && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
+            while (count < 7000) {//7000 && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
                 line = queue.poll();
                 if (line != null) {
                     String insert = fixAndProcessData((count % 700),line);
@@ -222,7 +222,7 @@ public class NewDataSender {
         arg[1] = fpFile;
         arg[2] = String.valueOf(1);
         arg[3] = " poison";
-        int load = 12;
+        int load = 20;
         int count = 0;
         long startTime = System.currentTimeMillis();
 //        while (load <= 1120 && load >= 1) {
@@ -236,6 +236,8 @@ public class NewDataSender {
         arg[4] = String.valueOf(load);
         NewDataSender sender = new NewDataSender(ConfigUtil.readConfig(new File(args[0])));
         runWithInstance(sender, arg);
+        System.out.println(System.currentTimeMillis() - startTime);
+        System.out.println(1000*1000/(System.currentTimeMillis() - startTime));
 //       }
     }
 
@@ -247,7 +249,7 @@ public class NewDataSender {
         Path path = Paths.get("E:/outlierdetection/kddcup.data.11000.head");
         try (BufferedReader reader = Files.newBufferedReader(path)) {
             String line;
-            int a = 12000;//7000;
+            int a = 7000;//7000;
             while ((line = reader.readLine()) != null && a>=1) {// && (System.currentTimeMillis() - time) <= (200 * 1000)) {//tkl
                 queue.put(line);
                 a--;

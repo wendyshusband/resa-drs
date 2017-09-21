@@ -2,7 +2,6 @@ package TestTopology.outdetsleep;
 
 import TestTopology.helper.IntervalSupplier;
 import TestTopology.simulated.TASleepBolt;
-import TestTopology.testforls.TestRedis;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -15,19 +14,20 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 /**
- * Created by ding on 14-3-14.
+ * Created by kailin on 14-3-14.
  */
-public class Projection extends TASleepBolt {
-
+public class ProjectionSleep extends TASleepBolt {
+    public static long start;
     public static final String PROJECTION_ID_FIELD = "projectionId";
     public static final String PROJECTION_VALUE_FIELD = "projectionValue";
 
     private List<double[]> randomVectors;
     private transient OutputCollector collector;
 
-    public Projection(List<double[]> randomVectors, IntervalSupplier sleep) {
+    public ProjectionSleep(List<double[]> randomVectors, IntervalSupplier sleep) {
         super(sleep);
         this.randomVectors = randomVectors;
+        start = System.currentTimeMillis();
     }
 
     @Override
@@ -38,13 +38,13 @@ public class Projection extends TASleepBolt {
     @Override
     public void execute(Tuple input) {
         super.execute(input);
-        Object objId = input.getValueByField(ObjectSpout.ID_FILED);
-        Object time = input.getValueByField(ObjectSpout.TIME_FILED);
+        //System.out.println(a+"projection: "+(a * 1000.0)/ (System.currentTimeMillis() - start));
+        Object objId = input.getValueByField(ObjectSpoutSleep.ID_FILED);
+        Object time = input.getValueByField(ObjectSpoutSleep.TIME_FILED);
 
-        double[] v = (double[]) input.getValueByField(ObjectSpout.VECTOR_FILED);
+        double[] v = (double[]) input.getValueByField(ObjectSpoutSleep.VECTOR_FILED);
 
         IntStream.range(0, randomVectors.size()).forEach((i) -> {
-            TestRedis.insertList("projection", "time:"+time+" objid="+objId+" i="+i);
             collector.emit(input, new Values(objId, i, innerProduct(randomVectors.get(i), v), time));
         });
 
@@ -65,8 +65,8 @@ public class Projection extends TASleepBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields(ObjectSpout.ID_FILED, PROJECTION_ID_FIELD,
-                PROJECTION_VALUE_FIELD, ObjectSpout.TIME_FILED));
+        declarer.declare(new Fields(ObjectSpoutSleep.ID_FILED, PROJECTION_ID_FIELD,
+                PROJECTION_VALUE_FIELD, ObjectSpoutSleep.TIME_FILED));
     }
 
     @Override

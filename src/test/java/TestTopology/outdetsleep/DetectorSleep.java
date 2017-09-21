@@ -15,9 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by ding on 14-3-14.
+ * Created by kailin on 14-3-14.
  */
-public class Detector extends TASleepBolt {
+public class DetectorSleep extends TASleepBolt {
 
     private static final double DEFAULT_PROJECTION_VALUE = Double.MAX_VALUE;
     public static final String OUTLIER_FIELD = "outlier";
@@ -40,7 +40,7 @@ public class Detector extends TASleepBolt {
     private Map<Integer, Context> objectContext;
     private OutputCollector collector;
 
-    public Detector(int objectCount, int minNeighborCount, double maxNeighborDistance, IntervalSupplier sleep) {
+    public DetectorSleep(int objectCount, int minNeighborCount, double maxNeighborDistance, IntervalSupplier sleep) {
         super(sleep);
         this.objectCount = objectCount;
         this.minNeighborCount = minNeighborCount;
@@ -56,14 +56,14 @@ public class Detector extends TASleepBolt {
     @Override
     public void execute(Tuple input) {
         super.execute(input);
-        Integer projId = input.getIntegerByField(Projection.PROJECTION_ID_FIELD);
+        Integer projId = input.getIntegerByField(ProjectionSleep.PROJECTION_ID_FIELD);
         Context context = objectContext.get(projId);
         if (context == null) {
             context = new Context(objectCount);
             objectContext.put(projId, context);
         }
-        int objId = input.getIntegerByField(ObjectSpout.ID_FILED);
-        double newProjValue = input.getDoubleByField(Projection.PROJECTION_VALUE_FIELD);
+        int objId = input.getIntegerByField(ObjectSpoutSleep.ID_FILED);
+        double newProjValue = input.getDoubleByField(ProjectionSleep.PROJECTION_VALUE_FIELD);
         int newNeighborCount = 0;
         boolean anyObjectMissing = false;
         BitSet outlier = new BitSet(objectCount);
@@ -97,7 +97,7 @@ public class Detector extends TASleepBolt {
         //Modified by tom, at the initial stat, we force this bolt to emit tuples (although fake) to Updater
         //if any objects missing, wait for it. This is used when system startup
         //if (!anyObjectMissing) {
-            collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
+            collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpoutSleep.TIME_FILED)));
         //} else {
            // collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
          //   TestRedis.insertList("miss",new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)).toString());
@@ -116,8 +116,8 @@ public class Detector extends TASleepBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields(ObjectSpout.ID_FILED, Projection.PROJECTION_ID_FIELD,
-                OUTLIER_FIELD, ObjectSpout.TIME_FILED));
+        declarer.declare(new Fields(ObjectSpoutSleep.ID_FILED, ProjectionSleep.PROJECTION_ID_FIELD,
+                OUTLIER_FIELD, ObjectSpoutSleep.TIME_FILED));
     }
 
     @Override

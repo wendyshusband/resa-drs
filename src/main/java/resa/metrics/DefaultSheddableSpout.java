@@ -172,7 +172,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
                 activeSheddingRate = (double) conf.get("test.shedding.rate");
                 System.out.println("haitianshengyan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
-                watchActiveShedRate();
+                //watchActiveShedRate();
             } catch (Exception e) {
                 e.printStackTrace();
             }

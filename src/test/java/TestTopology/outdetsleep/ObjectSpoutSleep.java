@@ -9,17 +9,15 @@ import java.util.Arrays;
 import java.util.Collections;
 
 /**
- * Created by ding on 14-3-14.
+ * Created by kailin on 14-3-14.
  */
-public class ObjectSpout extends RedisQueueSpout {
-
+public class ObjectSpoutSleep extends RedisQueueSpout {
     public static final String ID_FILED = "id";
     public static final String VECTOR_FILED = "vector";
     public static final String TIME_FILED = "time";
-
     private final int objectCount;
 
-    public ObjectSpout(String host, int port, String queue, int objectCount) {
+    public ObjectSpoutSleep(String host, int port, String queue, int objectCount) {
         super(host, port, queue);
         this.objectCount = objectCount;
         System.out.println("objcOunt "+objectCount);

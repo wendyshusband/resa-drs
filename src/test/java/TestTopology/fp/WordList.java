@@ -41,4 +41,7 @@ public class WordList implements Serializable {
         return Math.abs(wordList.hashCode()) % numPart;
     }
 
+    public int compare(WordList pattern) {
+        return 0;
+    }
 }

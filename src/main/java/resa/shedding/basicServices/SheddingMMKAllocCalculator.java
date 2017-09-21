@@ -100,6 +100,7 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         double recvQSizeThresh = recvQSizeThreshRatio * maxRecvQSize;
         int resourceUnit = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_SMD_RESOURCE_UNIT,1);
         int messageTimeOut = Utils.getInt(conf.get(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS));
+        int systemModel = ConfigUtil.getInt(conf, ResaConfig.SHED_SYSTEM_MODEL,1);
         double tolerant = ConfigUtil.getDouble(conf, ResaConfig.ACTIVE_SHEDDING_ADJUSTRATIO_BIAS_THRESHOLD,0.9);
         LearningModel calcAdjRatioFunction = ResaUtils.newInstanceThrow(ConfigUtil.getString(conf, ResaConfig.ADJRATIO_CALC_CLASS,
                 PolynomialRegression.class.getName()),LearningModel.class);
@@ -162,7 +163,7 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
             //        completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions, targets);
             shedRateAndAllocResult = serviceModel.checkOptimizedWithShedding(spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower,
                     boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit, tolerant, messageTimeOut, selectivityFunctions,
-                    calcAdjRatioFunction, targets, sheddingLoadRevert.getRevertRealLoadDatas(), costFunction, costClassName);
+                    calcAdjRatioFunction, targets, sheddingLoadRevert.getRevertRealLoadDatas(), costFunction, costClassName, systemModel);
         } else {
             shedRateAndAllocResult = serviceModel.checkOptimized(
                     spInfo, queueingNetwork, completeTimeMilliSecUpper, completeTimeMilliSecLower, boltAllocation, maxThreadAvailable4Bolt, currentUsedThreadByBolts, resourceUnit);
