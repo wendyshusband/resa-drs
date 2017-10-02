@@ -78,7 +78,7 @@ public class SheddingResourceScheduler {
     public void start() {
         long calcInterval = ConfigUtil.getInt(conf, OPTIMIZE_INTERVAL, 30) * 1000;
         //start optimize thread
-        timer.scheduleAtFixedRate(new SheddingResourceScheduler.OptimizeTask(), calcInterval * 2, calcInterval);
+        timer.scheduleAtFixedRate(new SheddingResourceScheduler.OptimizeTask(), calcInterval, calcInterval);//calcInterval * 2
         if (enableActiveShedding) {
             //start active shed rate trim thread
             long minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcInterval * 2) * 1000 - 50;

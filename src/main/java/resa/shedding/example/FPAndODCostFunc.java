@@ -5,17 +5,14 @@ import resa.shedding.basicServices.api.AllocationAndActiveShedRates;
 import resa.shedding.basicServices.api.ICostFunction;
 
 /**
- * Created by 44931 on 2017/8/7.
+ * Created by 44931 on 2017/9/27.
  */
-public class ExamCostFunc implements ICostFunction {
+public class FPAndODCostFunc implements ICostFunction {
 
     @Override
     public AbstractTotalCost calcCost(AllocationAndActiveShedRates args) {
         double alloCost = args.getFixedAllocation().values().stream().mapToDouble(Number::doubleValue).sum();
         double shedCost = args.getActiveShedRates().values().stream().mapToDouble(Number::doubleValue).sum();
-        System.out.println(alloCost+" examplecostfunction "+shedCost);
-        return new ExamCost(alloCost, shedCost);
+        return new FPAndODCost(alloCost, shedCost);
     }
-
-
 }

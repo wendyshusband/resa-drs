@@ -41,7 +41,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private transient BlockingQueue<Tuple> pendingTupleQueue;
     private transient BlockingQueue<Tuple> failTupleQueue;
     private double passiveSheddingThreshold;
-    private transient MultiCountMetric sheddingRateMetric;
+    private transient MultiCountMetric sheddingRatioMetric;
     private HashMap<String,List<String>> activeSheddingStreamMap;
     private double activeSheddingRate;
     private String compID;
@@ -117,7 +117,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         context.registerMetric(MetricNames.DURATION, this::getMetricsDuration, interval);
         executeMetric = context.registerMetric(MetricNames.TASK_EXECUTE, new CMVMetric(), interval);
         emitMetric = context.registerMetric(MetricNames.EMIT_COUNT, new MultiCountMetric(), interval);
-        sheddingRateMetric = context.registerMetric(MetricNames.SHEDDING_RATE, new MultiCountMetric(),interval);
+        sheddingRatioMetric = context.registerMetric(MetricNames.SHEDDING_RATE, new MultiCountMetric(),interval);
 
         lastMetricsSent = System.currentTimeMillis();
         sampler = new Sampler(ConfigUtil.getDouble(conf, ResaConfig.COMP_SAMPLE_RATE, 0.05));
@@ -140,16 +140,16 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                 if (!DRSzkHandler.clientIsStart()) {
                     DRSzkHandler.start();
                 }
-//                if (compID.equals(conf.get("test.shedding.bolt"))) {
-//                    System.out.println(compID+" zhadan"+activeSheddingRate);
-//                    activeSheddingRate = (double) conf.get("test.shedding.rate");
-//                } else {
+                if (compID.equals(conf.get("test.shedding.bolt"))) {
+                    System.out.println(compID+" zhadan"+activeSheddingRate);
+                    activeSheddingRate = (double) conf.get("test.shedding.rate");
+                } else {
                     activeSheddingRate = 0.0;
-//                }
+                }
                 System.out.println(compID+" shenshuizhadan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
                 activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf, ResaConfig.ACTIVE_SHEDDING_MAP, "{}"));
-                //watchActiveShedRate();
+                watchActiveShedRate();
             } catch (ParseException e) {
                 e.printStackTrace();
             } catch (Exception e) {
@@ -164,10 +164,10 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         }
         //}
         handleTupleThread();
-        sheddingRateMetric.scope("dropTuple").incrBy(0);
-        sheddingRateMetric.scope("dropFrequency").incrBy(0);
-        sheddingRateMetric.scope("allTuple").incrBy(0);
-        sheddingRateMetric.scope("activeDrop").incrBy(0);
+        sheddingRatioMetric.scope("dropTuple").incrBy(0);
+        sheddingRatioMetric.scope("dropFrequency").incrBy(0);
+        sheddingRatioMetric.scope("allTuple").incrBy(0);
+        sheddingRatioMetric.scope("activeDrop").incrBy(0);
 
         LOG.info("Preparing DefaultSheddableBolt: " + context.getThisComponentId());
     }
@@ -240,15 +240,15 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     }
 
     public void execute(Tuple tuple) {
-        sheddingRateMetric.scope("allTuple").incr();
+        sheddingRatioMetric.scope("allTuple").incr();
         boolean flag = true;
         switch (sheddingCase) {
             case 0: break;
             case 1: {
                 if (trigger(null)) {// need passive shedding
                     int sheddTupleNum =passiveDrop(null);
-                    sheddingRateMetric.scope("dropTuple").incrBy(sheddTupleNum);
-                    sheddingRateMetric.scope("dropFrequency").incr();
+                    sheddingRatioMetric.scope("dropTuple").incrBy(sheddTupleNum);
+                    sheddingRatioMetric.scope("dropFrequency").incr();
                 } else {
                     if(activeSheddingRate != 0.0) {
                         if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
@@ -266,8 +266,8 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
             case 2: {
                 if (trigger(null)){// need passive shedding
                     int sheddTupleNum =passiveDrop(null);
-                    sheddingRateMetric.scope("dropTuple").incrBy(sheddTupleNum);
-                    sheddingRateMetric.scope("dropFrequency").incr();
+                    sheddingRatioMetric.scope("dropTuple").incrBy(sheddTupleNum);
+                    sheddingRatioMetric.scope("dropFrequency").incr();
                 }
                 break;
             }
@@ -293,8 +293,8 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                 pendingTupleQueue.put(tuple);
             }else{
                 failTupleQueue.put(tuple);
-                sheddingRateMetric.scope("activeDrop").incr();
-                sheddingRateMetric.scope("dropTuple").incr();
+                sheddingRatioMetric.scope("activeDrop").incr();
+                sheddingRatioMetric.scope("dropTuple").incr();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

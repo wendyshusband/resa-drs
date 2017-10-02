@@ -152,6 +152,8 @@ public class OutlierDetectionTop {
        //LocalCluster localCluster  = new LocalCluster();
         //localCluster.submitTopology("111", resaConfig, builder.createTopology());
         //Utils.sleep(1000000000);
+        TestRedis.add("type", "od");
+        TestRedis.add("time", String.valueOf(0));
         StormSubmitter.submitTopology(args[0], resaConfig, builder.createTopology());
     }
 

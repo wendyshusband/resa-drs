@@ -42,6 +42,15 @@ public class WordList implements Serializable {
     }
 
     public int compare(WordList pattern) {
-        return 0;
+        if (this.words.length == pattern.getWords().length && Arrays.equals(this.words,pattern.getWords())) {
+            return 0; // pattern == this
+        } else if (this.words.length > pattern.getWords().length
+                && Arrays.asList(this.words).containsAll(Arrays.asList(pattern.getWords()))) {
+            return 1; // this.words is a super pattern
+        } else if (this.words.length < pattern.getWords().length
+                && Arrays.asList(pattern.getWords()).containsAll(Arrays.asList(this.getWords()))) {
+            return -1; // this.words is a sub pattern
+        }
+        return Integer.MAX_VALUE;
     }
 }

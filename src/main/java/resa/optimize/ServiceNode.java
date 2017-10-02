@@ -203,6 +203,7 @@ public class ServiceNode {
                         "-----> arrRateAvg: %.3f, arrRateScv: %.3f, ratio: %.3f, rho: %.3f, passiveSheddingRate: %.3f, exArr: %.3f",
                 componentID, executorNumber, tupleCompleteRate, avgServTimeHis, scvServTimeHis, mu,
                 numCompleteTuples, sumDurationSeconds, compSampleRate, avgSendQueueLength, avgRecvQueueLength,
-                lambda, interArrivalScv, ratio, rho, passiveSheddingRate , exArrivalRate)+" dropFrequency: "+dropFrequency+" emitcount: "+emitCount+" tupleMessage: "+passiveSheddingCountMap;
+                lambda, interArrivalScv, ratio, rho, passiveSheddingRate , exArrivalRate)
+                +" dropFrequency: "+dropFrequency+" emitcount: "+emitCount+" tupleMessage: "+passiveSheddingCountMap;
     }
 }

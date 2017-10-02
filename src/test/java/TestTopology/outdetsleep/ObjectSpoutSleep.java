@@ -3,6 +3,8 @@ package TestTopology.outdetsleep;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
+import redis.clients.jedis.Jedis;
+import resa.shedding.tools.TestRedis;
 import resa.topology.RedisQueueSpout;
 
 import java.util.Arrays;
@@ -16,6 +18,7 @@ public class ObjectSpoutSleep extends RedisQueueSpout {
     public static final String VECTOR_FILED = "vector";
     public static final String TIME_FILED = "time";
     private final int objectCount;
+    private static Jedis jedis = TestRedis.getJedis();
 
     public ObjectSpoutSleep(String host, int port, String queue, int objectCount) {
         super(host, port, queue);
@@ -29,6 +32,17 @@ public class ObjectSpoutSleep extends RedisQueueSpout {
         double[] v = Arrays.stream(tmp[2].split(",")).mapToDouble((str) -> Double.parseDouble(str)).toArray();
         Integer objId = (int) (Long.parseLong(tmp[0]) % objectCount);
         Long timestamp = Long.parseLong(tmp[1]);
+
+        int a;
+        String s = jedis.get("time");
+        a = Integer.valueOf(s);
+        a++;
+        try {
+            TestRedis.add("time", String.valueOf(a));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         collector.emit(new Values(objId, v, timestamp), Collections.singletonMap(objId, timestamp));
     }
 

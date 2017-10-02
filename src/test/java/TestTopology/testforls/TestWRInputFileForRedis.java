@@ -235,9 +235,9 @@ public class TestWRInputFileForRedis {
 //        System.out.println("finish build "+count);
 
         while (true) {
-            Utils.sleep(5);
+            Utils.sleep(1);
             count++;
-            String a = jedis.lpop(args[1]);
+            String a = jedis.rpop(args[1]);
             //System.out.println(a);
             if (a != null) {
                 byte[] message = (a+"\r\n").getBytes();//shedstorm1 originstorm1

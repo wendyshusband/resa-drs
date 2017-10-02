@@ -4,15 +4,19 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 /**
  * Created by kailin on 2016/12/28.
  */
 public class TestRedis {
     private static JedisPool jedisPool = null;
+    private static InetAddress addr;
     static{
-        int maxActivity = 50;
-        int maxIdle = 10;
-        long maxWait = 3000;
+        int maxActivity = 100;
+        int maxIdle = 50;
+        long maxWait = 30000;
         boolean testOnBorrow = true;
         boolean onreturn = true;
 
@@ -22,7 +26,13 @@ public class TestRedis {
         config.setMaxWaitMillis(maxWait);
         config.setTestOnBorrow(testOnBorrow);
         config.setTestOnReturn(onreturn);
-        jedisPool = new JedisPool(config, "10.21.50.43", 6379,100000000);
+        try {
+            addr = InetAddress.getLocalHost();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+        jedisPool = new JedisPool(config, addr.getHostAddress(), 6379,100000000);
+        //jedisPool = new JedisPool(config, "10.21.50.20", 6379,100000000);
     }
 
     public synchronized static Jedis getJedis() {
@@ -148,16 +158,37 @@ public class TestRedis {
 //            }
 //            i--;
 //        }
-        int i = 0;
-        while(i<200000){
-            i++;
-            System.out.println(jedis.lpop("fsource"));
-            if(null == jedis.lpop("fsource")){
-                //System.out.println("null");
-                //break;
-            }
+
+//        int i = 0;
+//        while(i<200000){
+//            i++;
+//            System.out.println(jedis.lpop("fsource"));
+//            if(null == jedis.lpop("fsource")){
+//                //System.out.println("null");
+//                //break;
+//            }
+//        }
+//        System.out.println("ok!");
+        int i = 1;
+        try {
+            TestRedis.add("time", String.valueOf(0));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        System.out.println("ok!");
+        while(i<1000) {
+            int a;
+            String ss = jedis.get("time");
+
+            a = Integer.valueOf(ss);
+            a++;
+            System.out.println(ss+" a: "+a);
+            try {
+                TestRedis.add("time", String.valueOf(a));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            i++;
+        }
     }
 }
 

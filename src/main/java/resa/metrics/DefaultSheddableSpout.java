@@ -15,9 +15,11 @@ import org.apache.storm.topology.IRichSpout;
 import org.apache.storm.utils.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import resa.shedding.tools.AbstractSampler;
 import resa.shedding.tools.ActiveSheddingSampler;
 import resa.shedding.tools.DRSzkHandler;
+import resa.shedding.tools.TestRedis;
 import resa.topology.DelegatedSpout;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
@@ -55,6 +57,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
     private int interval;
     //private NodeCache nodeCache;
     private int taskId = 0;
+
 
     public DefaultSheddableSpout(){
 
@@ -169,10 +172,10 @@ public class DefaultSheddableSpout extends DelegatedSpout {
                 if (!DRSzkHandler.clientIsStart()) {
                     DRSzkHandler.start();
                 }
-                activeSheddingRate = (double) conf.get("test.shedding.rate");
+                activeSheddingRate = (double) conf.get("test.shedding.rate2");
                 System.out.println("haitianshengyan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
-                //watchActiveShedRate();
+                watchActiveShedRate();
             } catch (Exception e) {
                 e.printStackTrace();
             }

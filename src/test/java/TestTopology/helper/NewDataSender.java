@@ -258,7 +258,7 @@ public class NewDataSender {
             e.printStackTrace();
         } finally {
             System.out.println("queuesize"+queue.size());
-            System.out.println("time"+(System.currentTimeMillis() - start));
+            System.out.println("times"+(System.currentTimeMillis() - start));
         }
     }
 }

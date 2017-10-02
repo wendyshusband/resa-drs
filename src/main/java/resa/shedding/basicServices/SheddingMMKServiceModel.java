@@ -2,6 +2,7 @@ package resa.shedding.basicServices;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import resa.optimize.AllocResult;
 import resa.optimize.ServiceNode;
 import resa.optimize.SourceNode;
@@ -31,6 +32,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
     private static final int DEVIATION_RATIO = 2;
     private static final double SHED_RATIO_UNIT = 0.01;
     private HistoricalAdjustRatioMMK paramPairForCalcAdjRatio = new HistoricalAdjustRatioMMK(HISTORY_SIZE);
+    private static Jedis jedis = TestRedis.getJedis();
 
     /**
      * We assume the stability check for each node is done beforehand!
@@ -50,7 +52,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
             ServiceNode serviceNode = e.getValue();
             int serverCount = allocation.get(cid).intValue();
             double avgSojournTime = sojournTime_MMK(serviceNode.getLambda(), serviceNode.getMu(), serverCount);
-            //System.out.println(avgSojournTime+"wanlilairenmindemingyi"+serviceNode.getLambda()+" mu="+serviceNode.getMu()+" serverCount:"+serverCount);
+           // System.out.println(avgSojournTime+"wanlilairenmindemingyi"+serviceNode.getLambda()+" mu="+serviceNode.getMu()+" serverCount:"+serverCount);
             retVal += (avgSojournTime * serviceNode.getRatio());
         }
         //System.out.println("retvalheheda: "+retVal);
@@ -177,6 +179,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
                 estimateTSecs = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes,tempAllocation);
                 double adjEstimateTMilliSec = fitEstimateRatio(estimateTSecs, adjRatioArr);
                 if (adjEstimateTMilliSec < completeTimeMilliSecUpper && Math.abs(adjEstimateTMilliSec - completeTimeMilliSecUpper) <= (1.0-tolerant) * completeTimeMilliSecUpper) {
+                    System.out.println(tempAllocation+"1abcdefgh+ "+serviceNodes.get(selectNode.getComponentID()));
                     break;
                 } else {
                     if (adjEstimateTMilliSec > completeTimeMilliSecUpper || adjEstimateTMilliSec < 0) {
@@ -218,20 +221,28 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         for (ServiceNode node : serviceNodes.values()) {
             double curr = node.getRatio() * sojournTime_MMK(node.getLambda(), node.getMu(), minAllo.get(node.getComponentID()));
             System.out.println("id:"+node.getComponentID()+" curr:"+curr+" maxT:"+maxT);
-            if (curr > maxT) {
+            if (curr < 0 && maxT >= 0) {
+                maxT = curr;
+                selectNode = node;
+            } else if (curr > 0 && maxT >= 0 && curr > maxT) {
+                maxT = curr;
+                selectNode = node;
+            } else if (curr < 0 && maxT <= 0 && curr > maxT) {
                 maxT = curr;
                 selectNode = node;
             }
         }
 
         if (selectNode != null) {
+            System.out.println("bestselectNode=" + selectNode.getComponentID());
             double lambda = binarySearchBoltAfterShedLambda(selectNode, sourceNode, serviceNodes, completeTimeMilliSecUpper, tolerant, totalResourceCount, adjRatioArr, selectivityFunctions, revertRealLoadDatas);
             Map<String, Integer> tempAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes, totalResourceCount);
+            System.out.println(tempAllocation+"2greedyabcdefgh+ "+serviceNodes.get(selectNode.getComponentID()));
             for (ServiceNode serviceNode : serviceNodes.values()) {
                 serviceNode.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode.getRatio(), originLambda0);
             }
-            if (lambda < 1.0 || tempAllocation == null) {
-                LOG.warn("too small load on "+selectNode.getComponentID()+", DRS will not select this decision!");
+            if (tempAllocation == null) {//lambda < 1.0 ||
+                LOG.warn(lambda+"too small load on "+selectNode.getComponentID()+", DRS will not select this decision!");
                 return null;
             }
             System.out.println("Boltttt nowlambda: "+lambda+" ratio: "+(1.0 - ( lambda / selectNode.getLambda())));
@@ -258,27 +269,33 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         System.out.println(remainCount+"minAllo:11:"+ minAllo);
         findAllocationGeneralTopApplyMMK(remainCount, minAllo, serviceNodes);
         System.out.println("minAllo:22:"+ minAllo);
-
+        String bestSelect = "default";
         for (ServiceNode selectNode : serviceNodes.values()) {
             double lambda = binarySearchBoltAfterShedLambda(selectNode, sourceNode, serviceNodes, completeTimeMilliSecUpper, tolerant, totalResourceCount, adjRatioArr, selectivityFunctions, revertRealLoadDatas);
             Map<String, Integer> tempAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes, totalResourceCount);
+            System.out.println(tempAllocation+"2minabcdefgh+ "+serviceNodes.get(selectNode.getComponentID()));
             for (ServiceNode serviceNode : serviceNodes.values()) {
                 serviceNode.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode.getRatio(), originLambda0);
             }
-            if (lambda < 1.0 || tempAllocation == null) {
-                LOG.warn("too small load on "+selectNode.getComponentID()+", DRS will not select this decision!");
+            if (tempAllocation == null) {//lambda < 1.0 ||
+                LOG.warn(lambda+"too small load on "+selectNode.getComponentID()+", DRS will not select this decision!");
                 continue;
             }
 
             double tempShedRatio = Double.valueOf(String.format("%.2f",(1.0 - ( lambda / selectNode.getLambda()))));
             System.out.println("Boltttt now lambda: "+lambda+" ratio: "+tempShedRatio);
             if (selectNode.getLambda() * tempShedRatio < maxSheddingLoad) {
+            //if (selectNode.getComponentID().equals("generator")) {
                 maxSheddingLoad = selectNode.getLambda() * tempShedRatio;
                 activeShedRateMap = initActiveRateMap(sourceNode, serviceNodes);
                 activeShedRateMap.put(selectNode.getComponentID(), tempShedRatio);
                 allocation = tempAllocation;
+                bestSelect = selectNode.getComponentID();
+                break;
             }
         }
+
+        System.out.println("bestselectNode=" + bestSelect);
         if (allocation != null && activeShedRateMap != null) {
             return new AllocationAndActiveShedRates(allocation,activeShedRateMap);
         } else {
@@ -301,29 +318,57 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         System.out.println(remainCount+"minAllo:111:"+ minAllo);
         findAllocationGeneralTopApplyMMK(remainCount, minAllo, serviceNodes);
         System.out.println("minAllo:222:"+ minAllo);
-
+        boolean check = true;
         for (ServiceNode serviceNode : serviceNodes.values()) {
             double originLambda = serviceNode.getLambda();
-            double load = serviceNode.getExArrivalRate();
-            double lambda = originLambda * (1 - 50 * SHED_RATIO_UNIT);
-            serviceNode.changeLambdaAndOtherRelateParam(lambda, load);
-            updateServiceNode(sourceNode, serviceNodes, lambda, serviceNode, revertRealLoadDatas, selectivityFunctions);
-            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+            //double load = serviceNode.getExArrivalRate();
+            double lambda = originLambda * 0.1;
+            System.out.println(serviceNodes.toString());
+            //serviceNode.changeLambdaAndOtherRelateParam(lambda, load);
+            //updateServiceNode(sourceNode, serviceNodes, lambda, serviceNode, revertRealLoadDatas, selectivityFunctions);
+            System.out.println(serviceNodes.toString());
             if (minAllo != null) {
-                double estimateTSecs = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes, minAllo);
-                double adjEstimateTMilliSec = fitEstimateRatio(estimateTSecs, adjRatioArr);
-                double result = Math.abs(adjEstimateTMilliSec - sourceNode.getRealLatencyMilliSeconds());
-                System.out.println("estimateTSecs:"+estimateTSecs+" real: "+sourceNode.getRealLatencyMilliSeconds()+" adjEstimateTMilliSec:"+adjEstimateTMilliSec+" beijixingdeyanlei"+result);
-                if (result > maxDiffLatencyMilliSec) {
-                    selectNode = serviceNode;
+                double beforeShed = sojournTime_MMK(serviceNode.getLambda(), serviceNode.getMu(), minAllo.get(serviceNode.getComponentID()));
+                double afterShed = sojournTime_MMK(lambda, serviceNode.getMu(), minAllo.get(serviceNode.getComponentID()));
+//                double estimateTSecs = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes, minAllo);
+//                double adjEstimateTMilliSec = fitEstimateRatio(estimateTSecs, adjRatioArr);
+                double result = 0.0;
+
+                if (check && beforeShed > 0) {
+                    result = (beforeShed - afterShed) * serviceNode.getRatio();
+                    if (result > maxDiffLatencyMilliSec) {
+                        selectNode = serviceNode;
+                        maxDiffLatencyMilliSec = result;
+                    }
+                } else if (beforeShed < 0) {
+                    result = (afterShed - beforeShed) * serviceNode.getRatio();
+                    if (check) {
+                        selectNode = serviceNode;
+                        maxDiffLatencyMilliSec = result;
+                    } else if (result < maxDiffLatencyMilliSec) {
+                        selectNode = serviceNode;
+                        maxDiffLatencyMilliSec = result;
+                    }
+                    check = false;
                 }
+                System.out.println(result+"beforeShed:"+beforeShed+" afterShed:"+afterShed+" max:"+maxDiffLatencyMilliSec);
+//                if (adjEstimateTMilliSec < 0) {
+//                    result = sourceNode.getRealLatencyMilliSeconds() + adjEstimateTMilliSec;
+//                    label = false;
+//                } else {
+//                    if (label) {
+//                        result = sourceNode.getRealLatencyMilliSeconds() - adjEstimateTMilliSec;
+//                    } else { // ignore the bolt
+//                        result = Double.MIN_VALUE;
+//                    }
+//                }
+                //System.out.println(sourceNode.getRealLatencyMilliSeconds()+"estimateTSecs:"+estimateTSecs+"adjEstimateTMilliSec: "+adjEstimateTMilliSec+"comp:"+serviceNode.getComponentID()+" beijixingdeyanlei"+result+" maxDiffLatencyMilliSec:"+maxDiffLatencyMilliSec);
+
             }
-            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-           // System.out.println("updatebefore:"+serviceNodes);
-            for (ServiceNode serviceNode2 : serviceNodes.values()) {
-                serviceNode2.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode2.getRatio(), originLambda0);
-            }
-           // System.out.println("updateafter:"+serviceNodes);
+        }
+
+        for (ServiceNode serviceNode2 : serviceNodes.values()) {
+            serviceNode2.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode2.getRatio(), originLambda0);
         }
 
         if (selectNode != null) {
@@ -335,8 +380,8 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
             for (ServiceNode serviceNode : serviceNodes.values()) {
                 serviceNode.changeLambdaAndOtherRelateParam(originLambda0 * serviceNode.getRatio(), originLambda0);
             }
-            if (lambda < 1.0 || tempAllocation == null) {
-                LOG.warn("too small load on "+selectNode.getComponentID()+", DRS will not select this decision!");
+            if (tempAllocation == null) {//lambda < 1.0 ||
+                LOG.warn(lambda+"too small load on "+selectNode.getComponentID()+", DRS will not select this decision!");
                 return null;
             }
             System.out.println("bestquality Boltttt high: now lambda: "+lambda+" rate: "+(1 - ( lambda / selectNode.getLambda())));
@@ -354,9 +399,16 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
                                                                          double completeTimeMilliSecUpper, double tolerant, double[] adjRatioArr, Map<String, Integer> minAllo,
                                                                          Map<String, double[]> selectivityFunctions, Map<String, RevertRealLoadData> revertRealLoadDatas) {
         AllocationAndActiveShedRates res;
-        res = greedyShedding(flag, sourceNode, serviceNodes, totalResourceCount, completeTimeMilliSecUpper, tolerant, adjRatioArr, minAllo, selectivityFunctions, revertRealLoadDatas);
-        //res = minimizedSheddingLoad(flag, sourceNode, serviceNodes, totalResourceCount, completeTimeMilliSecUpper, tolerant, adjRatioArr, minAllo, revertRealLoadDatas, selectivityFunctions);
-        //res = bestQuality(flag, sourceNode, serviceNodes, totalResourceCount, completeTimeMilliSecUpper, tolerant, adjRatioArr, minAllo, revertRealLoadDatas, selectivityFunctions);
+        if (String.valueOf(completeTimeMilliSecUpper).charAt(2) == '1') {
+            System.out.println("bestselectfunc:greedyShedding");
+            res = greedyShedding(flag, sourceNode, serviceNodes, totalResourceCount, completeTimeMilliSecUpper, tolerant, adjRatioArr, minAllo, selectivityFunctions, revertRealLoadDatas);
+        } else if (String.valueOf(completeTimeMilliSecUpper).charAt(2) == '2') {
+            System.out.println("bestselectfunc:minimizedSheddingLoad");
+            res = minimizedSheddingLoad(flag, sourceNode, serviceNodes, totalResourceCount, completeTimeMilliSecUpper, tolerant, adjRatioArr, minAllo, revertRealLoadDatas, selectivityFunctions);
+        } else {
+            System.out.println("bestselectfunc:bestQuality");
+            res = bestQuality(flag, sourceNode, serviceNodes, totalResourceCount, completeTimeMilliSecUpper, tolerant, adjRatioArr, minAllo, revertRealLoadDatas, selectivityFunctions);
+        }
         return  res;
     }
 
@@ -522,19 +574,37 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         for (int i = 0; i < remainCount; i++) {
             double maxDiff = -1;
             String maxDiffCid = null;
-
+            boolean check = true;
             for (Map.Entry<String, ServiceNode> e : serviceNodes.entrySet()) {
                 String cid = e.getKey();
                 ServiceNode sn = e.getValue();
                 int currentAllocated = retVal.get(e.getKey());
                 double beforeAddT = sojournTime_MMK(sn.getLambda(), sn.getMu(), currentAllocated);
                 double afterAddT = sojournTime_MMK(sn.getLambda(), sn.getMu(), currentAllocated + 1);
-                System.out.println(beforeAddT+">???"+afterAddT+" nowallocation "+(1+currentAllocated));
-                double diff;
-                if (beforeAddT > 0) {
+                System.out.println("before:"+beforeAddT+" after:"+afterAddT+" nowallocation "+(1+currentAllocated));
+                double diff = 0.0;
+//                if (beforeAddT > 0) {
+//                    diff = (beforeAddT - afterAddT) * sn.getRatio();
+//                } else {
+//                    diff = (afterAddT - beforeAddT) * sn.getRatio();
+//                }
+
+                if (check && beforeAddT > 0) {
                     diff = (beforeAddT - afterAddT) * sn.getRatio();
-                } else {
+                    if (diff > maxDiff) {
+                        maxDiffCid = sn.getComponentID();
+                        maxDiff = diff;
+                    }
+                } else if (beforeAddT < 0) {
                     diff = (afterAddT - beforeAddT) * sn.getRatio();
+                    if (check) {
+                        maxDiffCid = sn.getComponentID();
+                        maxDiff = diff;
+                    } else if (diff < maxDiff) {
+                        maxDiffCid = sn.getComponentID();
+                        maxDiff = diff;
+                    }
+                    check = false;
                 }
                 System.out.println(e.getKey()+"nowallocation"+retVal+"~~~"+diff+" maxdiff="+maxDiff );
                 if (diff > maxDiff) {
@@ -624,40 +694,45 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         List<AllocationAndActiveShedRates> allocationAndActiveShedRatesList = new ArrayList<>();
         Map<String, Integer> minAllo = new HashMap<>();
         int i = minResource;
-        AllocationAndActiveShedRates decisionSpout;
-        AllocationAndActiveShedRates decisionBolt;
-
+        AllocationAndActiveShedRates decisionSpout = null;
+        AllocationAndActiveShedRates decisionBolt = null;
+        System.out.println("woyaobengkuileyo"+maxAvailable4Bolt);
         for (; i<=maxAvailable4Bolt; i += reUnit) {
             for (String node : serviceNodes.keySet()) {
                 minAllo.put(node,1);
             }
             Map<String, Integer> tempAlloResult = new HashMap<>();
             tempAlloResult.putAll(minAllo);
+            System.out.println(i+"woyaobengkuileyoho"+minAllo.values().stream().mapToInt(Number::intValue).sum());
             int remainCount = i - minAllo.values().stream().mapToInt(Number::intValue).sum();
             System.out.println(remainCount+"|"+minAllo+"wanlilaiputall"+tempAlloResult+(tempAlloResult.equals(minAllo)));
             findAllocationGeneralTopApplyMMK(remainCount, tempAlloResult, serviceNodes);
             System.out.println(minAllo+"youdaowanlilai"+tempAlloResult);
             double estT = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes, tempAlloResult);
             double adjEstT = fitEstimateRatio(estT, adjRatioArr);
-            System.out.println(estT+"wanlilaiyo adjest:"+adjEstT);
-            if (tempAlloResult != null && adjEstT > 0.0 && adjEstT < completeTimeMilliSecUpper) {
+            int tempCount = tempAlloResult.values().stream().mapToInt(Number::intValue).sum();
+            Map<String, Integer> checkAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes,tempCount);
+            System.out.println(estT+"wanlilaiyo adjest:"+adjEstT+"checkalloc:"+(checkAllocation!=null?true:false));
+            if (checkAllocation != null && tempAlloResult != null && adjEstT > 0.0 && adjEstT < completeTimeMilliSecUpper) {
 
                 System.out.println(i+"wanlilai buyao shedding"+tempAlloResult);
                 decisionSpout = new AllocationAndActiveShedRates(tempAlloResult, initActiveRateMap(sourceNode, serviceNodes));
                 decisionBolt = null;
+
             } else {
                 System.out.println("wanlilai need shedding"+i);
                 decisionSpout = binarySearchMinimizedSpoutShedRatio(false, sourceNode, serviceNodes, i, completeTimeMilliSecUpper, tolerant, adjRatioArr);
                 decisionBolt = searchBoltShedRatio(false, sourceNode, serviceNodes, i, completeTimeMilliSecUpper, tolerant, adjRatioArr, minAllo, selectivityFunctions, revertRealLoadDatas);
             }
 
-            if (decisionBolt != null) {
-                System.out.println("wanlilaidecisionbolt:: "+decisionBolt);
-                allocationAndActiveShedRatesList.add(decisionBolt);
-            }
             if (decisionSpout != null) {
                 System.out.println("wanlilaidecisionspout:: "+decisionSpout);
                 allocationAndActiveShedRatesList.add(decisionSpout);
+            }
+
+            if (decisionBolt != null) {
+                System.out.println("wanlilaidecisionbolt:: "+decisionBolt);
+                allocationAndActiveShedRatesList.add(decisionBolt);
             }
         }
         return allocationAndActiveShedRatesList;
@@ -670,7 +745,14 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         if (allocationAndActiveShedRatesList.size() > 0) {
             for (AllocationAndActiveShedRates decision : allocationAndActiveShedRatesList) {
                 AbstractTotalCost tempCost = costFunction.calcCost(decision);
-                System.out.println(tempCost + "drs calc result!!!!!!!nibeizhewoaibieren: " + decision);
+                System.out.println(tempCost + "drs calc result!!!!!!!: " + decision);
+
+                long start = Long.valueOf(jedis.get("time"));
+                if (start > 15000) {
+                    systemModel = 1;
+                } else {
+                    systemModel = 0;
+                }
                 if ( result == null || minCost.compareTo(tempCost) > 0) {
                     minCost = tempCost;
                     result = decision;
@@ -724,6 +806,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
         System.out.println(estTotalSojournTimeMilliSec_MMK+"laibuliao: "+sourceNode.getRealLatencyMilliSeconds());
 
         LOG.debug(" getAllocationAndShedRateGeneralTopApplyMMK(), " + "lowerBoundServiceTimeSeconds * adjRatio * 1000.0 < completeTimeMilliSecUpper");
+        System.out.println(currentUsedThreadByBolts+"woyaobengkuilejingtianbug"+maxAvailable4Bolt);
         List<AllocationAndActiveShedRates> allocationAndActiveShedRatesList = calcAllocationAndActiveShedRate(sourceNode,serviceNodes,
                 maxAvailable4Bolt, currentUsedThreadByBolts, minResource, completeTimeMilliSecUpper, resourceUnit, tolerant, adjRatioArr, selectivityFunctions, revertRealLoadDatas);
         return chooseBefittingDecision(allocationAndActiveShedRatesList, costFunction, costClassName, systemModel);

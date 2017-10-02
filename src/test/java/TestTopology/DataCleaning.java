@@ -1,6 +1,9 @@
 package TestTopology;
 
 import TestTopology.fp.WordList;
+import org.junit.Test;
+import redis.clients.jedis.Jedis;
+import resa.shedding.tools.TestRedis;
 
 import java.io.*;
 import java.util.*;
@@ -121,8 +124,17 @@ public class DataCleaning {
 //        //buildDict(dictFile);
 //        //clean(readFile, writeFile);
 //        //macthData(writeFile, vectorFile, averageFile);
-        copyToNewFile("E:/outlierdetection/kddcup.data.11000.head","E:/outlierdetection/outlier10000.txt",10000);
-//        dictFile = dictFile.replaceAll("\\p{P}|\\p{S}", " ");
+
+
+        // copyToNewFile("E:/outlierdetection/kddcup.data.50000.tail3","E:/outlierdetection/outlier15000.three",15000);
+        RandomAccessFile randomAccessFile = new RandomAccessFile("E:/outlierdetection/fp/accuracy/real/111.txt","rw");
+
+
+
+//
+//
+//
+// dictFile = dictFile.replaceAll("\\p{P}|\\p{S}", " ");
 //        System.out.println(dictFile);
         //getWord();
 //        Jedis jedis = TestRedis.getJedis();
@@ -149,8 +161,10 @@ public class DataCleaning {
         BufferedWriter writer = new BufferedWriter(fileWriter);
         FileReader fileReader = new FileReader(readFile);
         BufferedReader reader = new BufferedReader(fileReader);
+        RandomAccessFile randomFile = new RandomAccessFile(readFile, "rw");
         String s ;
         int i = 0;
+        //randomFile.
         while ((s = reader.readLine()) != null && i < number) {
 
             long time = System.currentTimeMillis();
@@ -198,5 +212,17 @@ public class DataCleaning {
 
     private static Integer word2Id(String word) {
         return dict.get(word);
+    }
+
+
+    @Test
+    public void get() throws IOException {
+        Jedis jedis = TestRedis.getJedis();
+        FileReader fileReader = new FileReader("E:/123123.txt");
+        BufferedReader reader = new BufferedReader(fileReader);
+        String s ;
+        while ((s = reader.readLine()) != null) {
+            jedis.rpush("vector", String.valueOf(Double.valueOf(s)));
+        }
     }
 }

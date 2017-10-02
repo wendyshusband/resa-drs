@@ -63,8 +63,9 @@ public class DataSender {
         return result;
     }
 
-    public void send2Queue(Path inputFile, int batchSize, LongSupplier sleep) throws IOException, InterruptedException {
+    public void send2Queue(Path inputFile, int batchSize, LongSupplier sleep, String[] args) throws IOException, InterruptedException {
         BlockingQueue<String> dataQueue = new ArrayBlockingQueue<>(10000);
+        int rem = Integer.valueOf(args[5]);
         for (int i = 0; i < 3; i++) {
             new PushThread(dataQueue).start();
         }
@@ -74,7 +75,7 @@ public class DataSender {
             int batchCnt = 0;
             while ((line = reader.readLine()) != null) {
                 //dataQueue.put(processData(line));
-                dataQueue.put(fixAndProcessData((count % 2500),line));
+                dataQueue.put(fixAndProcessData((count % rem),line));
                 count++;
                 if (++batchCnt == batchSize) {
                     batchCnt = 0;
@@ -110,11 +111,11 @@ public class DataSender {
         switch (args[3].substring(1)) {
             case "deter":
                 long sleep = (long) (1000 / Float.parseFloat(args[4]));
-                sender.send2Queue(dataFile, batchSize, () -> sleep);
+                sender.send2Queue(dataFile, batchSize, () -> sleep, args);
                 break;
             case "poison":
                 double lambda = Float.parseFloat(args[4]);
-                sender.send2Queue(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda));
+                sender.send2Queue(dataFile, batchSize, () -> (long) (-Math.log(Math.random()) * 1000 / lambda), args);
                 break;
             case "uniform":
                 if (args.length < 6) {
@@ -123,7 +124,7 @@ public class DataSender {
                 }
                 double left = Float.parseFloat(args[4]);
                 double right = Float.parseFloat(args[5]);
-                sender.send2Queue(dataFile, batchSize, () -> (long) (1000 / (Math.random() * (right - left) + left)));
+                sender.send2Queue(dataFile, batchSize, () -> (long) (1000 / (Math.random() * (right - left) + left)), args);
                 break;
             default:
                 printUsage();

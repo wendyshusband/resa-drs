@@ -78,33 +78,33 @@ public class SpoutActiveSheddingRateTrimer extends ActiveSheddingRateTrimer {
                     newActiveShedRateMap.put(bolt, DRSzkHandler.parseActiveShedRateMap(oldActiveShedRateMap, bolt));
                     //newActiveShedRateMap.put(bolt, anInt);
                 }
-                //System.out.println(newActiveShedRateMap.toString() + "paris1");
+                System.out.println("paris1"+ new String(oldActiveShedRateMap));
                 boolean changeFlag = false;
                 for (Map.Entry entry : spoutLatencyDifference.entrySet()) {
-                    double originRate = DRSzkHandler.parseActiveShedRateMap(oldActiveShedRateMap, (String) entry.getKey());
-                    double newRate = originRate;
-                    System.out.println("old rate: " + newRate);
-                    if (newRate >= activeShedRateIncrement) {
+                    double originRatio = DRSzkHandler.parseActiveShedRateMap(oldActiveShedRateMap, (String) entry.getKey());
+                    double newRatio = originRatio;
+                    System.out.println("old ratio: " + newRatio);
+                    if (newRatio >= activeShedRateIncrement) {
                         LatencyStatus latencyStatus = (LatencyStatus) entry.getValue();
                         if (latencyStatus == LatencyStatus.LOW) {
-                            newRate -= activeShedRateIncrement;
+                            newRatio -= activeShedRateIncrement;
                         } else if (latencyStatus == LatencyStatus.HIGH) {
-                            newRate += activeShedRateIncrement;
+                            newRatio += activeShedRateIncrement;
                         }
                     }
-                    newRate = Double.valueOf(String.format("%.2f", newRate));
-                    if (newRate != originRate) {
+                    newRatio = Double.valueOf(String.format("%.2f", newRatio));
+                    if (newRatio != originRatio) {
                         changeFlag = true;
-                        newActiveShedRateMap.put((String) entry.getKey(), newRate);
-                        System.out.println("new rate: " + newRate);
+                        newActiveShedRateMap.put((String) entry.getKey(), newRatio);
+                        System.out.println("new ratio: " + newRatio);
                     }
                 }
-                //System.out.println(newActiveShedRateMap.toString() + "paris2");
+                System.out.println(newActiveShedRateMap.toString() + "paris2");
                 if (changeFlag) {
                     DRSzkHandler.sentActiveSheddingRate(newActiveShedRateMap, topologyName, DRSzkHandler.lastDecision.TRIM);
-                    LOG.info("finish trim active shedding rate!");
+                    LOG.info("finish trim active shedding ratio!");
                 } else {
-                    LOG.info("no change of active shedding rate! no need trim");
+                    LOG.info("no change of active shedding ratio! no need trim");
                 }
             }
         } catch (Exception e) {

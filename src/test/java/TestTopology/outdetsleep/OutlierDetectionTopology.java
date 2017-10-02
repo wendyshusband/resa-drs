@@ -1,6 +1,5 @@
 package TestTopology.outdetsleep;
 
-import resa.shedding.tools.TestRedis;
 import org.apache.storm.Config;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
@@ -8,6 +7,8 @@ import org.apache.storm.tuple.Fields;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 import resa.shedding.basicServices.SheddingResaTopologyBuilder;
+import resa.shedding.tools.TestRedis;
+import resa.topology.ResaTopologyBuilder;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
@@ -75,6 +76,7 @@ public class OutlierDetectionTopology {
         }
         return v;
     }
+
     public static List<double[]> generateRandomVectors(int dimension, int vectorCount) {
         Random rand = new Random();
         return Stream.generate(() -> {
@@ -92,9 +94,18 @@ public class OutlierDetectionTopology {
 
         ResaConfig resaConfig = ResaConfig.create();
         resaConfig.putAll(conf);
-        //TopologyBuilder builder = new TopologyBuilder();//new ResaTopologyBuilder();
-        //TopologyBuilder builder = new ResaTopologyBuilder();
-        TopologyBuilder builder = new SheddingResaTopologyBuilder();
+        int checktype = Integer.valueOf((Integer) conf.get("test.shedding.or.not"));
+        TopologyBuilder builder = null;
+        if (checktype == 0) {
+            builder = new TopologyBuilder();
+            System.out.println("origin storm");
+        } else if (checktype == 1) {
+            builder = new ResaTopologyBuilder();
+            System.out.println("origin drs");
+        } else if (checktype == 2) {
+            builder = new SheddingResaTopologyBuilder();
+            System.out.println("shedding drs");
+        }
         int numWorkers = ConfigUtil.getInt(conf, "a-worker.count", 1);
         int numAckers = ConfigUtil.getInt(conf, "a-acker.count", 1);
 
@@ -138,10 +149,15 @@ public class OutlierDetectionTopology {
                 .fieldsGrouping("detector", new Fields(ObjectSpoutSleep.TIME_FILED, ObjectSpoutSleep.ID_FILED));
 
         if (ConfigUtil.getBoolean(conf, "a-metric.resa", true)) {
-            //resaConfig.addDrsSupport();
-            resaConfig.addSheddingSupport();
-            resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
-            System.out.println("ResaMetricsCollector is registered");
+            if (checktype == 1) {
+                resaConfig.addDrsSupport();
+                resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
+                System.out.println("ResaMetricsCollector is registered");
+            } else if (checktype == 2) {
+                resaConfig.addSheddingSupport();
+                resaConfig.put(ResaConfig.REBALANCE_WAITING_SECS, 0);
+                System.out.println("shedding ResaMetricsCollector is registered");
+            }
         }
         resaConfig.setStatsSampleRate(ConfigUtil.getDouble(conf, "StatsSampleRate", 1.0));
 //        if (ConfigUtil.getBoolean(conf, "a-metric.redis", true)) {
@@ -152,6 +168,8 @@ public class OutlierDetectionTopology {
        //LocalCluster localCluster  = new LocalCluster();
         //localCluster.submitTopology("111", resaConfig, builder.createTopology());
         //Utils.sleep(1000000000);
+        TestRedis.add("type", "od");
+        TestRedis.add("time", String.valueOf(0));
         StormSubmitter.submitTopology(args[0], resaConfig, builder.createTopology());
     }
 
