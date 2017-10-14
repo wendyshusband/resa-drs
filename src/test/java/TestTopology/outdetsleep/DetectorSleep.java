@@ -39,7 +39,7 @@ public class DetectorSleep extends TASleepBolt {
     private int minNeighborCount;
     private Map<Integer, Context> objectContext;
     private OutputCollector collector;
-
+    private int taskid;
     public DetectorSleep(int objectCount, int minNeighborCount, double maxNeighborDistance, IntervalSupplier sleep) {
         super(sleep);
         this.objectCount = objectCount;
@@ -51,10 +51,12 @@ public class DetectorSleep extends TASleepBolt {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         objectContext = new HashMap<>();
         this.collector = collector;
+        taskid = context.getThisTaskId();
     }
 
     @Override
     public void execute(Tuple input) {
+        System.out.println("detectorfacaila:"+taskid);
         super.execute(input);
         Integer projId = input.getIntegerByField(ProjectionSleep.PROJECTION_ID_FIELD);
         Context context = objectContext.get(projId);
@@ -97,7 +99,9 @@ public class DetectorSleep extends TASleepBolt {
         //Modified by tom, at the initial stat, we force this bolt to emit tuples (although fake) to Updater
         //if any objects missing, wait for it. This is used when system startup
         //if (!anyObjectMissing) {
-            collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpoutSleep.TIME_FILED)));
+        Object jb = input.getValueByField(ObjectSpoutSleep.JB_FILED);
+        //System.out.println(input.getSourceStreamId()+"detectoruuuid:"+jb);
+            collector.emit(input, new Values(jb, objId, projId, outlier, input.getValueByField(ObjectSpoutSleep.TIME_FILED)));
         //} else {
            // collector.emit(input, new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)));
          //   TestRedis.insertList("miss",new Values(objId, projId, outlier, input.getValueByField(ObjectSpout.TIME_FILED)).toString());
@@ -116,7 +120,7 @@ public class DetectorSleep extends TASleepBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields(ObjectSpoutSleep.ID_FILED, ProjectionSleep.PROJECTION_ID_FIELD,
+        declarer.declare(new Fields(ObjectSpoutSleep.JB_FILED, ObjectSpoutSleep.ID_FILED, ProjectionSleep.PROJECTION_ID_FIELD,
                 OUTLIER_FIELD, ObjectSpoutSleep.TIME_FILED));
     }
 

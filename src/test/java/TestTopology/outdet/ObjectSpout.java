@@ -18,7 +18,7 @@ public class ObjectSpout extends RedisQueueSpout {
     public static final String ID_FILED = "id";
     public static final String VECTOR_FILED = "vector";
     public static final String TIME_FILED = "time";
-
+    private static int id = 0;
     private final int objectCount;
     private static Jedis jedis = TestRedis.getJedis();
 
@@ -44,7 +44,7 @@ public class ObjectSpout extends RedisQueueSpout {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        //collector.emit(new Values(objId, v, timestamp), id++);
         collector.emit(new Values(objId, v, timestamp), Collections.singletonMap(objId, timestamp));
     }
 

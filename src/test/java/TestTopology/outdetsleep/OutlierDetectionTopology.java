@@ -1,9 +1,11 @@
 package TestTopology.outdetsleep;
 
 import org.apache.storm.Config;
+import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.tuple.Fields;
+import org.apache.storm.utils.Utils;
 import org.junit.Test;
 import redis.clients.jedis.Jedis;
 import resa.shedding.basicServices.SheddingResaTopologyBuilder;
@@ -108,7 +110,7 @@ public class OutlierDetectionTopology {
         }
         int numWorkers = ConfigUtil.getInt(conf, "a-worker.count", 1);
         int numAckers = ConfigUtil.getInt(conf, "a-acker.count", 1);
-
+        System.out.println("worker number："+numWorkers);
         resaConfig.setNumWorkers(numWorkers);
         resaConfig.setNumAckers(numAckers);
 
@@ -119,7 +121,7 @@ public class OutlierDetectionTopology {
         int defaultTaskNum = ConfigUtil.getInt(conf, "a-task.default", 1);
         //set spout
         int objectCount = ConfigUtil.getIntThrow(conf, "a-spout.object.size");
-        builder.setSpout("objectSpout",
+        builder.setSpout("objectSpout2",
                 new ObjectSpoutSleep(host, port, queue, objectCount),
                 ConfigUtil.getInt(conf, "a-spout.parallelism", 1));
 
@@ -133,7 +135,7 @@ public class OutlierDetectionTopology {
         builder.setBolt("projection",
                 new ProjectionSleep(new ArrayList<>(randVectors), () -> (long) (-Math.log(Math.random()) * 1000.0 / projection_mu)), ConfigUtil.getInt(conf, "a-projection.parallelism", 1))
                 .setNumTasks(defaultTaskNum)
-                .shuffleGrouping("objectSpout");
+                .shuffleGrouping("objectSpout2");
 
         int minNeighborCount = ConfigUtil.getIntThrow(conf, "a-detector.neighbor.count.min");
         double maxNeighborDistance = ConfigUtil.getDoubleThrow(conf, "a-detector.neighbor.distance.max");

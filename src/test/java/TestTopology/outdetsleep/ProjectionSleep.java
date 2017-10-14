@@ -41,11 +41,11 @@ public class ProjectionSleep extends TASleepBolt {
         //System.out.println(a+"projection: "+(a * 1000.0)/ (System.currentTimeMillis() - start));
         Object objId = input.getValueByField(ObjectSpoutSleep.ID_FILED);
         Object time = input.getValueByField(ObjectSpoutSleep.TIME_FILED);
-
+        Object jb = input.getValueByField(ObjectSpoutSleep.JB_FILED);
         double[] v = (double[]) input.getValueByField(ObjectSpoutSleep.VECTOR_FILED);
-
+        //System.out.println(input.getSourceComponent()+"projectionuuuid:"+jb);
         IntStream.range(0, randomVectors.size()).forEach((i) -> {
-            collector.emit(input, new Values(objId, i, innerProduct(randomVectors.get(i), v), time));
+            collector.emit(input, new Values(jb, objId, i, innerProduct(randomVectors.get(i), v), time));
         });
 
         collector.ack(input);
@@ -65,7 +65,7 @@ public class ProjectionSleep extends TASleepBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields(ObjectSpoutSleep.ID_FILED, PROJECTION_ID_FIELD,
+        declarer.declare(new Fields(ObjectSpoutSleep.JB_FILED, ObjectSpoutSleep.ID_FILED, PROJECTION_ID_FIELD,
                 PROJECTION_VALUE_FIELD, ObjectSpoutSleep.TIME_FILED));
     }
 

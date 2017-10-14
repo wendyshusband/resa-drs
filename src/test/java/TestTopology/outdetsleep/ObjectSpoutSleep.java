@@ -14,6 +14,7 @@ import java.util.Collections;
  * Created by kailin on 14-3-14.
  */
 public class ObjectSpoutSleep extends RedisQueueSpout {
+    public static final String JB_FILED = "jb";
     public static final String ID_FILED = "id";
     public static final String VECTOR_FILED = "vector";
     public static final String TIME_FILED = "time";
@@ -42,12 +43,13 @@ public class ObjectSpoutSleep extends RedisQueueSpout {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        collector.emit(new Values(objId, v, timestamp), Collections.singletonMap(objId, timestamp));
+        collector.emit(new Values(a, objId, v, timestamp), Collections.singletonMap(objId, timestamp));
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields(ID_FILED, VECTOR_FILED, TIME_FILED));
+        declarer.declare(new Fields(JB_FILED, ID_FILED, VECTOR_FILED, TIME_FILED));
     }
 }
+
+//

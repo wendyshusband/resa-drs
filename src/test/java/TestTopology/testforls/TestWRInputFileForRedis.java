@@ -188,15 +188,15 @@ public class TestWRInputFileForRedis {
         return dataList;
     }
 
-    @Test
-    public void read() {
-        List<String> data = TestWRInputFileForRedis.readFileByLine("E:/outlierdetection/111.txt",1);
-        //String s = new String(byteBuffer.array());
-        for (String s : data) {
-            System.out.println(s);
-        }
-        //System.out.println("sssab"+data+"sssa");
-    }
+//    @Test
+//    public void read() {
+//        List<String> data = TestWRInputFileForRedis.readFileByLine("E:/outlierdetection/111.txt",1);
+//        //String s = new String(byteBuffer.array());
+//        for (String s : data) {
+//            System.out.println(s);
+//        }
+//        //System.out.println("sssab"+data+"sssa");
+//    }
 
     public static void main(String[] args) {
         int size = 1000000;

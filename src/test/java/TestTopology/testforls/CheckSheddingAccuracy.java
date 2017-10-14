@@ -1,5 +1,6 @@
 package TestTopology.testforls;
 
+import javax.print.DocFlavor;
 import java.util.*;
 
 /**
@@ -61,68 +62,76 @@ public class CheckSheddingAccuracy {
     }
     private static void check() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/fp/accuracy/real/newb201", 100000);
+                .readFileByLine("/opt/oddata/realbench201", 100000);
                 //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("E:/outlierdetection/fp/accuracy/real/new201", 100000);
+                .readFileByLine("/opt/oddata/realshed181", 100000);
                 //.subList(shedBeginLine,shedEndLine);
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
         Map<Double,Integer> f1Result = new HashMap<>();
         Map<Double,Integer> precisionResult = new HashMap<>();
         Map<Double,Integer> recallResult = new HashMap<>();
-        int miss;   int failure;    int right;  String[] result;  double precision;
+        int miss = 0;   int failure = 0;
+        int right;  String[] result;  double precision;
         double recall;  double f1;  int temp;
         int count = 0;
-        while (iteratorFull.hasNext() && iteratorShed.hasNext()) {
-            count++;
-            String[] fullChars = fix((String) iteratorFull.next());
-            String[] shedChars = fix((String) iteratorShed.next());
-            //System.out.println(shedChars.length+"|"+shedChars[0]);
-            if (fullChars.length == 1 && fullChars[0].isEmpty()) {
-                //fullChars = new String[]{String.valueOf(Integer.MAX_VALUE)};
-                fullChars = new String[]{String.valueOf(sizeOfBitSet+1)};
+        HashMap<String,String[]> realmap = new HashMap<>();
+        while (iteratorFull.hasNext()) {
+            HashMap<String,String[]> fullmap = fix2((String) iteratorFull.next());
+            for (String str : fullmap.keySet()) {
+                if (!realmap.containsKey(str)) {
+                    realmap.put(str,fullmap.get(str));
+                }
             }
-            if (shedChars.length == 1 && shedChars[0].isEmpty()) {
-               // shedChars = new String[]{String.valueOf(Integer.MAX_VALUE)};
-                shedChars = new String[]{String.valueOf(sizeOfBitSet+1)};
-            }
-
-            BitSet sFull = new BitSet(sizeOfBitSet);
-            BitSet sShed = new BitSet(sizeOfBitSet);
-
-            Arrays.stream(Arrays.stream(fullChars).mapToInt(Integer::valueOf).toArray()).forEach(e -> sFull.set(e, true));
-            Arrays.stream(Arrays.stream(shedChars).mapToInt(Integer::valueOf).toArray()).forEach(e -> sShed.set(e, true));
-            //System.out.println("f: "+sFull.toString());
-            //System.out.println("s: "+sShed.toString());
-            if (fullChars.length >= shedChars.length) {
-                sFull.and(sShed);
-                result = fix(sFull.toString());
-            } else {
-                sShed.and(sFull);
-                result = fix(sShed.toString());
-            }
-
-            right = result.length;
-            //System.out.println(Arrays.toString(result)+"right"+right);
-            failure = shedChars.length - result.length;
-            miss = fullChars.length - result.length;
-            precision = Double.valueOf(String.format("%.2f",(right * 1.0 / shedChars.length)));
-            recall = Double.valueOf(String.format("%.2f",(right * 1.0 / fullChars.length)));
-            if (recall + precision == 0) {
-                f1 = 0.0;
-            } else {
-                f1 = Double.valueOf(String.format("%.2f", ((2.0 * recall * precision) / (recall + precision))));
-            }
-            temp = f1Result.containsKey(f1) ? (f1Result.get(f1) + 1) : 1;
-            f1Result.put(f1,temp);
-            temp = precisionResult.containsKey(precision) ? (precisionResult.get(precision) + 1) : 1;
-            precisionResult.put(precision,temp);
-            temp = recallResult.containsKey(recall) ? (recallResult.get(recall) + 1) : 1;
-            recallResult.put(recall,temp);
-            //System.out.println(count);
         }
-
+        System.out.println("real map size:"+realmap.size());
+        while (iteratorShed.hasNext()) {
+            count++;
+            HashMap<String,String[]> shedmap = fix2((String) iteratorShed.next());
+            for (Map.Entry e : shedmap.entrySet()) {
+                String shedkey = (String) e.getKey();
+                String[] shedChars = (String[]) e.getValue();
+                if (realmap.containsKey(shedkey)) {
+                    String[] fullChars = realmap.get(shedkey);
+                    if (fullChars.length == 1 && fullChars[0].isEmpty()) {
+                        fullChars = new String[]{String.valueOf(sizeOfBitSet + 1)};
+                    }
+                    if (shedChars.length == 1 && shedChars[0].isEmpty()) {
+                        shedChars = new String[]{String.valueOf(sizeOfBitSet + 1)};
+                    }
+                    BitSet sFull = new BitSet(sizeOfBitSet);
+                    BitSet sShed = new BitSet(sizeOfBitSet);
+                    Arrays.stream(Arrays.stream(fullChars).mapToInt(Integer::valueOf).toArray()).forEach(es -> sFull.set(es, true));
+                    Arrays.stream(Arrays.stream(shedChars).mapToInt(Integer::valueOf).toArray()).forEach(es -> sShed.set(es, true));
+                    if (fullChars.length >= shedChars.length) {
+                        sFull.and(sShed);
+                        result = fix(sFull.toString());
+                    } else {
+                        sShed.and(sFull);
+                        result = fix(sShed.toString());
+                    }
+                    right = result.length;
+                    //System.out.println(Arrays.toString(result)+"right"+right);
+                    failure = shedChars.length - result.length;
+                    miss = fullChars.length - result.length;
+                    precision = Double.valueOf(String.format("%.2f",(right * 1.0 / shedChars.length)));
+                    recall = Double.valueOf(String.format("%.2f",(right * 1.0 / fullChars.length)));
+                    if (recall + precision == 0) {
+                        f1 = 0.0;
+                    } else {
+                        f1 = Double.valueOf(String.format("%.2f", ((2.0 * recall * precision) / (recall + precision))));
+                    }
+                    temp = f1Result.containsKey(f1) ? (f1Result.get(f1) + 1) : 1;
+                    f1Result.put(f1,temp);
+                    temp = precisionResult.containsKey(precision) ? (precisionResult.get(precision) + 1) : 1;
+                    precisionResult.put(precision,temp);
+                    temp = recallResult.containsKey(recall) ? (recallResult.get(recall) + 1) : 1;
+                    recallResult.put(recall,temp);
+                }
+            }
+        }
+        System.out.println("count="+count+" failure="+failure+" miss="+miss);
         //System.out.println(f1Result);
         System.out.println(f1Result.values());
         System.out.println(f1Result.keySet());
@@ -150,6 +159,18 @@ public class CheckSheddingAccuracy {
         }
         r /= total;
         System.out.println("recall = "+r);
+    }
+
+    private static HashMap<String,String[]> fix2(String t1) {
+        String[] ss = t1.split(":");
+        ss[1] = ss[1].replaceAll(" ", "");
+        ss[1] = ss[1].replaceAll("\\{", "");
+        ss[1] = ss[1].replaceAll("}", "");
+        ss[1] = ss[1].replaceAll("\r", "");
+        String[] res = ss[1].split(",");
+        HashMap<String,String[]> map = new HashMap();
+        map.put(ss[0],res);
+        return map;
     }
 
     private static String[] fix(String t1) {

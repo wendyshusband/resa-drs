@@ -33,7 +33,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
     private static final double SHED_RATIO_UNIT = 0.01;
     private HistoricalAdjustRatioMMK paramPairForCalcAdjRatio = new HistoricalAdjustRatioMMK(HISTORY_SIZE);
     private static Jedis jedis = TestRedis.getJedis();
-
+    private static boolean testflag = true;
     /**
      * We assume the stability check for each node is done beforehand!
      * Jackson OQN assumes all the arrival and departure are iid and exponential
@@ -600,18 +600,18 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
                     if (check) {
                         maxDiffCid = sn.getComponentID();
                         maxDiff = diff;
-                    } else if (diff < maxDiff) {
+                    } else if (diff > maxDiff) {
                         maxDiffCid = sn.getComponentID();
                         maxDiff = diff;
                     }
                     check = false;
                 }
                 System.out.println(e.getKey()+"nowallocation"+retVal+"~~~"+diff+" maxdiff="+maxDiff );
-                if (diff > maxDiff) {
-                    //System.out.println(maxDiff+"shibushia?"+diff);
-                    maxDiff = diff;
-                    maxDiffCid = cid;
-                }
+//                if (diff > maxDiff) {
+//                    //System.out.println(maxDiff+"shibushia?"+diff);
+//                    maxDiff = diff;
+//                    maxDiffCid = cid;
+//                }
             }
 
             if (maxDiffCid != null) {
@@ -1100,6 +1100,12 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
 
         AllocationAndActiveShedRates adjustedAllocationAndShedRate = null;
         Map<String, Integer> adjustedAllocation;
+        long start = Long.valueOf(jedis.get("time"));
+        if (testflag && start >= 22500 && status == AllocResult.Status.FEASIBLE) {
+            testflag = false;
+            status = AllocResult.Status.SHORTAGE;
+            System.out.println(testflag+"~zhongxin~"+start);
+        }
         if (status != AllocResult.Status.FEASIBLE) {
             adjustedAllocationAndShedRate = getAllocationAndShedRateGeneralTopApplyMMK(sourceNode, queueingNetwork, estTotalSojournTimeMilliSec_MMK, resourceUnit,
                     completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, tolerant, currOptAllocation, adjRatioArr,

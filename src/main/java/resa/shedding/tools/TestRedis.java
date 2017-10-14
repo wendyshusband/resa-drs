@@ -31,8 +31,8 @@ public class TestRedis {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
-        jedisPool = new JedisPool(config, addr.getHostAddress(), 6379,100000000);
-        //jedisPool = new JedisPool(config, "10.21.50.20", 6379,100000000);
+        //jedisPool = new JedisPool(config, addr.getHostAddress(), 6379,100000000);
+        jedisPool = new JedisPool(config, "10.21.50.43", 6379,100000000);
     }
 
     public synchronized static Jedis getJedis() {
@@ -143,6 +143,7 @@ public class TestRedis {
     }
     
     public static void main(String[] args) {
+        System.out.println("aaa");
         TestRedis rea = new TestRedis();
         Jedis jedis = rea.getJedis();
         String[] s = {

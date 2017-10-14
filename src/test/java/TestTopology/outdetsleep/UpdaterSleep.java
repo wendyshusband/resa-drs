@@ -18,6 +18,7 @@ public class UpdaterSleep extends TASleepBolt {
     private OutputCollector collector;
     private Map<String, List<BitSet>> padding;
     private int projectionSize;
+    private int taskid;
 
     public UpdaterSleep(int projectionSize, IntervalSupplier sleep) {
         super(sleep);
@@ -28,11 +29,13 @@ public class UpdaterSleep extends TASleepBolt {
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
         padding = new HashMap<>();
+        taskid = context.getThisTaskId();
     }
 
     @Override
     public void execute(Tuple input) {
         super.execute(input);
+        System.out.println("updaterfacaila:"+taskid);
         String key = input.getValueByField(ObjectSpoutSleep.TIME_FILED) + "-" + input.getValueByField(ObjectSpoutSleep.ID_FILED);
         List<BitSet> ret = padding.get(key);
         if (ret == null) {
@@ -49,8 +52,9 @@ public class UpdaterSleep extends TASleepBolt {
                 }
             });
             // output
-           //System.out.println("result~"+result.size());
-            TestRedis.insertList("full",result.toString());
+            Object jb = input.getValueByField(ObjectSpoutSleep.JB_FILED);
+            //System.out.println(jb+"result~"+result.size());
+            TestRedis.insertList("full", jb+":"+result.toString());
             result.stream().forEach((status) -> {
                 if (status == 0) {
                     // output
