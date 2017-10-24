@@ -56,7 +56,7 @@ public class DetectorSleep extends TASleepBolt {
 
     @Override
     public void execute(Tuple input) {
-        System.out.println("detectorfacaila:"+taskid);
+        //System.out.println("detectorfacaila:"+taskid);
         super.execute(input);
         Integer projId = input.getIntegerByField(ProjectionSleep.PROJECTION_ID_FIELD);
         Context context = objectContext.get(projId);

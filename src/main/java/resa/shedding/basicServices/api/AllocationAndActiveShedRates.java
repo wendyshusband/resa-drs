@@ -9,16 +9,16 @@ import java.util.Map;
 public class AllocationAndActiveShedRates {
 
     private Map<String, Integer> fixedAllocation;
-    private Map<String, Double> activeShedRates;
+    private Map<String, Double> activeShedRatios;
 
     public AllocationAndActiveShedRates(Map<String, Integer> fixedAllocation,
                                         Map<String, Double> activeShedRates){
-        this.activeShedRates = activeShedRates;
+        this.activeShedRatios = activeShedRates;
         this.fixedAllocation = fixedAllocation;
     }
 
     public void setActiveShedRates(Map<String, Double> activeShedRates) {
-        this.activeShedRates = activeShedRates;
+        this.activeShedRatios = activeShedRates;
     }
 
     public Map<String, Integer> getFixedAllocation() {
@@ -30,11 +30,11 @@ public class AllocationAndActiveShedRates {
     }
 
     public Map<String, Double> getActiveShedRates() {
-        return activeShedRates;
+        return activeShedRatios;
     }
 
     @Override
     public String toString() {
-        return "allocation: "+(fixedAllocation).toString()+" shedding rate:"+(activeShedRates).toString();
+        return "allocation: "+(fixedAllocation).toString()+" shedding ratio:"+(activeShedRatios).toString();
     }
 }

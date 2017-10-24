@@ -11,6 +11,7 @@ import resa.optimize.AggResultCalculator;
 import resa.shedding.basicServices.api.ActiveSheddingRateTrimer;
 import resa.shedding.basicServices.api.ISheddingDecisionMaker;
 import resa.shedding.basicServices.api.SheddingAllocCalculator;
+import resa.shedding.tools.TestRedis;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 import resa.util.ResaUtils;
@@ -83,7 +84,7 @@ public class SheddingResourceScheduler {
             //start active shed rate trim thread
             long minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcInterval * 2) * 1000 - 50;
             long trimInterval = ConfigUtil.getLong(conf, TRIM_INTERVAL, 30) * 1000;
-            long delay =Math.max(minExpectedIntervalMillis, calcInterval * 2);
+            long delay = 0;//Math.max(minExpectedIntervalMillis, calcInterval * 2);
             activeShedRateTrimTimer.scheduleAtFixedRate(new SheddingResourceScheduler.activeShedRateTrimTask(), delay, trimInterval);
             LOG.info(delay+"Init Topology active sheding trim successfully with interval is {} ms", trimInterval);
         }
@@ -137,6 +138,11 @@ public class SheddingResourceScheduler {
                 if (newAllocation != null && !newAllocation.equals(currAllocation)) {
                     LOG.info("Detected topology allocation changed, request rebalance....");
                     LOG.info("Old allc is {}, new allc is {}", currAllocation, newAllocation);
+                    try {
+                        TestRedis.add("rebalance","1");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     ctx.requestRebalance(newAllocation, getNumWorkers(newAllocation));
                 }
             }

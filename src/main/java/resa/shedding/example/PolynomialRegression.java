@@ -19,15 +19,15 @@ public class PolynomialRegression extends LearningModel {
 
     private void FitTest() {
         final WeightedObservedPoints obs = new WeightedObservedPoints();
-        obs.add( 0.1,0.65359);
-        obs.add( 0.2,0.6279);
-        obs.add( 0.3,0.47093);
-        obs.add( 0.4,0.46511);
-        obs.add( 0.5,0.43478);
-        obs.add( 0.6,0.25531);
-        obs.add( 0.7,0.26153);
-        obs.add( 0.8,0.0315);
-        obs.add( 0.9,0.0095);
+        obs.add( 0.1,0.8);
+        obs.add( 0.2,0.64);
+        obs.add( 0.3,0.48);
+        obs.add( 0.4,0.36);
+        obs.add( 0.5,0.25);
+        obs.add( 0.6,0.15);
+        obs.add( 0.7,0.08);
+        obs.add( 0.8,0.04);
+        obs.add( 0.9,0.01);
         obs.add( 0.0,1.0);
         //obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);obs.add(0,0);
         // Instantiate a third-degree polynomial fitter.

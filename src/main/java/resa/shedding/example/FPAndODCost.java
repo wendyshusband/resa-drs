@@ -1,5 +1,6 @@
 package resa.shedding.example;
 
+import org.jetbrains.annotations.TestOnly;
 import redis.clients.jedis.Jedis;
 import resa.shedding.basicServices.api.AbstractTotalCost;
 import resa.shedding.tools.TestRedis;
@@ -11,14 +12,16 @@ import java.util.Date;
  */
 public class FPAndODCost extends AbstractTotalCost {
 
-    private static final double threshold =  0.5;
-    private static final double costThreshold = 25.0;
+    private static final double threshold = 0.7;
+    private static final double costThreshold = 21.0;
 
     private static final Jedis jedis = TestRedis.getJedis();
     private static String name = jedis.get("type");
+
     private static double odAccuracySensitive(double shedCost) {
-        double res = 0.93298262 * Math.exp(-1 * 4.91578576 * shedCost) + 0.06391202;
-        System.out.println("accuracytianshichibang:"+res);
+        //double res = 0.93298262 * Math.exp(-1 * 4.91578576 * shedCost) + 0.06391202;
+        double res = -1.1 * shedCost + 0.87;
+        System.out.println(shedCost+"accuracytianshichibang:"+res);
         if (res < threshold) {
             return Double.MAX_VALUE;
         }
@@ -36,7 +39,7 @@ public class FPAndODCost extends AbstractTotalCost {
 
     private static double costSensitive(double resourceCost, double shedCost) {
         double cost = resourceCost + 100 * shedCost;
-        if (resourceCost >= costThreshold) {
+        if (resourceCost > costThreshold) {
             return Double.MAX_VALUE;
         } else {
             return cost;
@@ -49,14 +52,11 @@ public class FPAndODCost extends AbstractTotalCost {
 
     @Override
     public double calcTotalCost(double resourceCost, double shedCost) {
-        double cost = 0.0;
+        double cost;
         long start = Long.valueOf(jedis.get("time"));
-        if (start == 22501) {
-            Date date = new Date();
-            System.out.println(date+" wtfcostis:yaoqiehuanlo"+start);
-        }
-        if (start > 22500) {
-            System.out.println(name+" wtfcostis:accuracysensitive"+start+"now"+System.currentTimeMillis());
+        Date date = new Date();
+        if (start > 1499900) {
+            System.out.println(name+" wtfcostis:accuracysensitive"+start+"now"+date.toString());
             if (name.equals("od")) {
                 cost = resourceCost + odAccuracySensitive(shedCost);
             } else {

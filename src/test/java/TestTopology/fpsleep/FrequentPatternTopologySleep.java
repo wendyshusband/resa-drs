@@ -55,9 +55,9 @@ public class FrequentPatternTopologySleep implements Constant {
         builder.setBolt("generator", new PatternGeneratorSleep(() -> (long) (-Math.log(Math.random()) * 1000.0 / generator_mu)), ConfigUtil.getInt(conf, "fp.generator.parallelism", 1))
                 .shuffleGrouping("input")
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.generator.tasks", 1));
-        builder.setBolt("detector", new DetectorNoFeedBackSleep(() -> (long) (-Math.log(Math.random()) * 1000.0 / detector_mu)), ConfigUtil.getInt(conf, "fp.detector.parallelism", 1))
+        builder.setBolt("detector", new DetectorSleep(() -> (long) (-Math.log(Math.random()) * 1000.0 / detector_mu)), ConfigUtil.getInt(conf, "fp.detector.parallelism", 1))
                 .directGrouping("generator")
-                //.directGrouping("detector", FEEDBACK_STREAM)
+                .directGrouping("detector", FEEDBACK_STREAM)
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.detector.tasks", 1));
 
         builder.setBolt("reporter", new PatternReporterSleep(() -> (long) (-Math.log(Math.random()) * 1000.0 / reporter_mu)), ConfigUtil.getInt(conf, "fp.reporter.parallelism", 1))

@@ -4,10 +4,12 @@ import org.apache.storm.Config;
 import org.apache.storm.generated.StormTopology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import resa.optimize.AllocResult;
 import resa.shedding.basicServices.ShedRateAndAllocResult;
 import resa.shedding.basicServices.api.ISheddingDecisionMaker;
 import resa.shedding.tools.DRSzkHandler;
+import resa.shedding.tools.TestRedis;
 import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
@@ -83,6 +85,11 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
 
     @Override
     public Map<String, Integer> make(ShedRateAndAllocResult newResult, Map<String, Integer> currAlloc) {
+        Jedis jedis = TestRedis.getJedis();
+        if (jedis.get("rebalance").equals("1")) {
+            startTimeMillis = System.currentTimeMillis();
+            jedis.set("rebalance","0");
+        }
         long timeSpan = Math.max(0, System.currentTimeMillis() - startTimeMillis);
         if (newResult == null) {
             LOG.info("SheddingBasicDecisionMaker.make(), newResult == null");
@@ -95,8 +102,10 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         AllocResult newAllocResult = newResult.getAllocResult();
         if (timeSpan < minExpectedIntervalMillis) {
             /** if  timeSpan is not large enough, no rebalance will be triggered **/
-            LOG.info("BasicDecisionMaker.make(), timeSpan (" + timeSpan + ") < minExpectedIntervalMillis (" + minExpectedIntervalMillis + ")");
+            LOG.info("BasicDecisionMaker.make(), timeSpan (" + timeSpan + ") < minExpectedIntervalMillis (" + minExpectedIntervalMillis + ")"+" startTimeMillis:"+startTimeMillis);
             return null;
+        } else {
+            LOG.info("timeSpan (" + timeSpan + ") >>> minExpectedIntervalMillis (" + minExpectedIntervalMillis + ")"+" startTimeMillis:"+startTimeMillis);
         }
 
         try {

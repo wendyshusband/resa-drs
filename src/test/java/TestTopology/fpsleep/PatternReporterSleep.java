@@ -42,7 +42,7 @@ public class PatternReporterSleep extends TASleepBolt implements Constant {
         try (BufferedReader reader = new BufferedReader(
                 //(String) stormConf.get(DICT_FILE_PROP) "/diu.yaml"
                 new InputStreamReader(this.getClass().getResourceAsStream((String) stormConf.get(DICT_FILE_PROP))))) {
-            String line = null;
+            String line;
             while ((line = reader.readLine()) != null) {
                 invdict.put(id++, line);
             }

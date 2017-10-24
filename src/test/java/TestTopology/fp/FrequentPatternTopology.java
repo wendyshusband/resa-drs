@@ -41,7 +41,7 @@ public class FrequentPatternTopology implements Constant {
         builder.setBolt("generator", new PatternGenerator(), ConfigUtil.getInt(conf, "fp.generator.parallelism", 1))
                 .shuffleGrouping("input")
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.generator.tasks", 1));
-        builder.setBolt("detector", new DetectorNoFeedBack(), ConfigUtil.getInt(conf, "fp.detector.parallelism", 1))
+        builder.setBolt("detector", new Detector(), ConfigUtil.getInt(conf, "fp.detector.parallelism", 1))
                 .directGrouping("generator")
                 //.directGrouping("detector", FEEDBACK_STREAM)
                 .setNumTasks(ConfigUtil.getInt(conf, "fp.detector.tasks", 1));

@@ -1,5 +1,6 @@
 package TestTopology.outdetsleep;
 
+import TestTopology.testforls.TestWRInputFileForRedis;
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
@@ -15,6 +16,7 @@ import resa.util.ConfigUtil;
 import resa.util.ResaConfig;
 
 import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,10 +33,11 @@ import java.util.stream.Stream;
 public class OutlierDetectionTopology {
 
     @Test
-    public void a() {
+    public void add() {
         Jedis jedis = TestRedis.getJedis();
-        List<double[]> v = OutlierDetectionTopology.generateRandomVectors(34,3);
+        List<double[]> v = OutlierDetectionTopology.generateRandomVectors(34,13);
         for (int i=0; i<v.size(); i++) {
+            System.out.println(v.size()+"~"+v.get(i).length);
             for (int j=0; j<v.get(i).length; j++) {
                 jedis.lpush("vector", String.valueOf(v.get(i)[j]));
             }
@@ -63,11 +66,24 @@ public class OutlierDetectionTopology {
 //            System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 //        }
     }
+    @Test
+    public void get() {
+        Jedis jedis = TestRedis.getJedis();
+        for (int i=0; i<13;i++) {
+            for (int j=0; j<34; j++) {
+                String t = jedis.lpop("vector");
+                jedis.rpush("vector",t);
+                t += "\n";
+                System.out.println(t);
+                TestWRInputFileForRedis.appendFile("/home/tkl/vector",t.getBytes(),1);
+            }
+        }
+    }
 
     public static List<double[]> getDefineVectors(){
         Jedis jedis = TestRedis.getJedis();
         List<double[]> v = new ArrayList<>();
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 13; i++) {
             double[] temp = new double[34];
             for (int j = 0; j < 34; j++) {
                 double t = Double.valueOf(jedis.lpop("vector"));
@@ -171,6 +187,7 @@ public class OutlierDetectionTopology {
         //localCluster.submitTopology("111", resaConfig, builder.createTopology());
         //Utils.sleep(1000000000);
         TestRedis.add("type", "od");
+        TestRedis.add("rebalance","0");
         TestRedis.add("time", String.valueOf(0));
         StormSubmitter.submitTopology(args[0], resaConfig, builder.createTopology());
     }

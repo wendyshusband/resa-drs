@@ -25,7 +25,7 @@ public class DataSender {
     private String host;
     private int port;
     private String queueName;
-
+    private long time = System.currentTimeMillis();
     public DataSender(Map<String, Object> conf) {
         this.host = (String) conf.get("redis.host");
         this.port = ((Number) conf.get("redis.port")).intValue();
@@ -56,8 +56,15 @@ public class DataSender {
         }
     }
 
-    private String fixAndProcessData(int count, String line) {
-        long time = System.currentTimeMillis();
+    private long getTime(int num) {
+        if (num == 1) {
+            time = System.currentTimeMillis();
+        }
+        return time;
+    }
+
+    private String fixAndProcessData(int count, String line, long time) {
+        time = System.currentTimeMillis();
         String result = count+"|"+time+"|"+line;
         //System.out.println(result);
         return result;
@@ -69,13 +76,13 @@ public class DataSender {
         for (int i = 0; i < 3; i++) {
             new PushThread(dataQueue).start();
         }
-        int count = 0;
+        int count = 1;
         try (BufferedReader reader = Files.newBufferedReader(inputFile)) {
             String line;
             int batchCnt = 0;
             while ((line = reader.readLine()) != null) {
                 //dataQueue.put(processData(line));
-                dataQueue.put(fixAndProcessData((count % rem),line));
+                dataQueue.put(fixAndProcessData((count % rem),line, getTime(count % rem)));
                 count++;
                 if (++batchCnt == batchSize) {
                     batchCnt = 0;

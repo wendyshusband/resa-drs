@@ -35,7 +35,7 @@ public class UpdaterSleep extends TASleepBolt {
     @Override
     public void execute(Tuple input) {
         super.execute(input);
-        System.out.println("updaterfacaila:"+taskid);
+        //System.out.println("updaterfacaila:"+taskid);
         String key = input.getValueByField(ObjectSpoutSleep.TIME_FILED) + "-" + input.getValueByField(ObjectSpoutSleep.ID_FILED);
         List<BitSet> ret = padding.get(key);
         if (ret == null) {

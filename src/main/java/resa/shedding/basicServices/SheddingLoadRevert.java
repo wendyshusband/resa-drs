@@ -28,8 +28,11 @@ public class SheddingLoadRevert {
     public SheddingLoadRevert(Map conf,SourceNode spInfo, Map<String, ServiceNode> queueingNetwork, StormTopology stormTopology,
                               Map<String, Object> targets, Map<String, double[]> selectivityFunctions) {
         topology = stormTopology;
-
-        topologyTargets=targets;
+        topologyTargets.putAll(targets);
+//        System.out.println(targets+"realtargets:"+topologyTargets);
+//        Map<String, ArrayList<String>> detector = (Map<String, ArrayList<String>>) topologyTargets.get("detector");
+//        detector.remove("feedback");
+//        System.out.println(targets+"fakerealtargets:"+topologyTargets);
         topologyTargets.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey())).forEach(e->{
             revertRealLoadDatas.put(e.getKey(),new RevertRealLoadData(e.getKey()));
         });
