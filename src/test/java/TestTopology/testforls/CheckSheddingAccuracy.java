@@ -12,7 +12,7 @@ public class CheckSheddingAccuracy {
 
     public static void main(String[] args) {
         CheckSheddingAccuracy.check();
-    }
+    }//.check();//
     private static int sizeOfBitSet = 1000;
     private static int fullBeginLine = 6938;//4288;
     private static int fullEndLine = 10000;//4298;
@@ -22,10 +22,10 @@ public class CheckSheddingAccuracy {
 
     private static void checkFP() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/od20171018/odbench1", 100000);
+                .readFileByLine("/opt/oddata/fptest/one/onebs3", 100000);
                 //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/1300/od1300shed161", 100000);
+                .readFileByLine("/opt/oddata/fptest/one/oneas43", 100000);
                 //.subList(shedBeginLine,shedEndLine);
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
@@ -64,10 +64,10 @@ public class CheckSheddingAccuracy {
     }
     private static void check() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/20171023all/zuixin/juebugai/jbs3", 100000);
+                .readFileByLine("/opt/oddata/20171023all/xiaoxiongdi/jixian/twob6", 100000);
                 //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/20171023all/zuixin/juebugai/jcs3", 100000);
+                .readFileByLine("/opt/oddata/20171023all/xiaoxiongdi/jixian/two6", 100000);
                 //.subList(shedBeginLine,shedEndLine)
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
@@ -186,18 +186,89 @@ public class CheckSheddingAccuracy {
         return t1.split(",");
     }
 
-    private static void checkAc() {
+    private static void checkFPAc() {
+        List fulldata = TestWRInputFileForRedis
+                .readFileByLine("/opt/oddata/fptest/accuracy/fpacc001", 100000);
+        //.subList(fullBeginLine,fullEndLine);
+        List sheddata = TestWRInputFileForRedis
+                .readFileByLine("/opt/oddata/fptest/accuracy/rfpacc091", 100000);
+        HashMap a1 = getFPAccuracy(fulldata,sheddata);
+        fulldata = TestWRInputFileForRedis
+                .readFileByLine("/opt/oddata/fptest/accuracy/fpacc002", 100000);
+        sheddata = TestWRInputFileForRedis
+                .readFileByLine("/opt/oddata/fptest/accuracy/rfpacc092", 100000);
+        HashMap a2 = getFPAccuracy(fulldata,sheddata);
+        fulldata = TestWRInputFileForRedis
+                .readFileByLine("/opt/oddata/fptest/accuracy/fpacc003", 100000);
+        sheddata = TestWRInputFileForRedis
+                .readFileByLine("/opt/oddata/fptest/accuracy/rfpacc093", 100000);
+        HashMap a3 = getFPAccuracy(fulldata,sheddata);
+        System.out.println("__________________________________________________________________");
+        System.out.println("a1:"+a1+" a2:"+a2+" a3:"+a3);
+        double f1 = ((double) a1.get("f1") + (double) a2.get("f1") + (double) a3.get("f1")) / 3.0;
+        double precision = ((double) a1.get("p") + (double) a2.get("p") + (double) a3.get("p")) / 3.0;
+        double recall = ((double) a1.get("r") + (double) a2.get("r") + (double) a3.get("r")) / 3.0;
+        System.out.println("average f1:"+f1);
+        System.out.println("average precision:"+precision);
+        System.out.println("average recall:"+recall);
+    }
+    private static HashMap<String,Double> getFPAccuracy(List full, List shed) {
+        List fulldata = full;
+        List sheddata = shed;
+        Iterator iteratorShed = sheddata.iterator();
+        Iterator iteratorFull = fulldata.iterator();
+        HashMap<String, Integer> map = new HashMap<>();
+        while (iteratorFull.hasNext()) {
+            String line = (String) iteratorFull.next();
+            int temp = 1;
+            if (map.containsKey(line)) {
+                temp += map.get(line);
+            }
+            map.put(line, temp);
+        }
+        int same = 0;
+        int fullTotal = fulldata.size();
+        int shedTotal = sheddata.size();
+
+        while (iteratorShed.hasNext()) {
+            String line = (String) iteratorShed.next();
+            if (map.containsKey(line)) {
+                int count = map.get(line);
+                if (count > 0) {
+                    same++;
+                    map.put(line, count - 1);
+                }
+            }
+        }
+        double precision = same * 1.0 / shedTotal;
+        double recall = same * 1.0 / fullTotal;
+        double f1;
+        if (recall+precision == 0) {
+            f1 = 0;
+        } else {
+            f1 =(2.0 * recall * precision) / (recall + precision);
+        }
+        HashMap res = new HashMap();
+        res.put("f1",f1);
+        res.put("p",precision);
+        res.put("r",recall);
+        return res;
+    }
+
+
+
+    private static void checkODAc() {
         List fulldata = TestWRInputFileForRedis
                 .readFileByLine("/opt/oddata/mostdiao/eaccbench1", 100000);
         //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
                 .readFileByLine("/opt/oddata/mostdiao/eaccupdater041", 100000);
-        HashMap a1 = getAccuracy(fulldata,sheddata);
+        HashMap a1 = getODAccuracy(fulldata,sheddata);
         fulldata = TestWRInputFileForRedis
                 .readFileByLine("/opt/oddata/mostdiao/eaccbench2", 100000);
         sheddata = TestWRInputFileForRedis
                 .readFileByLine("/opt/oddata/mostdiao/eaccupdater042", 100000);
-        HashMap a2 = getAccuracy(fulldata,sheddata);
+        HashMap a2 = getODAccuracy(fulldata,sheddata);
         System.out.println("__________________________________________________________________");
         System.out.println("a1:"+a1+" a2:"+a2);
         double f1 = ((double) a1.get("f1") + (double) a2.get("f1")) / 2.0;
@@ -207,7 +278,7 @@ public class CheckSheddingAccuracy {
         System.out.println("average precision:"+precision);
         System.out.println("average recall:"+recall);
     }
-    private static HashMap<String,Double> getAccuracy(List full, List shed) {
+    private static HashMap<String,Double> getODAccuracy(List full, List shed) {
         List fulldata = full;
         //.subList(fullBeginLine,fullEndLine);
         List sheddata = shed;
@@ -318,7 +389,7 @@ public class CheckSheddingAccuracy {
     @Test
     public void readLatency() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/20171023all/zuixin/juebugai/jcslatency", 100000);
+                .readFileByLine("/opt/oddata/20171023all/xiaoxiongdi/jixian/twolatency1", 100000);
         String[] res1;
         String[] res2;
         ArrayList<Double> ratios = new ArrayList<>();
@@ -378,5 +449,17 @@ public class CheckSheddingAccuracy {
         ratios.stream().forEach(e -> {
             System.out.println(e);
         });
+    }
+
+
+    @Test
+    public void modeltime() {
+        List fulldata = TestWRInputFileForRedis
+                .readFileByLine("/opt/oddata/dynamicone/maccnewod/aslatency1", 100000);
+        double data = 0;
+        for (Object s : fulldata) {
+            data += Double.valueOf((String)s);
+        }
+        System.out.println(data / fulldata.size());
     }
 }

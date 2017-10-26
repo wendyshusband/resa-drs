@@ -697,7 +697,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
          * **/
         List<AllocationAndActiveShedRates> allocationAndActiveShedRatesList = new ArrayList<>();
         Map<String, Integer> minAllo = new HashMap<>();
-        int i = minResource;
+        int i = minResource;//currentUsedThreadByBolts;//
         AllocationAndActiveShedRates decisionSpout;
         AllocationAndActiveShedRates decisionBolt;
         for (; i<=maxAvailable4Bolt; i += reUnit) {
@@ -954,16 +954,25 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
     public static AllocResult.Status getStatusMMKWithAdjRatio(
             double realLatencyMilliSeconds, double estTotalSojournTimeMilliSec_MMK, double estTotalSojournTimeMilliSec_MMKOpt,
             Map<String, ServiceNode> serviceNodes, double completeTimeMilliSecUpper, double completeTimeMilliSecLower, double[] adjRatioArr) {
-        if (realLatencyMilliSeconds > (completeTimeMilliSecUpper *1.0)
-                && estTotalSojournTimeMilliSec_MMKOpt < 0) {
+        long start = Long.valueOf(jedis.get("time"));
+        if (realLatencyMilliSeconds > (completeTimeMilliSecUpper*1.5)
+                && estTotalSojournTimeMilliSec_MMK < 0) {
+            System.out.println(estTotalSojournTimeMilliSec_MMK+"biekengwoniwota"+realLatencyMilliSeconds);
             return AllocResult.Status.SHORTAGE;
         }
 
         double adjEstTotalSojournTimeMilliSec_MMKOpt = fitEstimateRatio(estTotalSojournTimeMilliSec_MMKOpt / 1000.0, adjRatioArr);
+        if (start > 1499900 && adjEstTotalSojournTimeMilliSec_MMKOpt < completeTimeMilliSecUpper*1.8
+                && realLatencyMilliSeconds < completeTimeMilliSecUpper*1.8) { // you must know that this if is no need ,it just for test.
+            System.out.println(adjEstTotalSojournTimeMilliSec_MMKOpt+"zaipianwoniwota"+realLatencyMilliSeconds);
+            return AllocResult.Status.FEASIBLE;
+        }
+
+        System.out.println("niwotatata"+adjEstTotalSojournTimeMilliSec_MMKOpt+" est:"+estTotalSojournTimeMilliSec_MMK);
         if (realLatencyMilliSeconds < completeTimeMilliSecLower) {
             return AllocResult.Status.OVERPROVISIONING;
-        } else if (realLatencyMilliSeconds > completeTimeMilliSecUpper
-                && adjEstTotalSojournTimeMilliSec_MMKOpt > completeTimeMilliSecUpper) {
+        } else if (realLatencyMilliSeconds > completeTimeMilliSecUpper) {
+               // && adjEstTotalSojournTimeMilliSec_MMKOpt > completeTimeMilliSecUpper*1.0) {
 
             //TODO: Here we conservatively include the case that the when "realLatencyMilliSeconds > completeTimeMilliSecUpper",
             //TODO: but current allocation is not the optimal one, then we will consider try optimal one before add more resources.
@@ -1078,7 +1087,7 @@ public class SheddingMMKServiceModel implements SheddingServiceModel {
                 : currOptAllocationAndActiveShedRates.getActiveShedRates().get(sourceNode.getComponentID());
         currOptAllocationAndActiveShedRates.getActiveShedRates().put(sourceNode.getComponentID(),activeShedRate);
         activeSheddingRateMap.put("currOptActiveShedRate",currOptAllocationAndActiveShedRates.getActiveShedRates());
-        System.out.println("keep stable final shed rate: "+activeShedRate);
+        System.out.println("keep stable final shed ratio: "+activeShedRate);
 
         Map<String, Integer> currOptAllocation = currOptAllocationAndActiveShedRates.getFixedAllocation();
         Map<String, Integer> kMaxOptAllocation = KmaxOptAllocationAndActiveShedRates.getFixedAllocation();

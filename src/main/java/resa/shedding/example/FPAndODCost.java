@@ -22,14 +22,15 @@ public class FPAndODCost extends AbstractTotalCost {
         //double res = 0.93298262 * Math.exp(-1 * 4.91578576 * shedCost) + 0.06391202;
         double res = -1.1 * shedCost + 0.87;
         System.out.println(shedCost+"accuracytianshichibang:"+res);
-        if (res < threshold) {
+        if (res <= threshold) {
             return Double.MAX_VALUE;
         }
         return 0;
     }
 
     private static double fpAccuracySensitive(double shedCost) {
-        double res = -0.95625272727 * shedCost + 0.851328;
+        //double res = -0.95625272727 * shedCost + 0.851328;
+        double res = -1 * shedCost + 0.81;
         System.out.println("accuracytianshichibang:"+res);
         if (res < threshold) {
             return Double.MAX_VALUE;

@@ -175,7 +175,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
                 activeSheddingRate = (double) conf.get("test.shedding.rate2");
                 System.out.println("haitianshengyan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
-                watchActiveShedRate();
+                watchActiveShedRatio();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -336,7 +336,7 @@ public class DefaultSheddableSpout extends DelegatedSpout {
         super.nextTuple();
     }
 
-    public void watchActiveShedRate() throws Exception {
+    public void watchActiveShedRatio() throws Exception {
         //if (DRSzkHandler.clientIsStart()) {
         NodeCache nodeCache = DRSzkHandler.createNodeCache("/drs/"+topologyName);
         LOG.info(compID+" watch active shedding ratio!");

@@ -149,7 +149,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                 System.out.println(compID+" shenshuizhadan"+activeSheddingRate);
                 activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
                 activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf, ResaConfig.ACTIVE_SHEDDING_MAP, "{}"));
-                watchActiveShedRate();
+                watchActiveShedRatio();
             } catch (ParseException e) {
                 e.printStackTrace();
             } catch (Exception e) {
@@ -301,7 +301,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
         }
     }
 
-    public void watchActiveShedRate() throws Exception {
+    public void watchActiveShedRatio() throws Exception {
         NodeCache nodeCache = DRSzkHandler.createNodeCache("/drs/"+topologyName);
         LOG.info(compID+" watch active shedding ratio!");
         //if (DRSzkHandler.clientIsStart()) {

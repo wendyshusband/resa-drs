@@ -311,7 +311,7 @@ public class DetectorSleep extends TASleepBolt implements Constant {
             }
         });
         patterns.removeExpired(now);
-        sleep(wordListArrayList.size());
+        //sleep(wordListArrayList.size());
         collector.ack(input);
     }
 

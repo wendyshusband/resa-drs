@@ -82,6 +82,7 @@ public class FrequentPatternTopologySleep implements Constant {
 //        }
         //resaConfig.setDebug(true);
         TestRedis.add("type", "fp");
+        TestRedis.add("rebalance","0");
         TestRedis.add("time", String.valueOf(0));
         StormSubmitter.submitTopology(args[0], resaConfig, builder.createTopology());
         //LocalCluster localCluster = new LocalCluster();

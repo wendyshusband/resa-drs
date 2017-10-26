@@ -29,10 +29,10 @@ public class SheddingLoadRevert {
                               Map<String, Object> targets, Map<String, double[]> selectivityFunctions) {
         topology = stormTopology;
         topologyTargets.putAll(targets);
-//        System.out.println(targets+"realtargets:"+topologyTargets);
-//        Map<String, ArrayList<String>> detector = (Map<String, ArrayList<String>>) topologyTargets.get("detector");
-//        detector.remove("feedback");
-//        System.out.println(targets+"fakerealtargets:"+topologyTargets);
+        System.out.println(targets+"realtargets:"+topologyTargets);
+        Map<String, ArrayList<String>> detector = (Map<String, ArrayList<String>>) topologyTargets.get("detector");
+        detector.remove("feedback");
+        System.out.println(targets+"fakerealtargets:"+topologyTargets);
         topologyTargets.entrySet().stream().filter(e -> topology.get_bolts().containsKey(e.getKey())).forEach(e->{
             revertRealLoadDatas.put(e.getKey(),new RevertRealLoadData(e.getKey()));
         });
@@ -96,8 +96,15 @@ public class SheddingLoadRevert {
         Map<String,Long> emitCountMap = sourceNode.getEmitCount();
         long denominator = emitCountMap.values().stream().mapToLong(Number::longValue).sum();
         LOG.info("sourceNode : "+sourceNode.getComponentID()+" whole emit tuple number ="+ denominator);
-        sourceNode.revertLambda((sourceNode.getShedRelateCount().get("spoutDrop")+denominator) / sourceNode.getSumDurationSeconds());
-        LOG.info("Reverted Lambda 0: "+(sourceNode.getShedRelateCount().get("spoutDrop")+denominator) / sourceNode.getSumDurationSeconds());
+
+        if (sourceNode.getShedRelateCount().get("spoutDrop") != 0) {
+            System.out.println("Reverted1"+sourceNode);
+            sourceNode.revertLambda((sourceNode.getShedRelateCount().get("spoutDrop")+denominator) / sourceNode.getSumDurationSeconds());
+            LOG.info("Reverted Lambda 0: "+(sourceNode.getShedRelateCount().get("spoutDrop")+denominator) / sourceNode.getSumDurationSeconds());
+            System.out.println("Reverted2"+sourceNode);
+        } else {
+            LOG.info("Reverted Lambda 0 no need!!!!");
+        }
         Map<String,ArrayList<String>> stream2CompLists =
                 (Map<String, ArrayList<String>>) topologyTargets.get(sourceNode.getComponentID());
         if (!stream2CompLists.isEmpty()) {
