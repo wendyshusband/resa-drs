@@ -170,7 +170,7 @@ public class  SheddingMMKAllocCalculator extends SheddingAllocCalculator {
         }
 
         AllocResult allocResult = shedRateAndAllocResult.getAllocResult();
-        Map<String, Map<String,Double>> activeShedRate = shedRateAndAllocResult.getActiveShedRate();
+        Map<String, Map<String,Double>> activeShedRate = shedRateAndAllocResult.getActiveShedRatio();
         Map<String, Integer> retCurrAllocation = null;
         if (allocResult.currOptAllocation != null) {
             retCurrAllocation = new HashMap<>(currAllocation);

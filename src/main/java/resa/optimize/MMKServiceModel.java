@@ -116,7 +116,7 @@ public class MMKServiceModel implements ServiceModel {
     static Map<String, Integer> getMinReqServerAllocationGeneralTopApplyMMK(
             double realLatencyMilliSeconds, double estTotalSojournTimeMilliSec_MMK, Map<String, ServiceNode> serviceNodes,
             double completeTimeMilliSecUpper, double completeTimeMilliSecLower, int currentUsedThreadByBolts, int maxAvailableExec, int reUnit) {
-
+        System.out.println("break:getMinReqServerAllocationGeneralTopApplyMMK");
         double lowerBoundServiceTimeSeconds = 0.0;  //in seconds
         int totalMinReq = 0;
         for (Map.Entry<String, ServiceNode> e : serviceNodes.entrySet()) {
@@ -124,12 +124,14 @@ public class MMKServiceModel implements ServiceModel {
             double mu = e.getValue().getMu();
             ///caution, the unit should be millisecond
             lowerBoundServiceTimeSeconds += (1.0 / mu);
+            System.out.println(lowerBoundServiceTimeSeconds+"lowerBoundServiceTimeSecondsmu="+mu);
             totalMinReq += getMinReqServerCount(lambda, mu);
         }
 
         double adjRatio = Math.max(1.0, realLatencyMilliSeconds / estTotalSojournTimeMilliSec_MMK);
 
         Map<String, Integer> currAllocation = null;
+        System.out.println("break:adjRatio: "+adjRatio+"lowerBoundServiceTimeSeconds: "+lowerBoundServiceTimeSeconds * adjRatio * 1000.0+"totalMinReq:"+totalMinReq+" maxAvailableExec:"+maxAvailableExec);
         if (lowerBoundServiceTimeSeconds * adjRatio * 1000.0 < completeTimeMilliSecUpper && totalMinReq < maxAvailableExec) {
             LOG.debug("getMinReqServerAllocationGeneralTopApplyMMK(), " +
                     "lowerBoundServiceTimeSeconds * adjRatio * 1000.0 < completeTimeMilliSecUpper && totalMinReq < maxAvailableExec");
@@ -138,18 +140,21 @@ public class MMKServiceModel implements ServiceModel {
             for (; i <= maxAvailableExec; i += reUnit) {
                 currAllocation = suggestAllocationGeneralTopApplyMMK(serviceNodes, i);
                 double currTime = getExpectedTotalSojournTimeForJacksonOQN(serviceNodes, currAllocation);
-
+                System.out.println("break:currallocation:"+currAllocation);
                 LOG.debug(String.format("completeT upper bound (ms): %.4f, rawCompleteTime(ms): %.4f, afterAdjust(ms): %.4f, totalMinReqQoS: %d",
                         completeTimeMilliSecUpper, currTime * 1000.0, currTime * 1000.0 * adjRatio, i));
+                System.out.println("break:gediaomao "+(currTime * 1000.0 * adjRatio));
                 if (currTime * 1000.0 * adjRatio < completeTimeMilliSecUpper) {
+                    System.out.println("qiangxing break:"+(currTime * 1000.0 * adjRatio));
                     break;
                 }
             }
-
             if (i <= maxAvailableExec) {
+                System.out.println(maxAvailableExec+"meibanfabreak:"+i);
                 return currAllocation;
             }
         }
+        System.out.println("break:returnNulls");
         return null;
     }
 
@@ -260,8 +265,11 @@ public class MMKServiceModel implements ServiceModel {
                     completeTimeMilliSecUpper, completeTimeMilliSecLower, currentUsedThreadByBolts, maxAvailable4Bolt, resourceUnit);
 
             if (adjustedAllocation == null){
+                System.out.println("break:infeasible");
                 LOG.debug("Status is resource shortage and no feasible re-allocation solution");
                 status = AllocResult.Status.INFEASIBLE;
+            } else {
+                System.out.println("break:gaoluan"+adjustedAllocation);
             }
 
         } else if (status.equals(AllocResult.Status.OVERPROVISIONING)) {

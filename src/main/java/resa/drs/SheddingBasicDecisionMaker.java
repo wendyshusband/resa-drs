@@ -64,7 +64,7 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
     private long startTimeMillis;
     private long minExpectedIntervalMillis;
     private int rbTypeValue;
-
+    private boolean enableActiveShedding;
     @Override
     public void init(Map<String, Object> conf, StormTopology rawTopology) {
         startTimeMillis = System.currentTimeMillis();
@@ -74,7 +74,7 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
          * here we -50 for synchronization purpose, this needs to be tested **/
         minExpectedIntervalMillis = ConfigUtil.getLong(conf, ResaConfig.OPTIMIZE_MIN_EXPECTED_REBALANCE_INTERVAL, calcIntervalSec * 2) * 1000 - 50;
         rbTypeValue = ConfigUtil.getInt(conf, ResaConfig.OPTIMIZE_REBALANCE_TYPE, RebalanceType.CurrentOpt.getValue());
-
+        enableActiveShedding = ConfigUtil.getBoolean(conf, ResaConfig.ACTIVE_SHEDDING_ENABLE, true);
         //List zkServer = (List) conf.get(Config.STORM_ZOOKEEPER_SERVERS);
         //int port = Math.toIntExact((long) conf.get(Config.STORM_ZOOKEEPER_PORT));
         //client = DRSzkHandler.newClient(zkServer.get(0).toString(), port, 6000, 6000, 1000, 3);
@@ -96,7 +96,7 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
             return null;
         }
 
-        Map<String, Map<String,Double>> activeShedRate = newResult.getActiveShedRate();
+        Map<String, Map<String,Double>> activeShedRate = newResult.getActiveShedRatio();
 
         System.out.println("sheddingBasicDecisionMaker activeRate:"+activeShedRate);
         AllocResult newAllocResult = newResult.getAllocResult();
@@ -107,12 +107,13 @@ public class SheddingBasicDecisionMaker implements ISheddingDecisionMaker {
         } else {
             LOG.info("timeSpan (" + timeSpan + ") >>> minExpectedIntervalMillis (" + minExpectedIntervalMillis + ")"+" startTimeMillis:"+startTimeMillis);
         }
-
-        try {
-            DRSzkHandler.sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
-            //DRSzkHandler.sentActiveSheddingRate(testBuildShedRatio(), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (enableActiveShedding) {
+            try {
+                DRSzkHandler.sentActiveSheddingRate(activeShedRate.get("adjustedActiveShedRate"), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
+                //DRSzkHandler.sentActiveSheddingRate(testBuildShedRatio(), topologyName, DRSzkHandler.lastDecision.DECISIONMAKE);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         if (rbTypeValue == DefaultDecisionMaker.RebalanceType.MaxExecutorOpt.getValue()) {

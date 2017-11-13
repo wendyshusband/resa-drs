@@ -155,7 +155,7 @@ public class SheddingResourceScheduler {
             try {
                 ShedRateAndAllocResult decision = allocCalculator.calc(data,maxExecutors,ctx.getTopology(),ctx.getTargets());
                 if (decision != null) {
-                    ctx.emitMetric("drs.alloc", decision);
+                    ctx.emitMetric("drs.alloc", decision.getAllocResult());
                     LOG.debug("emit drs metric {}", decision);
                 }else{
                     LOG.info("sheddingResourceScheduler decision is null!");

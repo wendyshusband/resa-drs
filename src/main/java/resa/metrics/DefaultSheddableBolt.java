@@ -43,7 +43,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     private double passiveSheddingThreshold;
     private transient MultiCountMetric sheddingRatioMetric;
     private HashMap<String,List<String>> activeSheddingStreamMap;
-    private double activeSheddingRate;
+    private double activeSheddingRatio;
     private String compID;
     private String topologyName;
     private AbstractSampler activeSheddingSampler;
@@ -141,15 +141,15 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                     DRSzkHandler.start();
                 }
                 if (compID.equals(conf.get("test.shedding.bolt"))) {
-                    System.out.println(compID+" zhadan"+activeSheddingRate);
-                    activeSheddingRate = (double) conf.get("test.shedding.rate");
+                    System.out.println(compID+" zhadan"+activeSheddingRatio);
+                    activeSheddingRatio = (double) conf.get("test.shedding.rate");
                 } else {
-                    activeSheddingRate = 0.0;
+                    activeSheddingRatio = 0.0;
                 }
-                System.out.println(compID+" shenshuizhadan"+activeSheddingRate);
-                activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
+                System.out.println(compID+" shenshuizhadan"+activeSheddingRatio);
+                activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRatio);
                 activeSheddingStreamMap = (JSONObject) parser.parse(ConfigUtil.getString(conf, ResaConfig.ACTIVE_SHEDDING_MAP, "{}"));
-                watchActiveShedRatio();
+                //watchActiveShedRatio();
             } catch (ParseException e) {
                 e.printStackTrace();
             } catch (Exception e) {
@@ -240,6 +240,7 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
     }
 
     public void execute(Tuple tuple) {
+       // handle(tuple);
         sheddingRatioMetric.scope("allTuple").incr();
         boolean flag = true;
         switch (sheddingCase) {
@@ -250,10 +251,10 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                     sheddingRatioMetric.scope("dropTuple").incrBy(sheddTupleNum);
                     sheddingRatioMetric.scope("dropFrequency").incr();
                 } else {
-                    if(activeSheddingRate != 0.0) {
+                    if(activeSheddingRatio != 0.0) {
                         if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
                             if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
-                                //LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple.getSourceStreamId());
+                                //LOG.info(compID + " : " + activeSheddingRatio + "wobu "+tuple.getSourceStreamId());
                                 if (activeSheddingSampler.shoudSample()) {
                                     flag = false;
                                 }
@@ -272,10 +273,10 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
                 break;
             }
             case 3: {
-                if(activeSheddingRate != 0.0) {
+                if(activeSheddingRatio != 0.0) {
                     if (activeSheddingStreamMap.containsKey(tuple.getSourceComponent())) {
                         if (activeSheddingStreamMap.get(tuple.getSourceComponent()).contains(tuple.getSourceStreamId())) {
-                            //LOG.info(compID + " : " + activeSheddingRate + "wobu "+tuple);
+                            //LOG.info(compID + " : " + activeSheddingRatio + "wobu "+tuple);
                             if (activeSheddingSampler.shoudSample()) {
                                 flag = false;
                             }
@@ -310,10 +311,10 @@ public final class DefaultSheddableBolt extends DelegatedBolt implements ISheddi
 
                 public void nodeChanged() throws Exception {
                     double shedRate = DRSzkHandler.parseActiveShedRateMap(nodeCache.getCurrentData().getData(), compID);
-                    if (shedRate != Double.MAX_VALUE && shedRate != activeSheddingRate) {
-                        System.out.println(activeSheddingRate + "womabi" + compID + ":" + "haha" + shedRate);
-                        activeSheddingRate = shedRate;
-                        activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRate);
+                    if (shedRate != Double.MAX_VALUE && shedRate != activeSheddingRatio) {
+                        System.out.println(activeSheddingRatio + "womabi" + compID + ":" + "haha" + shedRate);
+                        activeSheddingRatio = shedRate;
+                        activeSheddingSampler = new ActiveSheddingSampler(activeSheddingRatio);
                     }
                 }
             }, DRSzkHandler.EXECUTOR_SERVICE);

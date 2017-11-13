@@ -11,7 +11,7 @@ import java.util.*;
 public class CheckSheddingAccuracy {
 
     public static void main(String[] args) {
-        CheckSheddingAccuracy.check();
+        CheckSheddingAccuracy.checkFP();
     }//.check();//
     private static int sizeOfBitSet = 1000;
     private static int fullBeginLine = 6938;//4288;
@@ -22,10 +22,10 @@ public class CheckSheddingAccuracy {
 
     private static void checkFP() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/fptest/one/onebs3", 100000);
+                .readFileByLine("/opt/oddata/mmp/fpb8", 100000);
                 //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/fptest/one/oneas43", 100000);
+                .readFileByLine("/opt/oddata/mmp/fp8", 100000);
                 //.subList(shedBeginLine,shedEndLine);
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
@@ -64,10 +64,10 @@ public class CheckSheddingAccuracy {
     }
     private static void check() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/20171023all/xiaoxiongdi/jixian/twob6", 100000);
+                .readFileByLine("/opt/oddata/mmp/fpb1", 100000);
                 //.subList(fullBeginLine,fullEndLine);
         List sheddata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/20171023all/xiaoxiongdi/jixian/two6", 100000);
+                .readFileByLine("/opt/oddata/mmp/fp1", 100000);
                 //.subList(shedBeginLine,shedEndLine)
         Iterator iteratorShed = sheddata.iterator();
         Iterator iteratorFull = fulldata.iterator();
@@ -389,7 +389,7 @@ public class CheckSheddingAccuracy {
     @Test
     public void readLatency() {
         List fulldata = TestWRInputFileForRedis
-                .readFileByLine("/opt/oddata/20171023all/xiaoxiongdi/jixian/twolatency1", 100000);
+                .readFileByLine("/opt/oddata/mmp/fplatency", 100000);
         String[] res1;
         String[] res2;
         ArrayList<Double> ratios = new ArrayList<>();

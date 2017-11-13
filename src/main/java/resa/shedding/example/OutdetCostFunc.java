@@ -1,7 +1,7 @@
 package resa.shedding.example;
 
 import resa.shedding.basicServices.api.AbstractTotalCost;
-import resa.shedding.basicServices.api.AllocationAndActiveShedRates;
+import resa.shedding.basicServices.api.AllocationAndActiveShedRatios;
 import resa.shedding.basicServices.api.ICostFunction;
 
 /**
@@ -30,7 +30,7 @@ public class OutdetCostFunc implements ICostFunction {
     }
 
     @Override
-    public AbstractTotalCost calcCost(AllocationAndActiveShedRates args) {
+    public AbstractTotalCost calcCost(AllocationAndActiveShedRatios args) {
         double alloCost = args.getFixedAllocation().values().stream().mapToDouble(Number::doubleValue).sum();
         double shedCost = args.getActiveShedRates().values().stream().mapToDouble(Number::doubleValue).sum();
         //return new OutdetCost(alloCost, powerFunc(shedCost));

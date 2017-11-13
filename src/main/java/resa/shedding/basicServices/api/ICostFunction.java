@@ -5,5 +5,5 @@ package resa.shedding.basicServices.api;
  */
 public interface ICostFunction {
 
-    AbstractTotalCost calcCost(AllocationAndActiveShedRates args);
+    AbstractTotalCost calcCost(AllocationAndActiveShedRatios args);
 }

@@ -12,8 +12,8 @@ import java.util.Date;
  */
 public class FPAndODCost extends AbstractTotalCost {
 
-    private static final double threshold = 0.7;
-    private static final double costThreshold = 21.0;
+    private static final double threshold = 0.87;
+    private static final double costThreshold = 17.0;
 
     private static final Jedis jedis = TestRedis.getJedis();
     private static String name = jedis.get("type");
@@ -56,7 +56,7 @@ public class FPAndODCost extends AbstractTotalCost {
         double cost;
         long start = Long.valueOf(jedis.get("time"));
         Date date = new Date();
-        if (start > 1499900) {
+        if (start > 54999 && start < 100000) {
             System.out.println(name+" wtfcostis:accuracysensitive"+start+"now"+date.toString());
             if (name.equals("od")) {
                 cost = resourceCost + odAccuracySensitive(shedCost);

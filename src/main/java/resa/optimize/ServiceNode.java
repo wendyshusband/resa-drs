@@ -46,7 +46,7 @@ public class ServiceNode {
     protected long dropCount = 0;
     protected long allCount = 0;
     protected long dropFrequency = 0;
-    protected long activeDropCount = 0;
+    protected long activeDropCount = 0;.
 
     public ServiceNode(String componentID, int executorNumber, double compSampleRate,
                        BoltAggResult ar, double exArrivalRate){

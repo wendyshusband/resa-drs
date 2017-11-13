@@ -9,25 +9,25 @@ import java.util.Map;
  */
 public class ShedRateAndAllocResult {
 
-    public AllocResult allocResult;
-    public Map<String, Map<String,Double>> activeShedRate;
+    private AllocResult allocResult;
+    private Map<String, Map<String,Double>> activeShedRatio;
     public ShedRateAndAllocResult(AllocResult.Status status, Map<String, Integer> minReqOptAllocation,
                                   Map<String, Integer> currOptAllocation, Map<String, Integer> kMaxOptAllocation,
                                   Map<String, Map<String,Double>> activeShedRate, Map<String, Object> ctx){
         this.allocResult = new AllocResult(status, minReqOptAllocation, currOptAllocation, kMaxOptAllocation).setContext(ctx);
-        this.activeShedRate = activeShedRate;
+        this.activeShedRatio = activeShedRate;
     }
 
     public AllocResult getAllocResult() {
         return this.allocResult;
     }
 
-    public Map<String, Map<String,Double>> getActiveShedRate() {
-        return activeShedRate;
+    public Map<String, Map<String,Double>> getActiveShedRatio() {
+        return activeShedRatio;
     }
 
     @Override
     public String toString() {
-        return activeShedRate.toString()+"/"+allocResult;
+        return "{Active shedding ratio: "+activeShedRatio.toString()+" Allocation: "+allocResult+"}";
     }
 }

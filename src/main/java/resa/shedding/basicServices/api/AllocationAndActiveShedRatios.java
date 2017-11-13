@@ -6,12 +6,12 @@ import java.util.Map;
  * Class for active shedding including suggestAllocation and activeShedRate.
  * Created by kailin on 2017/8/7.
  */
-public class AllocationAndActiveShedRates {
+public class AllocationAndActiveShedRatios {
 
     private Map<String, Integer> fixedAllocation;
     private Map<String, Double> activeShedRatios;
 
-    public AllocationAndActiveShedRates(Map<String, Integer> fixedAllocation,
+    public AllocationAndActiveShedRatios(Map<String, Integer> fixedAllocation,
                                         Map<String, Double> activeShedRates){
         this.activeShedRatios = activeShedRates;
         this.fixedAllocation = fixedAllocation;
